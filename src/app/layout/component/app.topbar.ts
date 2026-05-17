@@ -18,14 +18,36 @@ import { InputTextModule } from 'primeng/inputtext';
 import { StepperModule } from 'primeng/stepper';
 import { IconField, IconFieldModule } from 'primeng/iconfield';
 import { InputIcon, InputIconModule } from 'primeng/inputicon';
+import { AuthService } from '../../auth/service/auth.service';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, BreadcrumbModule, TieredMenuModule, ContextMenuModule, MenuModule, ButtonModule, MegaMenuModule, PanelMenuModule, TabsModule, MenubarModule, InputTextModule, StepperModule, IconFieldModule, InputIconModule],
+    imports: [
+        RouterModule,
+        CommonModule,
+        StyleClassModule,
+        AppConfigurator,
+        BreadcrumbModule,
+        TieredMenuModule,
+        ContextMenuModule,
+        MenuModule,
+        ButtonModule,
+        MegaMenuModule,
+        PanelMenuModule,
+        TabsModule,
+        MenubarModule,
+        InputTextModule,
+        StepperModule,
+        IconFieldModule,
+        InputIconModule,
+    ],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
-            <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
+            <button
+                class="layout-menu-button layout-topbar-action"
+                (click)="layoutService.onMenuToggle()"
+            >
                 <i class="pi pi-bars"></i>
             </button>
             <a class="layout-topbar-logo" routerLink="/">
@@ -52,7 +74,9 @@ import { InputIcon, InputIconModule } from 'primeng/inputicon';
 
         <!-- Mensaje de bienvenida (Oculto en móviles para no amontonar) -->
         <div class="hidden md:block ml-4">
-            <span class="text-color-secondary">¡Buenos días, <b class="text-color">Alexandra</b>!</span>
+            <span class="text-color-secondary"
+                >¡Buenos días, <b class="text-color">Alexandra</b>!</span
+            >
         </div>
 
         <!-- SECCIÓN CENTRAL: Búsqueda Centrada -->
@@ -66,7 +90,13 @@ import { InputIcon, InputIconModule } from 'primeng/inputicon';
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
-                    <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
+                    <i
+                        [ngClass]="{
+                            'pi ': true,
+                            'pi-moon': layoutService.isDarkTheme(),
+                            'pi-sun': !layoutService.isDarkTheme(),
+                        }"
+                    ></i>
                 </button>
                 <div class="relative">
                     <button
@@ -84,9 +114,25 @@ import { InputIcon, InputIconModule } from 'primeng/inputicon';
                 </div>
             </div>
 
-            <button class="layout-topbar-menu-button layout-topbar-action" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
+            <button
+                class="layout-topbar-menu-button layout-topbar-action"
+                pStyleClass="@next"
+                enterFromClass="hidden"
+                enterActiveClass="animate-scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="animate-fadeout"
+                [hideOnOutsideClick]="true"
+            >
                 <i class="pi pi-ellipsis-v"></i>
             </button>
+
+            @if (authService.authStatus() === 'authenticated') {
+                <button class="btn btn-ghost">
+                    {{ authService.user()?.email }}
+                </button>
+
+                <button class="btn btn-error" (click)="authService.logout()">Salir</button>
+            }
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
@@ -95,16 +141,17 @@ import { InputIcon, InputIconModule } from 'primeng/inputicon';
                         <span>Messages</span>
                     </button>
                     <!-- 8. PERFIL (Botón de engranaje con menú desplegable) -->
-                     <div class="flex align-items-center">
-                     <!-- El Menú (está oculto hasta que se dispara) -->
-                       <p-menu #profileMenu [model]="userMenuItems" [popup]="true"></p-menu>
+                    <div class="flex align-items-center">
+                        <!-- El Menú (está oculto hasta que se dispara) -->
+                        <p-menu #profileMenu [model]="userMenuItems" [popup]="true"></p-menu>
 
-                     <!-- El Botón Redondo -->
-                       <button
+                        <!-- El Botón Redondo -->
+                        <button
                             type="button"
                             pButton
                             class="layout-topbar-action p-button-rounded p-button-text p-button-plain"
-                            (click)="profileMenu.toggle($event)">
+                            (click)="profileMenu.toggle($event)"
+                        >
                             <i class="pi pi-user"></i>
                         </button>
                     </div>
@@ -112,48 +159,51 @@ import { InputIcon, InputIconModule } from 'primeng/inputicon';
             </div>
         </div>
     </div>`,
-    styles: [`
-        .layout-topbar-search {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-        }
+    styles: [
+        `
+            .layout-topbar-search {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+            }
 
-        :ng-deep .user-menubar .p-menubar {
-            background: transparent;
-            border: none;
-            padding: 0;
-        }
+            :ng-deep .user-menubar .p-menubar {
+                background: transparent;
+                border: none;
+                padding: 0;
+            }
 
-        :ng-deep .user-menubar .p-menuitem-link {
-            padding: 0.5rem !important;
-        }
+            :ng-deep .user-menubar .p-menuitem-link {
+                padding: 0.5rem !important;
+            }
 
-        .custom-user-menu {
-            display: flex;
-            align-items: center;
-        }
-        :ng-deep .layout-topbar-action.p-button-text {
-            color: var(--text-color-secondary) !important;
-            background: transparent !important;
-            border: none !important;
-        }
+            .custom-user-menu {
+                display: flex;
+                align-items: center;
+            }
+            :ng-deep .layout-topbar-action.p-button-text {
+                color: var(--text-color-secondary) !important;
+                background: transparent !important;
+                border: none !important;
+            }
 
-        :ng-deep .layout-topbar-action.p-button-text:hover {
-            background: var(--surface-hover) !important;
-            color: var(--text-color) !important;
-        }
-    `]
+            :ng-deep .layout-topbar-action.p-button-text:hover {
+                background: var(--surface-hover) !important;
+                color: var(--text-color) !important;
+            }
+        `,
+    ],
 })
 export class AppTopbar {
     items!: MenuItem[];
 
     layoutService = inject(LayoutService);
+    authService = inject(AuthService);
 
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({
             ...state,
-            darkTheme: !state.darkTheme
+            darkTheme: !state.darkTheme,
         }));
     }
     userMenuItems: MenuItem[] = [];
@@ -166,9 +216,13 @@ export class AppTopbar {
                     { label: 'Mi Perfil', icon: 'pi pi-user', routerLink: ['/profile'] },
                     { label: 'Configuración', icon: 'pi pi-cog', routerLink: ['/settings'] },
                     { separator: true },
-                    { label: 'Cerrar Sesión', icon: 'pi pi-sign-out', command: () => this.logout() }
-                ]
-            }
+                    {
+                        label: 'Cerrar Sesión',
+                        icon: 'pi pi-sign-out',
+                        command: () => this.logout(),
+                    },
+                ],
+            },
         ];
     }
 
