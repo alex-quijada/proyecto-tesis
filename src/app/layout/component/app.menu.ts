@@ -49,7 +49,7 @@ export class AppMenu {
                         icon: 'pi pi-fw pi-truck',
                         path: '/operaciones/vehiculos',
                         items: [
-                            { label: 'Listado de Unidades', icon: 'pi pi-fw pi-list', routerLink: ['/vehiculos/lista'] },
+                            { label: 'Listado de Unidades', icon: 'pi pi-fw pi-list', routerLink: ['/vehiculos'] },
                             { label: 'Mantenimiento Preventivo', icon: 'pi pi-fw pi-wrench', routerLink: ['/vehiculos/mantenimiento'] },
                             { label: 'Control de Combustible', icon: 'pi pi-fw pi-percentage', routerLink: ['/vehiculos/combustible'] }
                         ]
