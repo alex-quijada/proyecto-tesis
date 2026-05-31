@@ -126,13 +126,13 @@ import { AuthService } from '../../auth/service/auth.service';
                 <i class="pi pi-ellipsis-v"></i>
             </button>
 
-            @if (authService.authStatus() === 'authenticated') {
+            <!-- @if (authService.authStatus() === 'authenticated') {
                 <button class="btn btn-ghost">
                     {{ authService.user()?.email }}
                 </button>
 
                 <button class="btn btn-error" (click)="authService.logout()">Salir</button>
-            }
+            } -->
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">

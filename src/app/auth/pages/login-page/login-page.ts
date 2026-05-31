@@ -1,6 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-
 import { Router } from '@angular/router';
 
 import { InputTextModule } from 'primeng/inputtext';
@@ -41,7 +40,6 @@ export class LoginPage {
         if (this.loginForm.invalid) {
             this.loginForm.markAllAsTouched();
             this.hasError.set(true);
-
             return;
         }
 
@@ -51,11 +49,24 @@ export class LoginPage {
         const { email, password } = this.loginForm.getRawValue();
 
         try {
+            // 1. Esperar a que Supabase autentique al usuario
             await this.authService.login(email!, password!);
 
-            this.router.navigateByUrl('/');
+            // 2. Obtener el rol desde la metadata que configuramos en el AuthService
+            const userRole = this.authService.getUserRole();
+
+            // 3. Redirección inteligente inmediata
+            if (userRole === 'Chofer') {
+                this.router.navigate(['/chofer/mis-guias']);
+            } else if (userRole === 'Analista' || userRole === 'Administrador') {
+                this.router.navigate(['/analista/dashboard']);
+            } else {
+                // Si el usuario no tiene rol asignado en la metadata de Supabase
+                console.warn('Usuario sin rol logístico asignado.');
+                this.router.navigate(['/']);
+            }
         } catch (error) {
-            console.error(error);
+            console.error('Error en el inicio de sesión:', error);
             this.hasError.set(true);
         } finally {
             this.isPosting.set(false);
