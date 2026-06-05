@@ -1,0 +1,228 @@
+<p-dialog
+    [(visible)]="visible"
+    [style]="{ width: '800px' }"
+    [header]="(vehiculo().placa || 'Vehículo') + ' — ' + (vehiculo().marca || '') + ' ' + (vehiculo().modelo || '')"
+    [modal]="true"
+    [maximizable]="true">
+
+    <ng-template #content>
+        <p-tabs [(value)]="activeTab">
+            <p-tablist>
+                <p-tab value="0" class="font-semibold">
+                    <i class="pi pi-info-circle mr-1"></i>
+                    General
+                </p-tab>
+                <p-tab value="1" class="font-semibold">
+                    <i class="pi pi-gauge mr-1"></i>
+                    Kilometraje / Mantenimiento
+                    <span *ngIf="mantenimientos.length" class="ml-1 text-xs bg-primary-100 text-primary-800 rounded-full px-2 py-0.5">{{ mantenimientos.length }}</span>
+                </p-tab>
+                <p-tab value="2" class="font-semibold">
+                    <i class="pi pi-file mr-1"></i>
+                    Documentos Legales
+                </p-tab>
+            </p-tablist>
+
+            <p-tabpanel value="0">
+                <div class="grid grid-cols-12 gap-4 mt-2">
+                    <div class="col-span-4 flex flex-col items-center gap-2">
+                        <div class="w-32 h-32 rounded-lg shadow-md bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 flex items-center justify-center overflow-hidden">
+                            <img *ngIf="vehiculo().imagen && !esImagenDefault(vehiculo().imagen)" [src]="vehiculo().imagen" class="w-full h-full object-cover" />
+                            <i *ngIf="!vehiculo().imagen || esImagenDefault(vehiculo().imagen)"
+                                [ngClass]="{ 'pi pi-car': vehiculo().tipo === 'CARRO', 'pi pi-directions': vehiculo().tipo === 'MOTO', 'pi pi-truck': vehiculo().tipo === 'CAMION' || !vehiculo().tipo }"
+                                class="text-5xl text-surface-400">
+                            </i>
+                        </div>
+                        <p-tag [value]="vehiculo().estado" [severity]="getSeverity(vehiculo().estado)" />
+                    </div>
+
+                    <div class="col-span-8 flex flex-col gap-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Placa</span>
+                                <p class="font-bold text-lg text-surface-900 dark:text-surface-0 mt-0 mb-0">{{ vehiculo().placa }}</p>
+                            </div>
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Año</span>
+                                <p class="font-semibold mt-0 mb-0">{{ vehiculo().anio }}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Marca / Modelo</span>
+                                <p class="mt-0 mb-0">{{ vehiculo().marca }} {{ vehiculo().modelo }}</p>
+                            </div>
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Tipo</span>
+                                <p class="mt-0 mb-0">{{ vehiculo().tipo === 'CARRO' ? 'Automóvil' : vehiculo().tipo === 'MOTO' ? 'Motocicleta' : 'Camión de Carga' }}</p>
+                            </div>
+                        </div>
+                        <p-divider />
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Capacidad Pallets</span>
+                                <p class="font-semibold text-lg mt-0 mb-0">{{ vehiculo().capacidadPallets || 0 }}</p>
+                            </div>
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Peso Máximo</span>
+                                <p class="font-semibold text-lg mt-0 mb-0">{{ vehiculo().pesoMaximo | number }} Kg</p>
+                            </div>
+                            <div>
+                                <span class="text-xs text-surface-500 font-medium uppercase">Estructura</span>
+                                <p class="mt-0 mb-0"><p-tag [value]="getLabelCaja(vehiculo().tipoCaja)" [severity]="getSeverityCaja(vehiculo().tipoCaja)" /></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </p-tabpanel>
+
+            <p-tabpanel value="1">
+                <div class="mt-2">
+                    <div *ngIf="mantenimientos.length === 0" class="text-surface-400 italic text-center py-8">
+                        <i class="pi pi-inbox text-3xl block mb-2"></i>
+                        No hay registros de mantenimiento para esta unidad.
+                    </div>
+
+                    <p-table
+                        *ngIf="mantenimientos.length > 0"
+                        [value]="mantenimientos"
+                        dataKey="id"
+                        [rows]="5"
+                        [paginator]="true"
+                        [tableStyle]="{ 'min-width': '40rem' }">
+                        <ng-template #header>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Fecha Prog.</th>
+                                <th>Km</th>
+                                <th>Descripción</th>
+                                <th>Responsable</th>
+                                <th>Costo</th>
+                                <th>Estado</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-m>
+                            <tr>
+                                <td><p-tag [value]="m.tipoLabel" [severity]="m.tipo === 'PREVENTIVO' ? 'info' : 'warn'" /></td>
+                                <td class="text-sm">{{ m.fechaProgramada }}</td>
+                                <td class="font-mono text-sm">{{ m.kilometraje | number }}</td>
+                                <td class="text-sm">{{ m.descripcion.length > 40 ? (m.descripcion | slice:0:40) + '...' : m.descripcion }}</td>
+                                <td class="text-sm">{{ m.responsable }}</td>
+                                <td class="font-mono text-sm">{{ m.costo | currency:'USD':'symbol':'1.2-2' }}</td>
+                                <td><p-tag [value]="m.estadoLabel" [severity]="getSeverityEstadoMtto(m.estado)" /></td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+            </p-tabpanel>
+
+            <p-tabpanel value="2">
+                <div class="flex flex-col gap-4 mt-2">
+                    <div class="border border-surface-200 dark:border-surface-700 rounded p-4">
+                        <div class="font-semibold text-md mb-3 flex items-center gap-2">
+                            <i class="pi pi-shield text-primary"></i>
+                            Seguro
+                        </div>
+
+                        <div *ngIf="vehiculo().seguro; else sinSeguro">
+                            <div class="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                                <div>
+                                    <span class="text-surface-500 font-medium">Empresa:</span>
+                                    <p class="mt-0 mb-0 font-semibold">{{ vehiculo().seguro!.empresa }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-surface-500 font-medium">N° Póliza:</span>
+                                    <p class="mt-0 mb-0">{{ vehiculo().seguro!.poliza }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-surface-500 font-medium">Cobertura:</span>
+                                    <p class="mt-0 mb-0">{{ vehiculo().seguro!.tipoCobertura === 'RC' ? 'Responsabilidad Civil' : vehiculo().seguro!.tipoCobertura === 'AMPLIA' ? 'Cobertura Amplia' : vehiculo().seguro!.tipoCobertura === 'TERCEROS' ? 'Terceros' : 'Todo Riesgo' }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-surface-500 font-medium">Vencimiento:</span>
+                                    <p class="mt-0 mb-0 flex items-center gap-2">
+                                        {{ vehiculo().seguro!.fechaVencimiento }}
+                                        <i class="pi pi-circle-fill text-xs"
+                                            [ngClass]="getValidezColor(vehiculo().seguro!.fechaVencimiento)"></i>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <ng-template #sinSeguro>
+                            <p class="text-surface-400 italic text-sm">No registrado</p>
+                        </ng-template>
+                    </div>
+
+                    <div class="border border-surface-200 dark:border-surface-700 rounded p-4">
+                        <div class="font-semibold text-md mb-3 flex items-center gap-2">
+                            <i class="pi pi-file text-primary"></i>
+                            Registro de Propiedad
+                        </div>
+                        <div *ngIf="vehiculo().documentosLegales?.numeroRegistro; else sinRegistro">
+                            <p class="mt-0 mb-0 font-semibold">{{ vehiculo().documentosLegales!.numeroRegistro }}</p>
+                        </div>
+                        <ng-template #sinRegistro>
+                            <p class="text-surface-400 italic text-sm">No registrado</p>
+                        </ng-template>
+                    </div>
+
+                    <div class="border border-surface-200 dark:border-surface-700 rounded p-4">
+                        <div class="font-semibold text-md mb-3 flex items-center gap-2">
+                            <i class="pi pi-check-circle text-primary"></i>
+                            Revisión Técnica
+                        </div>
+                        <div *ngIf="vehiculo().documentosLegales?.revisionTecnicaNumero; else sinRT">
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <span class="text-surface-500 font-medium">N° Certificado:</span>
+                                    <p class="mt-0 mb-0 font-semibold">{{ vehiculo().documentosLegales!.revisionTecnicaNumero }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-surface-500 font-medium">Vencimiento:</span>
+                                    <p class="mt-0 mb-0 flex items-center gap-2">
+                                        {{ vehiculo().documentosLegales!.revisionTecnicaVencimiento }}
+                                        <i class="pi pi-circle-fill text-xs"
+                                            [ngClass]="getValidezColor(vehiculo().documentosLegales!.revisionTecnicaVencimiento)"></i>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <ng-template #sinRT>
+                            <p class="text-surface-400 italic text-sm">No registrado</p>
+                        </ng-template>
+                    </div>
+
+                    <div class="border border-surface-200 dark:border-surface-700 rounded p-4"
+                        *ngIf="vehiculo().documentosLegales?.numeroContrato">
+                        <div class="font-semibold text-md mb-3 flex items-center gap-2">
+                            <i class="pi pi-file-edit text-primary"></i>
+                            Contrato
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-sm">
+                            <div>
+                                <span class="text-surface-500 font-medium">N° Contrato:</span>
+                                <p class="mt-0 mb-0 font-semibold">{{ vehiculo().documentosLegales!.numeroContrato }}</p>
+                            </div>
+                            <div>
+                                <span class="text-surface-500 font-medium">Empresa:</span>
+                                <p class="mt-0 mb-0">{{ vehiculo().documentosLegales!.empresaContrato }}</p>
+                            </div>
+                            <div>
+                                <span class="text-surface-500 font-medium">Vencimiento:</span>
+                                <p class="mt-0 mb-0 flex items-center gap-2">
+                                    {{ vehiculo().documentosLegales!.vencimientoContrato }}
+                                    <i class="pi pi-circle-fill text-xs"
+                                        [ngClass]="getValidezColor(vehiculo().documentosLegales!.vencimientoContrato)"></i>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </p-tabpanel>
+        </p-tabs>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cerrar" icon="pi pi-times" text (onClick)="hideDialog()" />
+    </ng-template>
+</p-dialog>

@@ -1,122 +1,239 @@
 <p-dialog
     [(visible)]="visible"
-    [style]="{ width: '500px' }"
-    [header]="vehiculo.id ? 'Modificar Especificaciones de Unidad' : 'Registrar Nueva Unidad en Flota'"
+    [style]="{ width: '650px' }"
+    [header]="vehiculoData().id ? 'Modificar Especificaciones de Unidad' : 'Registrar Nueva Unidad en Flota'"
     [modal]="true">
 
     <ng-template #content>
-        <p-fluid class="flex flex-col gap-4 pt-2">
+        <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
 
             <p-message *ngIf="errorMessage" severity="error" [text]="errorMessage" class="mb-2"></p-message>
 
-            <div class="flex flex-col gap-2">
-                <label for="tipo" class="font-semibold">Tipo de Unidad <span class="text-red-500">*</span></label>
-                <p-select
-                    id="tipo"
-                    [(ngModel)]="vehiculo.tipo"
-                    [options]="tiposVehiculo"
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Seleccionar tipo de transporte"
-                    (onChange)="onTipoVehiculoChange()"
-                    appendTo="body">
-                </p-select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col gap-2">
-                    <label for="placa" class="font-semibold">Placa Venezolana <span class="text-red-500">*</span></label>
-                    <input
-                        pInputText
-                        id="placa"
-                        [(ngModel)]="vehiculo.placa"
-                        placeholder="Ej: AB123CD"
-                        maxlength="9"
-                        [disabled]="!!vehiculo.id"
-                        class="uppercase" />
+            <p-fluid>
+                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                    Datos de la Unidad
                 </div>
+
                 <div class="flex flex-col gap-2">
-                    <label for="marca" class="font-semibold">Marca <span class="text-red-500">*</span></label>
-                    <input pInputText id="marca" [(ngModel)]="vehiculo.marca" placeholder="Ej: Chevrolet" />
+                    <label for="tipo" class="font-semibold">Tipo de Unidad <span class="text-red-500">*</span></label>
+                    <p-select
+                        id="tipo"
+                        formControlName="tipo"
+                        [options]="tiposVehiculo"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Seleccionar tipo de transporte"
+                        (onChange)="onTipoVehiculoChange()"
+                        appendTo="body">
+                    </p-select>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col gap-2">
-                    <label for="modelo" class="font-semibold">Modelo <span class="text-red-500">*</span></label>
-                    <input pInputText id="modelo" [(ngModel)]="vehiculo.modelo" placeholder="Ej: NPR Cava" />
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="placa" class="font-semibold">Placa Venezolana <span class="text-red-500">*</span></label>
+                        <input
+                            pInputText
+                            id="placa"
+                            formControlName="placa"
+                            placeholder="Ej: AB123CD"
+                            maxlength="9"
+                            class="uppercase" />
+                        <small *ngIf="submitted && form.get('placa')?.errors?.['required']" class="text-red-500">La placa es obligatoria</small>
+                        <small *ngIf="submitted && form.get('placa')?.errors?.['pattern']" class="text-red-500">Formato inválido</small>
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="marca" class="font-semibold">Marca <span class="text-red-500">*</span></label>
+                        <input pInputText id="marca" formControlName="marca" placeholder="Ej: Chevrolet" />
+                    </div>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label for="anio" class="font-semibold">Año <span class="text-red-500">*</span></label>
-                    <p-inputnumber
-                        id="anio"
-                        [(ngModel)]="vehiculo.anio"
-                        [useGrouping]="false"
-                        [maxlength]="4"
-                        placeholder="Ej: 2024" />
+
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="modelo" class="font-semibold">Modelo <span class="text-red-500">*</span></label>
+                        <input pInputText id="modelo" formControlName="modelo" placeholder="Ej: NPR Cava" />
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="anio" class="font-semibold">Año <span class="text-red-500">*</span></label>
+                        <p-inputnumber
+                            id="anio"
+                            formControlName="anio"
+                            [useGrouping]="false"
+                            [maxlength]="4"
+                            placeholder="Ej: 2024" />
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex flex-col gap-2">
-                <label for="imagen" class="font-semibold text-surface-500 dark:text-surface-400">Imagen del Vehículo (Opcional - URL)</label>
-                <input pInputText id="imagen" [(ngModel)]="vehiculo.imagen" placeholder="https://ejemplo.com/foto-camion.jpg" />
-            </div>
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="imagen" class="font-semibold text-surface-500 dark:text-surface-400">Imagen del Vehículo (Opcional - URL)</label>
+                    <input pInputText id="imagen" formControlName="imagen" placeholder="https://ejemplo.com/foto-camion.jpg" />
+                </div>
+            </p-fluid>
 
-            <div class="font-semibold text-lg border-b border-surface-200 dark:border-surface-700 pb-1 mt-2">Capacidades de Carga</div>
+            <p-divider />
 
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col gap-2">
-                    <label for="pallets" class="font-semibold">Capacidad de Pallets <span class="text-red-500">*</span></label>
-                    <p-inputnumber
-                        id="pallets"
-                        [(ngModel)]="vehiculo.capacidadPallets"
-                        [min]="0"
-                        [disabled]="vehiculo.tipo === 'CARRO' || vehiculo.tipo === 'MOTO'"
-                        placeholder="Cantidad" />
-                    <small *ngIf="vehiculo.tipo === 'CARRO' || vehiculo.tipo === 'MOTO'" class="text-surface-400 italic">
-                        Bloqueado: Automóviles/Motos cargan 0 pallets.
+            <p-fluid>
+                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                    Capacidades de Carga
+                </div>
+
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="pallets" class="font-semibold">Capacidad de Pallets <span class="text-red-500">*</span></label>
+                        <p-inputnumber
+                            id="pallets"
+                            formControlName="capacidadPallets"
+                            [min]="0"
+                            [disabled]="form.get('tipo')?.value === 'CARRO' || form.get('tipo')?.value === 'MOTO'"
+                            placeholder="Cantidad" />
+                        <small *ngIf="form.get('tipo')?.value === 'CARRO' || form.get('tipo')?.value === 'MOTO'" class="text-surface-400 italic">
+                            Bloqueado: Automóviles/Motos cargan 0 pallets.
+                        </small>
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="peso" class="font-semibold">Peso Máximo (Kg) <span class="text-red-500">*</span></label>
+                        <p-inputnumber id="peso" formControlName="pesoMaximo" [min]="0" placeholder="Capacidad en Kg" />
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="tipoCaja" class="font-semibold">Tipo de Estructura / Caja <span class="text-red-500">*</span></label>
+                    <p-select
+                        id="tipoCaja"
+                        formControlName="tipoCaja"
+                        [options]="tiposCaja"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Seleccionar Estructura"
+                        [disabled]="form.get('tipo')?.value === 'CARRO' || form.get('tipo')?.value === 'MOTO'"
+                        appendTo="body">
+                    </p-select>
+                    <small *ngIf="form.get('tipo')?.value === 'CARRO' || form.get('tipo')?.value === 'MOTO'" class="text-surface-400 italic">
+                        Bloqueado: Por defecto Caja Seca.
                     </small>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label for="peso" class="font-semibold">Peso Máximo Soportado (Kg) <span class="text-red-500">*</span></label>
-                    <p-inputnumber id="peso" [(ngModel)]="vehiculo.pesoMaximo" [min]="0" placeholder="Capacidad en Kg" />
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="estado" class="font-semibold">Estado Operativo <span class="text-red-500">*</span></label>
+                    <p-select
+                        id="estado"
+                        formControlName="estado"
+                        [options]="estados"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Seleccionar Estado"
+                        appendTo="body">
+                    </p-select>
                 </div>
-            </div>
+            </p-fluid>
 
-            <div class="flex flex-col gap-2">
-                <label for="tipoCaja" class="font-semibold">Tipo de Estructura / Caja <span class="text-red-500">*</span></label>
-                <p-select
-                    id="tipoCaja"
-                    [(ngModel)]="vehiculo.tipoCaja"
-                    [options]="tiposCaja"
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Seleccionar Estructura"
-                    [disabled]="vehiculo.tipo === 'CARRO' || vehiculo.tipo === 'MOTO'"
-                    appendTo="body">
-                </p-select>
-                <small *ngIf="vehiculo.tipo === 'CARRO' || vehiculo.tipo === 'MOTO'" class="text-surface-400 italic">
-                    Bloqueado: Por defecto Caja Seca.
-                </small>
-            </div>
+            <p-divider />
 
-            <div class="flex flex-col gap-2">
-                <label for="estado" class="font-semibold">Estado Operativo <span class="text-red-500">*</span></label>
-                <p-select
-                    id="estado"
-                    [(ngModel)]="vehiculo.estado"
-                    [options]="estados"
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Seleccionar Estado"
-                    appendTo="body">
-                </p-select>
-            </div>
-        </p-fluid>
+            <p-fluid formGroupName="seguro">
+                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                    <i class="pi pi-shield mr-1"></i>
+                    Seguro
+                </div>
+
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="poliza" class="font-semibold">N° de Póliza <span class="text-red-500">*</span></label>
+                        <input pInputText id="poliza" formControlName="poliza" placeholder="Ej: POL-001-2025" />
+                        <small *ngIf="submitted && form.get('seguro.poliza')?.invalid" class="text-red-500">Obligatorio</small>
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="seguroEmpresa" class="font-semibold">Empresa Aseguradora <span class="text-red-500">*</span></label>
+                        <input pInputText id="seguroEmpresa" formControlName="empresa" placeholder="Ej: Seguros La Previsora" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="cobertura" class="font-semibold">Tipo de Cobertura <span class="text-red-500">*</span></label>
+                        <p-select
+                            id="cobertura"
+                            formControlName="tipoCobertura"
+                            [options]="tiposCobertura"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Seleccionar"
+                            appendTo="body">
+                        </p-select>
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="seguroVencimiento" class="font-semibold">Fecha de Vencimiento <span class="text-red-500">*</span></label>
+                        <p-datepicker
+                            id="seguroVencimiento"
+                            formControlName="fechaVencimiento"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body" />
+                    </div>
+                </div>
+            </p-fluid>
+
+            <p-divider />
+
+            <p-fluid formGroupName="documentosLegales">
+                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                    <i class="pi pi-file mr-1"></i>
+                    Documentos Legales
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="numRegistro" class="font-semibold">N° de Registro / Propiedad <span class="text-red-500">*</span></label>
+                    <input pInputText id="numRegistro" formControlName="numeroRegistro" placeholder="Ej: REG-ABCD-2022" />
+                    <small *ngIf="submitted && form.get('documentosLegales.numeroRegistro')?.invalid" class="text-red-500">Obligatorio</small>
+                </div>
+
+                <div class="font-semibold text-sm text-surface-500 dark:text-surface-400 mt-3 mb-1">
+                    Contrato (Opcional — si aplica)
+                </div>
+
+                <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-4 flex flex-col gap-2">
+                        <label for="numContrato" class="font-semibold text-sm">N° Contrato</label>
+                        <input pInputText id="numContrato" formControlName="numeroContrato" placeholder="CT-001" />
+                    </div>
+                    <div class="col-span-4 flex flex-col gap-2">
+                        <label for="empContrato" class="font-semibold text-sm">Empresa</label>
+                        <input pInputText id="empContrato" formControlName="empresaContrato" placeholder="Entidad financiera" />
+                    </div>
+                    <div class="col-span-4 flex flex-col gap-2">
+                        <label for="vencContrato" class="font-semibold text-sm">Vencimiento</label>
+                        <p-datepicker
+                            id="vencContrato"
+                            formControlName="vencimientoContrato"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body" />
+                    </div>
+                </div>
+
+                <div class="font-semibold text-sm text-surface-500 dark:text-surface-400 mt-3 mb-1">
+                    Revisión Técnica (Opcional)
+                </div>
+
+                <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="rtNumero" class="font-semibold text-sm">N° Certificado</label>
+                        <input pInputText id="rtNumero" formControlName="revisionTecnicaNumero" placeholder="RT-2025-1234" />
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="rtVencimiento" class="font-semibold text-sm">Vencimiento</label>
+                        <p-datepicker
+                            id="rtVencimiento"
+                            formControlName="revisionTecnicaVencimiento"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body" />
+                    </div>
+                </div>
+            </p-fluid>
+        </form>
     </ng-template>
 
     <ng-template #footer>
         <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
-        <p-button [label]="vehiculo.id ? 'Guardar Cambios' : 'Registrar Unidad'" icon="pi pi-check" (onClick)="save()" />
+        <p-button [label]="vehiculoData().id ? 'Guardar Cambios' : 'Registrar Unidad'" icon="pi pi-check" (onClick)="save()" />
     </ng-template>
 </p-dialog>

@@ -1,0 +1,187 @@
+<p-dialog
+    [(visible)]="visible"
+    [style]="{ width: '700px' }"
+    [header]="choferData().id ? 'Modificar Chofer / Ayudante' : 'Registrar Chofer / Ayudante'"
+    [modal]="true">
+
+    <ng-template #content>
+        <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
+
+            <p-message *ngIf="errorMessage" severity="error" [text]="errorMessage" class="mb-2"></p-message>
+
+            <p-fluid>
+                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                    Datos Personales
+                </div>
+
+                <div formGroupName="documentoIdentidad" class="grid grid-cols-12 gap-3">
+                    <div class="col-span-3 flex flex-col gap-2">
+                        <label for="prefijo" class="font-semibold">Tipo <span class="text-red-500">*</span></label>
+                        <p-select
+                            id="prefijo"
+                            formControlName="prefijo"
+                            [options]="prefijos"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Prefijo"
+                            appendTo="body">
+                        </p-select>
+                    </div>
+                    <div class="col-span-9 flex flex-col gap-2">
+                        <label for="numDoc" class="font-semibold">Cédula de Identidad <span class="text-red-500">*</span></label>
+                        <input
+                            pInputText
+                            id="numDoc"
+                            formControlName="numero"
+                            placeholder="12345678" />
+                        <small *ngIf="submitted && form.get('documentoIdentidad.numero')?.errors?.['required']" class="text-red-500">La cédula es obligatoria</small>
+                        <small *ngIf="submitted && form.get('documentoIdentidad.numero')?.errors?.['pattern']" class="text-red-500">Solo dígitos numéricos</small>
+                        <small *ngIf="submitted && form.get('documentoIdentidad.numero')?.errors?.['minlength']" class="text-red-500">Mínimo 5 dígitos</small>
+                        <small *ngIf="submitted && form.get('documentoIdentidad.numero')?.errors?.['maxlength']" class="text-red-500">Máximo 9 dígitos</small>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-7 flex flex-col gap-2">
+                        <label for="nombreCompleto" class="font-semibold">Nombre Completo <span class="text-red-500">*</span></label>
+                        <input
+                            pInputText
+                            id="nombreCompleto"
+                            formControlName="nombreCompleto"
+                            placeholder="Ej: Carlos José Martínez" />
+                        <small *ngIf="submitted && form.get('nombreCompleto')?.invalid" class="text-red-500">El nombre es obligatorio</small>
+                    </div>
+                    <div class="col-span-5 flex flex-col gap-2">
+                        <label for="telefono" class="font-semibold">Teléfono</label>
+                        <input
+                            pInputText
+                            id="telefono"
+                            formControlName="telefono"
+                            placeholder="0414-1234567" />
+                        <small *ngIf="submitted && form.get('telefono')?.errors?.['pattern']" class="text-red-500">Formato inválido (ej: 0414-1234567)</small>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="rol" class="font-semibold">Rol <span class="text-red-500">*</span></label>
+                        <p-select
+                            id="rol"
+                            formControlName="rol"
+                            [options]="roles"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Seleccionar rol"
+                            appendTo="body">
+                        </p-select>
+                    </div>
+                    <div class="col-span-6 flex flex-col gap-2">
+                        <label for="fechaIngreso" class="font-semibold">Fecha de Ingreso</label>
+                        <p-datepicker
+                            id="fechaIngreso"
+                            formControlName="fechaIngreso"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body" />
+                    </div>
+                </div>
+            </p-fluid>
+
+            <p-divider />
+
+            <p-fluid>
+                <div formGroupName="licencia" class="flex flex-col gap-3">
+                    <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                        <i class="pi pi-id-card mr-1"></i>
+                        Licencia de Conducir
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label for="licenciaNumero" class="font-semibold">N° de Licencia <span class="text-red-500">*</span></label>
+                            <input
+                                pInputText
+                                id="licenciaNumero"
+                                formControlName="numero"
+                                placeholder="Ej: L-12345678" />
+                            <small *ngIf="submitted && form.get('licencia.numero')?.invalid" class="text-red-500">El número de licencia es obligatorio</small>
+                        </div>
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label for="licenciaGrado" class="font-semibold">Grado <span class="text-red-500">*</span></label>
+                            <p-select
+                                id="licenciaGrado"
+                                formControlName="grado"
+                                [options]="grados"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar grado"
+                                appendTo="body">
+                            </p-select>
+                            <small *ngIf="submitted && form.get('licencia.grado')?.invalid" class="text-red-500">El grado es obligatorio</small>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label for="licenciaVencimiento" class="font-semibold">Fecha de Vencimiento <span class="text-red-500">*</span></label>
+                        <p-datepicker
+                            id="licenciaVencimiento"
+                            formControlName="fechaVencimiento"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body" />
+                        <small *ngIf="submitted && form.get('licencia.fechaVencimiento')?.invalid" class="text-red-500">La fecha de vencimiento es obligatoria</small>
+                    </div>
+                </div>
+            </p-fluid>
+
+            <p-divider />
+
+            <p-fluid>
+                <div formGroupName="certificadoMedico" class="flex flex-col gap-3">
+                    <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                        <i class="pi pi-heart mr-1"></i>
+                        Certificado Médico Vial
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label for="cmvNumero" class="font-semibold">N° de Certificado <span class="text-red-500">*</span></label>
+                        <input
+                            pInputText
+                            id="cmvNumero"
+                            formControlName="numero"
+                            placeholder="Ej: CMV-987654" />
+                        <small *ngIf="submitted && form.get('certificadoMedico.numero')?.invalid" class="text-red-500">El número de certificado es obligatorio</small>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label for="cmvExpedicion" class="font-semibold">Fecha de Expedición <span class="text-red-500">*</span></label>
+                            <p-datepicker
+                                id="cmvExpedicion"
+                                formControlName="fechaExpedicion"
+                                dateFormat="dd/mm/yy"
+                                placeholder="dd/mm/aaaa"
+                                appendTo="body" />
+                            <small *ngIf="submitted && form.get('certificadoMedico.fechaExpedicion')?.invalid" class="text-red-500">Obligatorio</small>
+                        </div>
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label for="cmvVencimiento" class="font-semibold">Fecha de Vencimiento <span class="text-red-500">*</span></label>
+                            <p-datepicker
+                                id="cmvVencimiento"
+                                formControlName="fechaVencimiento"
+                                dateFormat="dd/mm/yy"
+                                placeholder="dd/mm/aaaa"
+                                appendTo="body" />
+                            <small *ngIf="submitted && form.get('certificadoMedico.fechaVencimiento')?.invalid" class="text-red-500">Obligatorio</small>
+                        </div>
+                    </div>
+                </div>
+            </p-fluid>
+        </form>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+        <p-button [label]="choferData().id ? 'Guardar Cambios' : 'Registrar'" icon="pi pi-check" (onClick)="save()" />
+    </ng-template>
+</p-dialog>

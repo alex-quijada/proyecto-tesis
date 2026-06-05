@@ -28,6 +28,33 @@ export class AuthService {
         });
     }
 
+    /**
+     * REGISTRO DE NUEVOS USUARIOS (Choferes, Analistas, etc.)
+     * Envía las propiedades requeridas en 'options.data' para que las procese el Trigger de la DB.
+     */
+    async register(
+        email: string,
+        password: string,
+        nombreCompleto: string,
+        cedula: number,
+        nombreRol: 'Administrador' | 'Coordinador' | 'Analista' | 'Chofer' | 'Ayudante',
+    ) {
+        const { data, error } = await this.supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    nombre_completo: nombreCompleto,
+                    cedula: cedula,
+                    nombre_rol: nombreRol, // Mismo nombre que espera el COALESCE del trigger
+                },
+            },
+        });
+
+        if (error) throw error;
+        return data;
+    }
+
     // Función para iniciar sesión
     async login(email: string, password: string) {
         const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -45,10 +72,13 @@ export class AuthService {
         this.router.navigate(['/login']);
     }
 
-    // Recuperar el rol guardado en la metadata del usuario de Supabase
+    /**
+     * Recuperar el rol guardado en la metadata del usuario de Supabase
+     * Corregido para apuntar a 'nombre_rol' (sincronizado con el Front/Back)
+     */
     getUserRole(): string | undefined {
         const user = this.userSubject.value;
-        return user?.user_metadata?.['role']; // Ej: 'Chofer' o 'Analista'
+        return user?.user_metadata?.['nombre_rol'];
     }
 
     // Validar si hay una sesión activa

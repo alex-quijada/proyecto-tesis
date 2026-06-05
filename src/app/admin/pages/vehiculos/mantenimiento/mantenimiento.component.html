@@ -1,0 +1,112 @@
+<div class="card">
+    <p-toast />
+
+    <div class="flex flex-col gap-1 mb-4">
+        <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">Mantenimiento Preventivo</h1>
+    </div>
+
+    <p-toolbar styleClass="mb-6">
+        <ng-template #start>
+            <div class="flex gap-2 items-center">
+                <p-button
+                    *ngIf="mantenimientoSelected() && mantenimientoSelected().length > 0"
+                    label="Eliminar Seleccionados"
+                    icon="pi pi-trash"
+                    severity="secondary"
+                    (onClick)="deleteSelectedMantenimientos()" />
+                <p-select
+                    [(ngModel)]="filtroEstado"
+                    [options]="filtroEstados"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Filtrar por estado"
+                    appendTo="body"
+                    styleClass="w-44" />
+            </div>
+        </ng-template>
+
+        <ng-template #end>
+            <p-button label="Nuevo Mantenimiento" icon="pi pi-plus" severity="success" (onClick)="openNew()" />
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        #dt
+        [value]="mantenimientosFiltrados"
+        [(selection)]="mantenimientoSelected"
+        dataKey="id"
+        [rows]="10"
+        [paginator]="true"
+        [rowsPerPageOptions]="[5, 10, 20]"
+        [globalFilterFields]="['placaVehiculo', 'vehiculoDesc', 'tipo', 'responsable', 'descripcion']"
+        [tableStyle]="{ 'min-width': '85rem' }"
+    >
+        <ng-template #caption>
+            <div class="flex flex-wrap gap-2 items-center justify-between">
+                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">Historial de Servicios</span>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="dt.filterGlobal($any($event.target).value, 'contains')" placeholder="Buscar por placa, responsable..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+
+        <ng-template #header>
+            <tr>
+                <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+                <th pSortableColumn="placaVehiculo" style="min-width:9rem">Unidad <p-sortIcon field="placaVehiculo" /></th>
+                <th pSortableColumn="tipo" style="min-width:8rem">Tipo <p-sortIcon field="tipo" /></th>
+                <th pSortableColumn="fechaProgramada" style="min-width:9rem">Fecha Prog. <p-sortIcon field="fechaProgramada" /></th>
+                <th style="min-width:8rem">Kilometraje</th>
+                <th style="min-width:16rem">Descripción</th>
+                <th style="min-width:9rem">Responsable</th>
+                <th style="min-width:8rem">Costo</th>
+                <th pSortableColumn="estado" style="min-width:8rem">Estado <p-sortIcon field="estado" /></th>
+                <th style="min-width:8rem">Acciones</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-m>
+            <tr>
+                <td><p-tableCheckbox [value]="m" /></td>
+                <td>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-surface-900 dark:text-surface-0">{{ m.placaVehiculo }}</span>
+                        <span class="text-xs text-surface-500">{{ m.vehiculoDesc }}</span>
+                    </div>
+                </td>
+                <td>
+                    <p-tag [value]="m.tipo === 'PREVENTIVO' ? 'Preventivo' : 'Correctivo'" [severity]="getSeverityTipo(m.tipo)" />
+                </td>
+                <td class="text-sm">{{ m.fechaProgramada }}</td>
+                <td class="font-mono text-sm">{{ m.kilometraje | number }} Km</td>
+                <td>
+                    <span class="text-sm" [pTooltip]="m.descripcion" tooltipPosition="top">
+                        {{ m.descripcion.length > 50 ? (m.descripcion | slice:0:50) + '...' : m.descripcion }}
+                    </span>
+                </td>
+                <td class="text-sm">{{ m.responsable }}</td>
+                <td class="font-mono text-sm">{{ m.costo | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td>
+                    <p-tag
+                        [value]="m.estado === 'EN_PROCESO' ? 'En Proceso' : m.estado.charAt(0) + m.estado.slice(1).toLowerCase()"
+                        [severity]="getSeverityEstado(m.estado)" />
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <p-button icon="pi pi-pencil" severity="success" rounded outlined (onClick)="editMantenimiento(m)" pTooltip="Editar" />
+                        <p-button icon="pi pi-trash" severity="danger" rounded outlined (onClick)="deleteMantenimiento(m)" pTooltip="Eliminar" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<app-mantenimiento-dialog
+    [(visible)]="isDialogOpen"
+    [mantenimientoData]="mantenimientoParaModificar()"
+    (onSave)="handleSaveMantenimiento($event)">
+</app-mantenimiento-dialog>
+
+<p-confirmdialog />

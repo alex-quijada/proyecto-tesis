@@ -79,16 +79,7 @@ export class AppMenu {
                 icon: 'pi pi-fw pi-lock',
                 path: '/admin',
                 items: [
-                    {
-                        label: 'Gestión de Usuarios',
-                        icon: 'pi pi-fw pi-user-edit',
-                        path: '/admin/usuarios',
-                        items: [
-                            { label: 'Administradores', icon: 'pi pi-fw pi-shield', routerLink: ['/usuarios/admin'] },
-                            { label: 'Analistas', icon: 'pi pi-fw pi-search-plus', routerLink: ['/usuarios/analistas'] },
-                            { label: 'Choferes Registrados', icon: 'pi pi-fw pi-car', routerLink: ['/usuarios/choferes'] }
-                        ]
-                    }
+                    { label: 'Gestión de Usuarios', icon: 'pi pi-fw pi-user-edit', routerLink: ['/usuarios'] }
                 ]
             },
             /*

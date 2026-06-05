@@ -1,4 +1,5 @@
 <app-floating-configurator />
+
 <div
     class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-screen overflow-hidden"
 >
@@ -52,10 +53,11 @@
                             />
                         </g>
                     </svg>
+
                     <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">
-                        Welcome to PrimeLand!
+                        TruckTrack
                     </div>
-                    <span class="text-muted-color font-medium">Sign in to continue</span>
+                    <span class="text-muted-color font-medium">Inicia sesión para continuar</span>
                 </div>
 
                 <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
@@ -65,16 +67,14 @@
                     >
                         Email
                     </label>
-
                     <input
                         pInputText
                         id="email1"
                         type="email"
-                        placeholder="Email address"
+                        placeholder="Dirección de correo"
                         class="w-full md:w-120 mb-2"
                         formControlName="email"
                     />
-
                     <small
                         class="text-red-500 block mb-6"
                         [class.invisible]="
@@ -88,20 +88,18 @@
                         for="password1"
                         class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2"
                     >
-                        Password
+                        Contraseña
                     </label>
-
                     <p-password
                         id="password1"
                         formControlName="password"
-                        placeholder="Password"
+                        placeholder="Contraseña"
                         [toggleMask]="true"
                         styleClass="mb-2"
                         [fluid]="true"
                         [feedback]="false"
                     >
                     </p-password>
-
                     <small
                         class="text-red-500 block mb-6"
                         [class.invisible]="
@@ -121,29 +119,28 @@
                                 class="mr-2"
                             >
                             </p-checkbox>
-
-                            <label for="rememberme1"> Remember me </label>
+                            <label for="rememberme1">Recordarme</label>
                         </div>
-
                         <span
                             class="font-medium no-underline ml-2 text-right cursor-pointer text-primary"
                         >
-                            Forgot password?
+                            ¿Olvidaste tu contraseña?
                         </span>
                     </div>
 
                     <div class="min-h-17.5 mb-4">
-                        <div
-                            class="p-3 border-round bg-red-100 text-red-700 transition-all duration-300"
-                            [class.invisible]="!hasError()"
-                        >
-                            Credenciales inválidas
-                        </div>
+                        @if (hasError()) {
+                            <div
+                                class="p-3 border-round bg-red-100 text-red-700 transition-all duration-300 animate-fadein"
+                            >
+                                Credenciales inválidas
+                            </div>
+                        }
                     </div>
 
                     <p-button
                         type="submit"
-                        label="Sign In"
+                        label="Ingresar"
                         styleClass="w-full"
                         [loading]="isPosting()"
                     >

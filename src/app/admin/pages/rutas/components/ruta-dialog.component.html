@@ -1,0 +1,60 @@
+<p-dialog
+    [(visible)]="visible"
+    [style]="{ width: '600px' }"
+    header="Nueva Ruta de Entrega"
+    [modal]="true">
+
+    <ng-template #content>
+        <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
+
+            <p-message *ngIf="errorMessage" severity="error" [text]="errorMessage" class="mb-2"></p-message>
+
+            <p-fluid>
+                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                    <i class="pi pi-sitemap mr-1"></i>
+                    Asignación de Ruta
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label class="font-semibold">Código de Ruta <span class="text-red-500">*</span></label>
+                    <input pInputText formControlName="codigo" placeholder="R-2026-XXX" />
+                    <small *ngIf="submitted && form.get('codigo')?.invalid" class="text-red-500">Requerido</small>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label class="font-semibold">Chofer <span class="text-red-500">*</span></label>
+                    <p-select
+                        formControlName="idChofer"
+                        [options]="choferes"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Seleccionar chofer"
+                        appendTo="body" />
+                    <small *ngIf="submitted && form.get('idChofer')?.invalid" class="text-red-500">Requerido</small>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label class="font-semibold">Vehículo <span class="text-red-500">*</span></label>
+                    <p-select
+                        formControlName="idVehiculo"
+                        [options]="vehiculos"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Seleccionar vehículo"
+                        appendTo="body" />
+                    <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500">Requerido</small>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label class="font-semibold">Fecha de Asignación</label>
+                    <p-datepicker formControlName="fechaAsignacion" dateFormat="dd/mm/yy" placeholder="dd/mm/aaaa" appendTo="body" />
+                </div>
+            </p-fluid>
+        </form>
+    </ng-template>
+
+    <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+        <p-button label="Crear Ruta" icon="pi pi-check" (onClick)="save()" />
+    </ng-template>
+</p-dialog>

@@ -49,21 +49,28 @@ export class LoginPage {
         const { email, password } = this.loginForm.getRawValue();
 
         try {
-            // 1. Esperar a que Supabase autentique al usuario
-            await this.authService.login(email!, password!);
+            // 1. Esperar a que Supabase autentique al usuario y nos devuelva sus datos
+            const data = await this.authService.login(email!, password!);
 
-            // 2. Obtener el rol desde la metadata que configuramos en el AuthService
-            const userRole = this.authService.getUserRole();
+            // 2. Extraemos el rol directamente del usuario retornado por la promesa de login
+            // Esto evita problemas de sincronización con el BehaviorSubject
+            const userRole = data.user?.user_metadata?.['nombre_rol'];
 
-            // 3. Redirección inteligente inmediata
+            // 3. Redirección inteligente adaptada a tus rutas reales (appRoutes)
             if (userRole === 'Chofer') {
-                this.router.navigate(['/chofer/mis-guias']);
-            } else if (userRole === 'Analista' || userRole === 'Administrador') {
-                this.router.navigate(['/analista/dashboard']);
-            } else {
-                // Si el usuario no tiene rol asignado en la metadata de Supabase
-                console.warn('Usuario sin rol logístico asignado.');
+                // Redirige a la vista móvil del chofer
+                this.router.navigate(['/driver']);
+            } else if (
+                userRole === 'Analista' ||
+                userRole === 'Coordinador' ||
+                userRole === 'Administrador'
+            ) {
+                // Redirige al panel administrativo principal gestionado por AppLayout (dashboard)
                 this.router.navigate(['/']);
+            } else {
+                // Caso alternativo de seguridad
+                console.warn('Usuario sin rol logístico asignado válido.');
+                this.router.navigate(['/notfound']);
             }
         } catch (error) {
             console.error('Error en el inicio de sesión:', error);

@@ -1,10 +1,9 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
-// Componentes del Módulo
 import { VehiculoDialogComponent } from './components/vehiculo-dialog.component';
+import { VehiculoDetalleDialogComponent } from './components/vehiculo-detalle-dialog.component';
 import { Vehiculo, VEHICULOS_MOCK } from './data/vehiculos-mock';
 
 // PrimeNG
@@ -34,7 +33,8 @@ import { TooltipModule } from 'primeng/tooltip';
         InputIconModule,
         ConfirmDialogModule,
         TooltipModule,
-        VehiculoDialogComponent
+        VehiculoDialogComponent,
+        VehiculoDetalleDialogComponent
     ],
     providers: [ConfirmationService, MessageService],
     templateUrl: './vehiculos.component.html'
@@ -42,7 +42,6 @@ import { TooltipModule } from 'primeng/tooltip';
 export class VehiculosComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
-    private router = inject(Router);
 
     // Estados reactivos de la tabla de control
     vehiculos = signal<Vehiculo[]>([]);
@@ -51,6 +50,10 @@ export class VehiculosComponent implements OnInit {
     // Estados para coordinar el componente modal hijo
     isDialogOpen = signal<boolean>(false);
     vehiculoParaModificar = signal<Vehiculo>({});
+
+    // Estados para el detalle
+    isDetalleDialogOpen = signal<boolean>(false);
+    vehiculoParaDetalle = signal<Vehiculo>({});
 
     ngOnInit() {
         // Cargamos la data del archivo estático mock temporalmente.
@@ -72,6 +75,11 @@ export class VehiculosComponent implements OnInit {
     editVehiculo(vehiculo: Vehiculo) {
         this.vehiculoParaModificar.set({ ...vehiculo });
         this.isDialogOpen.set(true);
+    }
+
+    verDetalle(vehiculo: Vehiculo, tab?: string) {
+        this.vehiculoParaDetalle.set({ ...vehiculo });
+        this.isDetalleDialogOpen.set(true);
     }
 
     // Procesa los datos capturados y emitidos por el modal independiente
@@ -101,12 +109,6 @@ export class VehiculosComponent implements OnInit {
                 detail: 'Unidad agregada provisionalmente',
                 life: 3000
             });
-        }
-    }
-
-    verDetalleKilometraje(vehiculo: Vehiculo) {
-        if (vehiculo.placa) {
-            this.router.navigate(['/flota/vehiculo', vehiculo.placa, 'kilometraje']);
         }
     }
 
@@ -167,5 +169,16 @@ export class VehiculosComponent implements OnInit {
             case 'ARTICULADO': return 'secondary';
             default: return 'info';
         }
+    }
+
+    getValidezColor(fecha?: string): string {
+        if (!fecha) return 'text-surface-400';
+        const hoy = new Date();
+        const venc = new Date(fecha);
+        const diffMs = venc.getTime() - hoy.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) return 'text-red-500';
+        if (diffDays < 60) return 'text-yellow-500';
+        return 'text-green-500';
     }
 }
