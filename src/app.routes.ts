@@ -69,15 +69,16 @@ export const appRoutes: Routes = [
     },
     { path: 'landing', component: Landing },
 
-    // RUTA EXCLUSIVA PARA EL CHOFER
+    // RUTA EXCLUSIVA PARA EL CHOFER (vista móvil)
     {
         path: 'driver',
-        component: HomePage,
-        canActivate: [roleGuard], // Protege la vista del chofer
-        data: { roles: ['Chofer'] }, // Solo permite el rol de Chofer
+        loadComponent: () =>
+            import('./app/driver/pages/mi-ruta/mi-ruta.component').then((m) => m.MiRutaComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['Chofer'] },
     },
 
     { path: 'notfound', component: Notfound },
     { path: 'auth', loadChildren: () => import('./app/auth/auth.routes') }, // Libre para loguearse
-    { path: '**', redirectTo: '/notfound' },
+    { path: '**', redirectTo: 'auth' },
 ];

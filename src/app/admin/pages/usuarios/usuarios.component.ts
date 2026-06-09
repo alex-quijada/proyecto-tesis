@@ -17,7 +17,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
 
 import { UsuarioDialogComponent } from './components/usuario-dialog.component';
-import { Usuario, USUARIOS_MOCK, ROLES } from './data/usuarios-mock';
+import { Usuario, ROLES } from './data/usuarios-mock';
+import { AuthService } from '../../../auth/service/auth.service';
+import { USUARIOS_MOCK } from './data/usuarios-mock';
 
 @Component({
     selector: 'app-usuarios',
@@ -45,10 +47,11 @@ import { Usuario, USUARIOS_MOCK, ROLES } from './data/usuarios-mock';
 export class UsuariosComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
+    private authService = inject(AuthService);
 
     usuarios = signal<Usuario[]>([]);
     usuariosSelected = signal<Usuario[]>([]);
-    loading = false;
+    loading = signal(false);
     dialogVisible = false;
     editingUsuario: Usuario = {} as Usuario;
     filtroGlobal = '';
@@ -77,7 +80,25 @@ export class UsuariosComponent implements OnInit {
     }
 
     ngOnInit() {
-        this.usuarios.set([...USUARIOS_MOCK]);
+        this.cargarUsuarios();
+    }
+
+    private async cargarUsuarios() {
+        this.loading.set(true);
+        try {
+            const data = await this.authService.listarUsuarios();
+            this.usuarios.set(data);
+        } catch (error: any) {
+            console.error('Error al cargar usuarios desde Supabase:', error);
+            this.usuarios.set([...USUARIOS_MOCK]);
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Usando datos de respaldo',
+                detail: 'No se pudo conectar con la base de datos. Mostrando datos locales.',
+            });
+        } finally {
+            this.loading.set(false);
+        }
     }
 
     get usuariosFiltrados(): Usuario[] {
@@ -116,18 +137,8 @@ export class UsuariosComponent implements OnInit {
         this.dialogVisible = true;
     }
 
-    onSave(usuario: Usuario) {
-        const idx = this.usuarios().findIndex(u => u.id === usuario.id);
-        if (idx >= 0) {
-            const updated = [...this.usuarios()];
-            updated[idx] = { ...usuario };
-            this.usuarios.set(updated);
-            this.messageService.add({ severity: 'success', summary: 'Usuario actualizado', detail: `${usuario.nombreCompleto} modificado exitosamente.` });
-        } else {
-            usuario.id = `usr-${Date.now()}`;
-            this.usuarios.set([usuario, ...this.usuarios()]);
-            this.messageService.add({ severity: 'success', summary: 'Usuario creado', detail: `${usuario.nombreCompleto} registrado exitosamente.` });
-        }
+    onSave(_usuario: Usuario) {
+        this.cargarUsuarios();
     }
 
     deleteUsuario(usuario: Usuario) {
@@ -135,9 +146,22 @@ export class UsuariosComponent implements OnInit {
             message: `¿Está seguro de eliminar a <strong>${usuario.nombreCompleto}</strong>?`,
             header: 'Confirmar Eliminación',
             icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                this.usuarios.set(this.usuarios().filter(u => u.id !== usuario.id));
-                this.messageService.add({ severity: 'success', summary: 'Eliminado', detail: 'Usuario eliminado.' });
+            accept: async () => {
+                try {
+                    await this.authService.eliminarUsuario(usuario.id!);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Eliminado',
+                        detail: `${usuario.nombreCompleto} eliminado.`,
+                    });
+                    await this.cargarUsuarios();
+                } catch (error: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.message || 'No se pudo eliminar el usuario.',
+                    });
+                }
             },
         });
     }
@@ -150,21 +174,31 @@ export class UsuariosComponent implements OnInit {
             message: `¿Eliminar ${selected.length} usuario(s) seleccionados?`,
             header: 'Confirmar Eliminación Masiva',
             icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                const ids = new Set(selected.map(u => u.id));
-                this.usuarios.set(this.usuarios().filter(u => !ids.has(u.id)));
-                this.usuariosSelected.set([]);
-                this.messageService.add({ severity: 'success', summary: 'Eliminados', detail: `${selected.length} usuario(s) eliminados.` });
+            accept: async () => {
+                try {
+                    for (const u of selected) {
+                        await this.authService.eliminarUsuario(u.id!);
+                    }
+                    this.usuariosSelected.set([]);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Eliminados',
+                        detail: `${selected.length} usuario(s) eliminados.`,
+                    });
+                    await this.cargarUsuarios();
+                } catch (error: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.message || 'Error al eliminar usuarios.',
+                    });
+                }
             },
         });
     }
 
     refrescar() {
-        this.loading = true;
-        setTimeout(() => {
-            this.usuarios.set([...USUARIOS_MOCK]);
-            this.loading = false;
-            this.messageService.add({ severity: 'info', summary: 'Actualizado', detail: 'Datos refrescados.' });
-        }, 500);
+        this.cargarUsuarios();
+        this.messageService.add({ severity: 'info', summary: 'Actualizado', detail: 'Datos refrescados.' });
     }
 }

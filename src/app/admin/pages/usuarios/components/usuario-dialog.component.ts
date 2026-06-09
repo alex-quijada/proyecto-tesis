@@ -1,4 +1,4 @@
-import { Component, input, output, model, effect, inject } from '@angular/core';
+import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 
@@ -14,12 +14,32 @@ import { DividerModule } from 'primeng/divider';
 import { DatePickerModule } from 'primeng/datepicker';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToastModule } from 'primeng/toast';
+
+import { AuthService } from '../../../../auth/service/auth.service';
+import { supabase } from '../../../../core/supabase.client';
+import { MessageService } from 'primeng/api';
 
 import {
     Usuario, ROLES, PREFIJOS_DOCUMENTO,
     GRADOS_LICENCIA, PRIORIDADES, MUNICIPIOS_NUEVA_ESPARTA,
     UbicacionResumen,
 } from '../data/usuarios-mock';
+
+const ROL_MAP_TO_DB: Record<string, string> = {
+    ADMIN: 'Administrador',
+    ANALISTA: 'Analista',
+    CHOFER: 'Chofer',
+    AYUDANTE: 'Ayudante',
+};
+
+const ROL_MAP_TO_DIALOG: Record<string, string> = {
+    Administrador: 'ADMIN',
+    Coordinador: 'ADMIN',
+    Analista: 'ANALISTA',
+    Chofer: 'CHOFER',
+    Ayudante: 'AYUDANTE',
+};
 
 @Component({
     selector: 'app-usuario-dialog',
@@ -39,11 +59,15 @@ import {
         DatePickerModule,
         SelectButtonModule,
         TooltipModule,
+        ToastModule,
     ],
+    providers: [MessageService],
     templateUrl: './usuario-dialog.component.html',
 })
 export class UsuarioDialogComponent {
     private fb = inject(FormBuilder);
+    private authService = inject(AuthService);
+    private messageService = inject(MessageService);
 
     visible = model<boolean>(false);
     usuarioData = input<Usuario>({} as Usuario);
@@ -51,6 +75,7 @@ export class UsuarioDialogComponent {
 
     submitted = false;
     errorMessage = '';
+    loading = signal(false);
 
     roles = ROLES;
     prefijosDoc = PREFIJOS_DOCUMENTO;
@@ -91,6 +116,10 @@ export class UsuarioDialogComponent {
 
     get rolValue(): string {
         return this.form.get('rol')?.value || '';
+    }
+
+    get isEditing(): boolean {
+        return !!this.usuarioData().id;
     }
 
     private crearUbicacionGroup(ub: UbicacionResumen = {}): FormGroup {
@@ -208,31 +237,14 @@ export class UsuarioDialogComponent {
         this.addClienteValidation();
     }
 
-    save() {
-        this.submitted = true;
-        this.errorMessage = '';
-        this.addChoferValidation();
-        this.addClienteValidation();
-
-        if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
-            return;
-        }
-
+    private buildUsuarioFromForm(): Usuario {
         const raw = this.form.getRawValue();
-
-        if (!raw.password && !this.usuarioData().id) {
-            this.errorMessage = 'La contraseña es obligatoria para nuevos usuarios.';
-            return;
-        }
-
         const prioridadLabel = this.prioridades.find(p => p.value === raw.idPrioridad)?.label || '';
 
-        const usuarioFinal: Usuario = {
+        return {
             ...this.usuarioData(),
             username: raw.username,
             email: raw.email,
-            password: raw.password || this.usuarioData().password,
             documentoIdentidad: {
                 prefijo: raw.prefijoDoc,
                 numero: String(raw.numeroDoc),
@@ -270,8 +282,182 @@ export class UsuarioDialogComponent {
                     }))
                 : undefined,
         };
+    }
 
+    async save() {
+        this.submitted = true;
+        this.errorMessage = '';
+        this.loading.set(true);
+        this.addChoferValidation();
+        this.addClienteValidation();
+
+        if (this.form.invalid) {
+            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            this.loading.set(false);
+            return;
+        }
+
+        try {
+            const raw = this.form.getRawValue();
+
+            if (this.isEditing) {
+                await this.updateExistingUser(raw);
+            } else {
+                await this.createNewUser(raw);
+            }
+        } catch (error: any) {
+            this.errorMessage = error.message || 'Error al procesar la solicitud. Intente de nuevo.';
+            this.loading.set(false);
+        }
+    }
+
+    private async createNewUser(raw: any) {
+        if (raw.rol === 'CLIENTE') {
+            await this.createCliente(raw);
+        } else {
+            if (!raw.password) {
+                this.errorMessage = 'La contraseña es obligatoria para nuevos usuarios.';
+                this.loading.set(false);
+                return;
+            }
+
+            const dbRole = ROL_MAP_TO_DB[raw.rol];
+            if (!dbRole) {
+                this.errorMessage = `Rol "${raw.rol}" no válido para registro en Supabase.`;
+                this.loading.set(false);
+                return;
+            }
+
+            const cedula = Number(raw.numeroDoc);
+
+            await this.authService.register(
+                raw.email,
+                raw.password,
+                raw.nombreCompleto,
+                cedula,
+                dbRole as any,
+            );
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Usuario registrado',
+                detail: `${raw.nombreCompleto} creado exitosamente en Supabase Auth.`,
+            });
+        }
+
+        const usuarioFinal = this.buildUsuarioFromForm();
         this.onSave.emit(usuarioFinal);
         this.visible.set(false);
+        this.loading.set(false);
+    }
+
+    private async updateExistingUser(raw: any) {
+        const id = this.usuarioData().id!;
+
+        if (raw.rol === 'CLIENTE') {
+            await this.updateCliente(raw, id);
+        } else {
+            await this.updateUsuarioInDb(raw);
+        }
+
+        const usuarioFinal = this.buildUsuarioFromForm();
+        this.onSave.emit(usuarioFinal);
+        this.visible.set(false);
+        this.loading.set(false);
+    }
+
+    private async getRolId(nombreRol: string): Promise<string> {
+        const { data, error } = await supabase
+            .from('roles')
+            .select('id_rol')
+            .eq('nombre_rol', nombreRol)
+            .single();
+
+        if (error || !data) throw new Error(`Rol "${nombreRol}" no encontrado.`);
+        return data.id_rol;
+    }
+
+    private async createCliente(raw: any) {
+        const { data: prioridadData, error: prioridadError } = await supabase
+            .from('prioridades_clientes')
+            .select('id_prioridad')
+            .eq('nombre_prioridad', raw.idPrioridad === 'ALTA' ? 'VIP' : raw.idPrioridad === 'MEDIA' ? 'Cadena' : 'Regular')
+            .single();
+
+        if (prioridadError || !prioridadData) throw new Error('Prioridad no encontrada.');
+
+        const { data: cliente, error: clienteError } = await supabase
+            .from('clientes')
+            .insert({
+                nombre_comercial: raw.nombreComercial || raw.nombreCompleto,
+                id_prioridad: prioridadData.id_prioridad,
+            })
+            .select('id_cliente')
+            .single();
+
+        if (clienteError) throw new Error(`Error al crear cliente: ${clienteError.message}`);
+        if (!cliente) throw new Error('No se pudo crear el cliente.');
+
+        const ubicacionesValidas = raw.ubicaciones
+            .filter((u: any) => u.direccion?.trim() && u.municipio);
+
+        for (const ub of ubicacionesValidas) {
+            const { error: ubError } = await supabase.from('ubicaciones').insert({
+                id_cliente: cliente.id_cliente,
+                direccion_completa: ub.direccion,
+                municipio: ub.municipio,
+                ciudad: ub.municipio,
+                estado_provincia: 'Nueva Esparta',
+                latitud: 0,
+                longitud: 0,
+                referencia: ub.referencia || null,
+            });
+
+            if (ubError) throw new Error(`Error al guardar ubicación: ${ubError.message}`);
+        }
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Cliente registrado',
+            detail: `${raw.nombreCompleto} creado exitosamente.`,
+        });
+    }
+
+    private async updateCliente(raw: any, id: string) {
+        const { error: updateError } = await supabase
+            .from('clientes')
+            .update({ nombre_comercial: raw.nombreComercial || raw.nombreCompleto })
+            .eq('id_cliente', id);
+
+        if (updateError) throw new Error(`Error al actualizar cliente: ${updateError.message}`);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Cliente actualizado',
+            detail: `${raw.nombreCompleto} modificado exitosamente.`,
+        });
+    }
+
+    private async updateUsuarioInDb(raw: any) {
+        const dbRole = ROL_MAP_TO_DB[raw.rol];
+        const idRol = await this.getRolId(dbRole);
+
+        const { error } = await supabase
+            .from('usuarios')
+            .update({
+                email: raw.email,
+                id_rol: idRol,
+                nombre_completo: raw.nombreCompleto,
+                cedula: Number(raw.numeroDoc),
+            })
+            .eq('id_usuario', this.usuarioData().id);
+
+        if (error) throw new Error(`Error al actualizar usuario: ${error.message}`);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Usuario actualizado',
+            detail: `${raw.nombreCompleto} modificado exitosamente.`,
+        });
     }
 }

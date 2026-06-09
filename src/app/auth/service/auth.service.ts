@@ -1,24 +1,29 @@
-import { environment } from '@/environments/environment';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import { SupabaseClient, User } from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
+import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
+import { supabase } from '../../core/supabase.client';
 
 @Injectable({
     providedIn: 'root',
 })
 export class AuthService {
-    private supabase: SupabaseClient;
+    private supabase: SupabaseClient = supabase;
     private router = inject(Router);
 
     private userSubject = new BehaviorSubject<User | null>(null);
     public user$ = this.userSubject.asObservable();
 
-    constructor() {
-        // Inicializar el cliente de Supabase
-        this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey);
+    private initializationPromise: Promise<void>;
 
-        // Escuchar cambios en el estado de la sesión automáticamente (Login, Logout, Refresh)
+    constructor() {
+        this.initializationPromise = this.supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                this.userSubject.next(session.user);
+            }
+        });
+
         this.supabase.auth.onAuthStateChange((event, session) => {
             if (session?.user) {
                 this.userSubject.next(session.user);
@@ -26,6 +31,14 @@ export class AuthService {
                 this.userSubject.next(null);
             }
         });
+    }
+
+    async waitForInitialization(): Promise<void> {
+        await this.initializationPromise;
+    }
+
+    getCurrentUser(): User | null {
+        return this.userSubject.getValue();
     }
 
     /**
@@ -87,5 +100,58 @@ export class AuthService {
             data: { session },
         } = await this.supabase.auth.getSession();
         return !!session;
+    }
+
+    // ==========================================
+    // OPERACIONES CRUD SOBRE public.usuarios
+    // ==========================================
+
+    private readonly ROL_MAP_TO_DIALOG: Record<string, string> = {
+        Administrador: 'ADMIN',
+        Coordinador: 'ADMIN',
+        Analista: 'ANALISTA',
+        Chofer: 'CHOFER',
+        Ayudante: 'AYUDANTE',
+    };
+
+    async listarUsuarios(): Promise<Usuario[]> {
+        const { data, error } = await this.supabase
+            .from('usuarios')
+            .select(`
+                id_usuario,
+                email,
+                nombre_completo,
+                cedula,
+                roles ( nombre_rol )
+            `)
+            .order('nombre_completo', { ascending: true });
+
+        if (error) throw new Error(`Error al cargar usuarios: ${error.message}`);
+
+        return (data || []).map((row: any) => {
+            const nombreRol: string = row.roles?.nombre_rol || 'Analista';
+            const dialogRol = this.ROL_MAP_TO_DIALOG[nombreRol] || 'ANALISTA';
+
+            return {
+                id: row.id_usuario,
+                username: row.email?.split('@')[0] || 'usuario',
+                email: row.email || '',
+                documentoIdentidad: { prefijo: 'V', numero: String(row.cedula || 0) },
+                nombreCompleto: row.nombre_completo || '',
+                telefono: '',
+                rol: dialogRol,
+                activo: true,
+                fechaCreacion: '',
+            } as Usuario;
+        });
+    }
+
+    async eliminarUsuario(id: string): Promise<void> {
+        const { error } = await this.supabase
+            .from('usuarios')
+            .delete()
+            .eq('id_usuario', id);
+
+        if (error) throw new Error(`Error al eliminar usuario: ${error.message}`);
     }
 }

@@ -54,7 +54,15 @@ export class AppMenu {
                             { label: 'Control de Combustible', icon: 'pi pi-fw pi-percentage', routerLink: ['/vehiculos/combustible'] }
                         ]
                     },
-                    { label: 'Choferes', icon: 'pi pi-fw pi-id-card', routerLink: ['/choferes'] },
+                    {
+                        label: 'Choferes',
+                        icon: 'pi pi-fw pi-id-card',
+                        path: '/operaciones/choferes',
+                        items: [
+                            { label: 'Listado', icon: 'pi pi-fw pi-list', routerLink: ['/choferes'] },
+                            { label: 'Mi Ruta (vista móvil)', icon: 'pi pi-fw pi-map', routerLink: ['/choferes/mi-ruta'] },
+                        ]
+                    },
                     { label: 'Clientes', icon: 'pi pi-fw pi-users', routerLink: ['/clientes'] }
                 ]
             },
