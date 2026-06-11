@@ -18,11 +18,13 @@ export class AuthService {
     private initializationPromise: Promise<void>;
 
     constructor() {
-        this.initializationPromise = this.supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                this.userSubject.next(session.user);
-            }
-        });
+        this.initializationPromise = this.supabase.auth
+            .getSession()
+            .then(({ data: { session } }) => {
+                if (session?.user) {
+                    this.userSubject.next(session.user);
+                }
+            });
 
         this.supabase.auth.onAuthStateChange((event, session) => {
             if (session?.user) {
@@ -117,13 +119,15 @@ export class AuthService {
     async listarUsuarios(): Promise<Usuario[]> {
         const { data, error } = await this.supabase
             .from('usuarios')
-            .select(`
+            .select(
+                `
                 id_usuario,
                 email,
                 nombre_completo,
                 cedula,
                 roles ( nombre_rol )
-            `)
+            `,
+            )
             .order('nombre_completo', { ascending: true });
 
         if (error) throw new Error(`Error al cargar usuarios: ${error.message}`);
@@ -146,11 +150,28 @@ export class AuthService {
         });
     }
 
-    async eliminarUsuario(id: string): Promise<void> {
-        const { error } = await this.supabase
+    async obtenerTodosLosUsuarios() {
+        const { data, error } = await this.supabase
             .from('usuarios')
-            .delete()
-            .eq('id_usuario', id);
+            .select(
+                `
+        id_usuario,
+        email,
+        nombre_completo,
+        cedula,
+        roles (
+          nombre_rol
+        )
+      `,
+            )
+            .order('nombre_completo', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    }
+
+    async eliminarUsuario(id: string): Promise<void> {
+        const { error } = await this.supabase.from('usuarios').delete().eq('id_usuario', id);
 
         if (error) throw new Error(`Error al eliminar usuario: ${error.message}`);
     }

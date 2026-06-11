@@ -44,7 +44,7 @@
         [rowsPerPageOptions]="[5, 10, 20, 50]"
         [globalFilterFields]="['nombreCompleto', 'email', 'username', 'documentoIdentidad.numero', 'telefono', 'rol']"
         [tableStyle]="{ 'min-width': '85rem' }"
-        [loading]="loading">
+        [loading]="loading()">
 
         <ng-template #caption>
             <div class="flex flex-wrap gap-2 items-center justify-between">

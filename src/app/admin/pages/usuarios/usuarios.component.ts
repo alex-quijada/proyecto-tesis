@@ -59,12 +59,15 @@ export class UsuariosComponent implements OnInit {
 
     rolFiltros = [
         { label: 'Todos los Roles', value: null },
-        ...ROLES.map(r => ({ label: r.label, value: r.value })),
+        ...ROLES.map((r) => ({ label: r.label, value: r.value })),
     ];
 
     rolLabels: Record<string, string> = {};
     rolIcons: Record<string, string> = {};
-    rolSeverities: Record<string, 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+    rolSeverities: Record<
+        string,
+        'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
+    > = {
         ADMIN: 'danger',
         ANALISTA: 'info',
         CHOFER: 'success',
@@ -87,6 +90,7 @@ export class UsuariosComponent implements OnInit {
         this.loading.set(true);
         try {
             const data = await this.authService.listarUsuarios();
+            console.log(data);
             this.usuarios.set(data);
         } catch (error: any) {
             console.error('Error al cargar usuarios desde Supabase:', error);
@@ -97,23 +101,26 @@ export class UsuariosComponent implements OnInit {
                 detail: 'No se pudo conectar con la base de datos. Mostrando datos locales.',
             });
         } finally {
+            console.log('Setting loading to false. Current value:', this.loading());
             this.loading.set(false);
+            console.log('Loading after set:', this.loading());
         }
     }
 
     get usuariosFiltrados(): Usuario[] {
         let list = this.usuarios();
         if (this.filtroRol) {
-            list = list.filter(u => u.rol === this.filtroRol);
+            list = list.filter((u) => u.rol === this.filtroRol);
         }
         if (this.filtroGlobal?.trim()) {
             const q = this.filtroGlobal.toLowerCase();
-            list = list.filter(u =>
-                u.nombreCompleto.toLowerCase().includes(q) ||
-                u.email.toLowerCase().includes(q) ||
-                u.username.toLowerCase().includes(q) ||
-                u.documentoIdentidad.numero.includes(q) ||
-                u.telefono.includes(q)
+            list = list.filter(
+                (u) =>
+                    u.nombreCompleto.toLowerCase().includes(q) ||
+                    u.email.toLowerCase().includes(q) ||
+                    u.username.toLowerCase().includes(q) ||
+                    u.documentoIdentidad.numero.includes(q) ||
+                    u.telefono.includes(q),
             );
         }
         return list;
@@ -199,6 +206,10 @@ export class UsuariosComponent implements OnInit {
 
     refrescar() {
         this.cargarUsuarios();
-        this.messageService.add({ severity: 'info', summary: 'Actualizado', detail: 'Datos refrescados.' });
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Actualizado',
+            detail: 'Datos refrescados.',
+        });
     }
 }
