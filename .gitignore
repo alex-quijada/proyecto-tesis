@@ -42,4 +42,16 @@ testem.log
 .DS_Store
 Thumbs.db
 
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+src/environments/environment.ts
 src/environments/environment.development.ts
+src/environments/environment.prod.ts
+
+# Supabase local temp files
+src/assets/database/supabase/.temp/
+
+# Local development overrides
+*.local.ts
