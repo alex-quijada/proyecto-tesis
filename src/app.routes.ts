@@ -4,7 +4,6 @@ import { Dashboard } from './app/pages/dashboard/dashboard';
 import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
-import { HomePage } from './app/driver/pages/home-page/home-page';
 import { roleGuard } from './app/auth/guards/role.guard';
 
 export const appRoutes: Routes = [
@@ -73,7 +72,7 @@ export const appRoutes: Routes = [
     {
         path: 'driver',
         loadComponent: () =>
-            import('./app/driver/pages/mi-ruta/mi-ruta.component').then((m) => m.MiRutaComponent),
+            import('./app/driver/pages/home-page/home-page').then((m) => m.HomePage),
         canActivate: [roleGuard],
         data: { roles: ['Chofer'] },
     },
