@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { SupabaseClient, User } from '@supabase/supabase-js';
+import { SupabaseClient, User, FunctionsHttpError } from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
 import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
+import { Chofer } from '../../admin/pages/choferes/data/choferes-mock';
 import { supabase } from '../../core/supabase.client';
 
 @Injectable({
@@ -43,32 +44,7 @@ export class AuthService {
         return this.userSubject.getValue();
     }
 
-    /**
-     * REGISTRO DE NUEVOS USUARIOS (Choferes, Analistas, etc.)
-     * Envía las propiedades requeridas en 'options.data' para que las procese el Trigger de la DB.
-     */
-    async register(
-        email: string,
-        password: string,
-        nombreCompleto: string,
-        cedula: number,
-        nombreRol: 'Administrador' | 'Coordinador' | 'Analista' | 'Chofer' | 'Ayudante',
-    ) {
-        const { data, error } = await this.supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    nombre_completo: nombreCompleto,
-                    cedula: cedula,
-                    nombre_rol: nombreRol, // Mismo nombre que espera el COALESCE del trigger
-                },
-            },
-        });
 
-        if (error) throw error;
-        return data;
-    }
 
     // Función para iniciar sesión
     async login(email: string, password: string) {
@@ -84,7 +60,7 @@ export class AuthService {
     async logout() {
         await this.supabase.auth.signOut();
         this.userSubject.next(null);
-        this.router.navigate(['/login']);
+        this.router.navigate(['auth/login']);
     }
 
     /**
@@ -109,11 +85,11 @@ export class AuthService {
     // ==========================================
 
     private readonly ROL_MAP_TO_DIALOG: Record<string, string> = {
-        Administrador: 'ADMIN',
-        Coordinador: 'ADMIN',
-        Analista: 'ANALISTA',
-        Chofer: 'CHOFER',
-        Ayudante: 'AYUDANTE',
+        administrador: 'ADMIN',
+        coordinador: 'ADMIN',
+        analista: 'ANALISTA',
+        chofer: 'CHOFER',
+        ayudante: 'AYUDANTE',
     };
 
     async listarUsuarios(): Promise<Usuario[]> {
@@ -174,5 +150,85 @@ export class AuthService {
         const { error } = await this.supabase.from('usuarios').delete().eq('id_usuario', id);
 
         if (error) throw new Error(`Error al eliminar usuario: ${error.message}`);
+    }
+
+    async obtenerChoferes(): Promise<Chofer[]> {
+        const { data, error } = await this.supabase
+            .rpc('obtener_choferes');
+
+        if (error) throw new Error(`Error al cargar choferes: ${error.message}`);
+
+        return (data || []).map((row: any): Chofer => ({
+            id: row.id_usuario,
+            documentoIdentidad: { prefijo: 'V', numero: String(row.cedula || '') },
+            nombreCompleto: row.nombre_completo || '',
+            telefono: '',
+            rol: row.nombre_rol === 'chofer' ? 'Chofer' : 'Ayudante',
+            fechaIngreso: '',
+            licencia: row.licencia_numero
+                ? {
+                    numero: row.licencia_numero || '',
+                    grado: row.licencia_grado || '',
+                    fechaVencimiento: row.licencia_vencimiento || '',
+                  }
+                : undefined,
+            certificadoMedico: row.certificado_numero
+                ? {
+                    numero: row.certificado_numero || '',
+                    fechaExpedicion: '',
+                    fechaVencimiento: row.certificado_vencimiento || '',
+                  }
+                : undefined,
+        }));
+    }
+
+    async registrarUsuarioPorRol(datosFormulario: any): Promise<any> {
+        const { data, error } = await this.supabase.functions.invoke('registrar-usuario', {
+            body: {
+                email: datosFormulario.email,
+                password: datosFormulario.password,
+                nombre_completo: datosFormulario.nombre_completo,
+                cedula: Number(datosFormulario.cedula),
+                nombre_rol: datosFormulario.nombre_rol,
+            },
+        });
+
+        if (error) {
+            let funcMsg = error.message;
+            if (error instanceof FunctionsHttpError) {
+                try {
+                    const body = await error.context.json();
+                    funcMsg = body?.error || body?.message || funcMsg;
+                } catch { /* ignora */ }
+            }
+            throw new Error(funcMsg);
+        }
+
+        const usuarioId = data?.user?.id;
+        if (!usuarioId) throw new Error('No se pudo obtener el ID del usuario creado');
+
+        const doInsert = async (table: string, row: any) => {
+            const { error: e } = await this.supabase.from(table).insert(row);
+            if (e) throw new Error(`Error al guardar en ${table}: ${e.message}`);
+        };
+
+        if (datosFormulario.certificado_numero && datosFormulario.certificado_vencimiento) {
+            await doInsert('certificados_medicos', {
+                usuario_id: usuarioId,
+                certificado_numero: datosFormulario.certificado_numero,
+                certificado_vencimiento: datosFormulario.certificado_vencimiento,
+            });
+        }
+
+        if (datosFormulario.licencia_numero && datosFormulario.licencia_grado && datosFormulario.licencia_vencimiento) {
+            await doInsert('licencias_conducir', {
+                usuario_id: usuarioId,
+                licencia_numero: datosFormulario.licencia_numero,
+                licencia_grado: datosFormulario.licencia_grado,
+                licencia_vencimiento: datosFormulario.licencia_vencimiento,
+            });
+        }
+
+        return data;
     }
 }

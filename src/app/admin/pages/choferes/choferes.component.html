@@ -33,6 +33,7 @@
     <p-table
         #dt
         [value]="choferesFiltrados"
+        [loading]="loading()"
         [(selection)]="choferSelected"
         dataKey="id"
         [rows]="10"

@@ -79,5 +79,5 @@ export const appRoutes: Routes = [
 
     { path: 'notfound', component: Notfound },
     { path: 'auth', loadChildren: () => import('./app/auth/auth.routes') }, // Libre para loguearse
-    { path: '**', redirectTo: 'auth' },
+    { path: '**', redirectTo: 'auth/login' },
 ];

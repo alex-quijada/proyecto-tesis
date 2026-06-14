@@ -1,6 +1,6 @@
 import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -9,57 +9,33 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
-import { TextareaModule } from 'primeng/textarea';
 import { DividerModule } from 'primeng/divider';
 import { DatePickerModule } from 'primeng/datepicker';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { TooltipModule } from 'primeng/tooltip';
-import { ToastModule } from 'primeng/toast';
 
 import { AuthService } from '../../../../auth/service/auth.service';
 import { supabase } from '../../../../core/supabase.client';
 import { MessageService } from 'primeng/api';
 
 import {
-    Usuario, ROLES, PREFIJOS_DOCUMENTO,
-    GRADOS_LICENCIA, PRIORIDADES, MUNICIPIOS_NUEVA_ESPARTA,
-    UbicacionResumen,
+    Usuario, ROLES, PREFIJOS_DOCUMENTO, GRADOS_LICENCIA,
 } from '../data/usuarios-mock';
 
 const ROL_MAP_TO_DB: Record<string, string> = {
-    ADMIN: 'Administrador',
-    ANALISTA: 'Analista',
-    CHOFER: 'Chofer',
-    AYUDANTE: 'Ayudante',
-};
-
-const ROL_MAP_TO_DIALOG: Record<string, string> = {
-    Administrador: 'ADMIN',
-    Coordinador: 'ADMIN',
-    Analista: 'ANALISTA',
-    Chofer: 'CHOFER',
-    Ayudante: 'AYUDANTE',
+    ADMIN: 'administrador',
+    ANALISTA: 'analista',
+    CHOFER: 'chofer',
+    AYUDANTE: 'ayudante',
 };
 
 @Component({
     selector: 'app-usuario-dialog',
     standalone: true,
     imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        DialogModule,
-        ButtonModule,
-        InputTextModule,
-        InputNumberModule,
-        SelectModule,
-        FluidModule,
-        MessageModule,
-        TextareaModule,
-        DividerModule,
-        DatePickerModule,
+        CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
+        InputTextModule, InputNumberModule, SelectModule, FluidModule,
+        MessageModule, DividerModule, DatePickerModule,
         SelectButtonModule,
-        TooltipModule,
-        ToastModule,
     ],
     providers: [MessageService],
     templateUrl: './usuario-dialog.component.html',
@@ -77,11 +53,9 @@ export class UsuarioDialogComponent {
     errorMessage = '';
     loading = signal(false);
 
-    roles = ROLES;
+    roles = ROLES.filter(r => r.value !== 'CLIENTE');
     prefijosDoc = PREFIJOS_DOCUMENTO;
     gradosLicencia = GRADOS_LICENCIA;
-    prioridades = PRIORIDADES;
-    municipios = MUNICIPIOS_NUEVA_ESPARTA;
 
     activoOptions = [
         { label: 'Activo', value: true },
@@ -89,30 +63,22 @@ export class UsuarioDialogComponent {
     ];
 
     form: FormGroup = this.fb.group({
-        username: ['', [Validators.required, Validators.minLength(4)]],
-        email: ['', [Validators.required, Validators.email]],
-        password: [''],
+        email: ['chofer_test@logistica.com', [Validators.required, Validators.email]],
+        password: ['123456', [Validators.required, Validators.minLength(6)]],
         prefijoDoc: ['V', Validators.required],
-        numeroDoc: [null, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
-        nombreCompleto: ['', Validators.required],
-        telefono: [''],
-        rol: ['', Validators.required],
+        numeroDoc: [87654321, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
+        nombreCompleto: ['Carlos Test', Validators.required],
+        telefono: ['0414-1112233'],
+        rol: ['CHOFER', Validators.required],
         activo: [true],
-        fechaIngreso: [null],
-        licenciaNumero: [''],
-        licenciaGrado: [''],
-        licenciaVencimiento: [null],
-        certMedicoNumero: [''],
-        certMedicoExpedicion: [null],
-        certMedicoVencimiento: [null],
-        nombreComercial: [''],
-        idPrioridad: ['MEDIA'],
-        ubicaciones: this.fb.array([]),
+        fechaIngreso: [new Date()],
+        licenciaNumero: ['L-87654321'],
+        licenciaGrado: ['3ra'],
+        licenciaVencimiento: [new Date('2027-12-31')],
+        certMedicoNumero: ['CMV-123456'],
+        certMedicoExpedicion: [new Date('2026-01-15')],
+        certMedicoVencimiento: [new Date('2027-01-15')],
     });
-
-    get ubicacionesForm(): FormArray {
-        return this.form.get('ubicaciones') as FormArray;
-    }
 
     get rolValue(): string {
         return this.form.get('rol')?.value || '';
@@ -122,58 +88,31 @@ export class UsuarioDialogComponent {
         return !!this.usuarioData().id;
     }
 
-    private crearUbicacionGroup(ub: UbicacionResumen = {}): FormGroup {
-        return this.fb.group({
-            municipio: [ub.municipio || '', Validators.required],
-            direccion: [ub.direccion || '', Validators.required],
-            pais: [{ value: ub.pais || 'Venezuela', disabled: true }],
-            estado: [{ value: ub.estado || 'Nueva Esparta', disabled: true }],
-            referencia: [ub.referencia || ''],
-        });
-    }
-
-    agregarUbicacion() {
-        this.ubicacionesForm.push(this.crearUbicacionGroup());
-    }
-
-    eliminarUbicacion(index: number) {
-        this.ubicacionesForm.removeAt(index);
-    }
-
     constructor() {
+        setTimeout(() => this.actualizarValidaciones());
         effect(() => {
             const data = this.usuarioData();
             this.submitted = false;
             this.errorMessage = '';
 
-            this.form.patchValue({
-                username: data.username || '',
-                email: data.email || '',
-                password: '',
-                prefijoDoc: data.documentoIdentidad?.prefijo || 'V',
-                numeroDoc: data.documentoIdentidad?.numero ? Number(data.documentoIdentidad.numero) : null,
-                nombreCompleto: data.nombreCompleto || '',
-                telefono: data.telefono || '',
-                rol: data.rol || '',
-                activo: data.activo ?? true,
-                fechaIngreso: data.fechaIngreso ? new Date(data.fechaIngreso) : null,
-                licenciaNumero: data.licencia?.numero || '',
-                licenciaGrado: data.licencia?.grado || '',
-                licenciaVencimiento: data.licencia?.fechaVencimiento ? new Date(data.licencia.fechaVencimiento) : null,
-                certMedicoNumero: data.certificadoMedico?.numero || '',
-                certMedicoExpedicion: data.certificadoMedico?.fechaExpedicion ? new Date(data.certificadoMedico.fechaExpedicion) : null,
-                certMedicoVencimiento: data.certificadoMedico?.fechaVencimiento ? new Date(data.certificadoMedico.fechaVencimiento) : null,
-                nombreComercial: data.nombreComercial || '',
-                idPrioridad: data.idPrioridad || 'MEDIA',
-            });
-
-            this.ubicacionesForm.clear();
-            const ubs: UbicacionResumen[] = data.ubicaciones?.length
-                ? data.ubicaciones
-                : [{ municipio: '', direccion: '', referencia: '', pais: 'Venezuela', estado: 'Nueva Esparta' }];
-
-            for (const ub of ubs) {
-                this.ubicacionesForm.push(this.crearUbicacionGroup(ub));
+            if (data.id) {
+                this.form.patchValue({
+                    email: data.email || '',
+                    password: '',
+                    prefijoDoc: data.documentoIdentidad?.prefijo || 'V',
+                    numeroDoc: data.documentoIdentidad?.numero ? Number(data.documentoIdentidad.numero) : null,
+                    nombreCompleto: data.nombreCompleto || '',
+                    telefono: data.telefono || '',
+                    rol: data.rol || '',
+                    activo: data.activo ?? true,
+                    fechaIngreso: data.fechaIngreso ? new Date(data.fechaIngreso) : null,
+                    licenciaNumero: data.licencia?.numero || '',
+                    licenciaGrado: data.licencia?.grado || '',
+                    licenciaVencimiento: data.licencia?.fechaVencimiento ? new Date(data.licencia.fechaVencimiento) : null,
+                    certMedicoNumero: data.certificadoMedico?.numero || '',
+                    certMedicoExpedicion: data.certificadoMedico?.fechaExpedicion ? new Date(data.certificadoMedico.fechaExpedicion) : null,
+                    certMedicoVencimiento: data.certificadoMedico?.fechaVencimiento ? new Date(data.certificadoMedico.fechaVencimiento) : null,
+                });
             }
         });
     }
@@ -191,95 +130,51 @@ export class UsuarioDialogComponent {
         return `${year}-${month}-${day}`;
     }
 
-    private addChoferValidation() {
-        const licNum = this.form.get('licenciaNumero');
-        const licGrado = this.form.get('licenciaGrado');
-        const licVenc = this.form.get('licenciaVencimiento');
-        const certNum = this.form.get('certMedicoNumero');
-        const certExp = this.form.get('certMedicoExpedicion');
-        const certVenc = this.form.get('certMedicoVencimiento');
+    private actualizarValidaciones() {
+        const controls = this.form.controls;
+        const esChofer = this.rolValue === 'CHOFER';
+        const esChoferOAyudante = esChofer || this.rolValue === 'AYUDANTE';
 
-        if (this.rolValue === 'CHOFER' || this.rolValue === 'AYUDANTE') {
-            licNum?.setValidators([Validators.required]);
-            licGrado?.setValidators([Validators.required]);
-            licVenc?.setValidators([Validators.required]);
-            certNum?.setValidators([Validators.required]);
-            certExp?.setValidators([Validators.required]);
-            certVenc?.setValidators([Validators.required]);
-        } else {
-            licNum?.clearValidators();
-            licGrado?.clearValidators();
-            licVenc?.clearValidators();
-            certNum?.clearValidators();
-            certExp?.clearValidators();
-            certVenc?.clearValidators();
-        }
-        licNum?.updateValueAndValidity();
-        licGrado?.updateValueAndValidity();
-        licVenc?.updateValueAndValidity();
-        certNum?.updateValueAndValidity();
-        certExp?.updateValueAndValidity();
-        certVenc?.updateValueAndValidity();
-    }
+        const setReq = (name: string, required: boolean) => {
+            const c = controls[name];
+            if (required) {
+                c?.setValidators([Validators.required]);
+            } else {
+                c?.clearValidators();
+            }
+            c?.updateValueAndValidity();
+        };
 
-    private addClienteValidation() {
-        const nombreComercial = this.form.get('nombreComercial');
-        if (this.rolValue === 'CLIENTE') {
-            nombreComercial?.setValidators([Validators.required]);
-        } else {
-            nombreComercial?.clearValidators();
-        }
-        nombreComercial?.updateValueAndValidity();
+        setReq('licenciaNumero', esChofer);
+        setReq('licenciaGrado', esChofer);
+        setReq('licenciaVencimiento', esChofer);
+        setReq('certMedicoNumero', esChoferOAyudante);
+        setReq('certMedicoExpedicion', esChoferOAyudante);
+        setReq('certMedicoVencimiento', esChoferOAyudante);
     }
 
     onRolChange() {
-        this.addChoferValidation();
-        this.addClienteValidation();
+        this.actualizarValidaciones();
     }
 
     private buildUsuarioFromForm(): Usuario {
         const raw = this.form.getRawValue();
-        const prioridadLabel = this.prioridades.find(p => p.value === raw.idPrioridad)?.label || '';
 
         return {
             ...this.usuarioData(),
-            username: raw.username,
             email: raw.email,
-            documentoIdentidad: {
-                prefijo: raw.prefijoDoc,
-                numero: String(raw.numeroDoc),
-            },
+            documentoIdentidad: { prefijo: raw.prefijoDoc, numero: String(raw.numeroDoc) },
             nombreCompleto: raw.nombreCompleto,
             telefono: raw.telefono || '',
             rol: raw.rol,
             activo: raw.activo,
             fechaCreacion: this.usuarioData().fechaCreacion || this.formatDate(new Date()),
             fechaIngreso: raw.fechaIngreso ? this.formatDate(raw.fechaIngreso) : undefined,
-            licencia: (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE')
-                ? {
-                    numero: raw.licenciaNumero,
-                    grado: raw.licenciaGrado,
-                    fechaVencimiento: raw.licenciaVencimiento ? this.formatDate(raw.licenciaVencimiento) : '',
-                }
+            licencia: raw.rol === 'CHOFER'
+                ? { numero: raw.licenciaNumero, grado: raw.licenciaGrado, fechaVencimiento: raw.licenciaVencimiento ? this.formatDate(raw.licenciaVencimiento) : '' }
                 : undefined,
             certificadoMedico: (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE')
-                ? {
-                    numero: raw.certMedicoNumero,
-                    fechaExpedicion: raw.certMedicoExpedicion ? this.formatDate(raw.certMedicoExpedicion) : '',
-                    fechaVencimiento: raw.certMedicoVencimiento ? this.formatDate(raw.certMedicoVencimiento) : '',
-                }
-                : undefined,
-            nombreComercial: raw.rol === 'CLIENTE' ? raw.nombreComercial : undefined,
-            idPrioridad: raw.rol === 'CLIENTE' ? raw.idPrioridad : undefined,
-            prioridad: raw.rol === 'CLIENTE' ? prioridadLabel : undefined,
-            ubicaciones: raw.rol === 'CLIENTE'
-                ? raw.ubicaciones
-                    .filter((u: UbicacionResumen) => u.direccion?.trim())
-                    .map((u: UbicacionResumen) => ({
-                        ...u,
-                        pais: 'Venezuela',
-                        estado: 'Nueva Esparta',
-                    }))
+                ? { numero: raw.certMedicoNumero, fechaExpedicion: raw.certMedicoExpedicion ? this.formatDate(raw.certMedicoExpedicion) : '', fechaVencimiento: raw.certMedicoVencimiento ? this.formatDate(raw.certMedicoVencimiento) : '' }
                 : undefined,
         };
     }
@@ -288,176 +183,104 @@ export class UsuarioDialogComponent {
         this.submitted = true;
         this.errorMessage = '';
         this.loading.set(true);
-        this.addChoferValidation();
-        this.addClienteValidation();
+        this.actualizarValidaciones();
+        this.form.updateValueAndValidity();
 
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            const errores: Record<string, any> = {};
+            Object.keys(this.form.controls).forEach(key => {
+                const c = this.form.get(key);
+                if (c?.invalid) errores[key] = c.errors;
+            });
+            console.log('Errores del formulario:', errores);
+            this.errorMessage = 'Complete todos los campos obligatorios.';
             this.loading.set(false);
             return;
         }
 
         try {
             const raw = this.form.getRawValue();
-
             if (this.isEditing) {
-                await this.updateExistingUser(raw);
+                await this.actualizarUsuario(raw);
             } else {
-                await this.createNewUser(raw);
+                await this.crearUsuario(raw);
             }
         } catch (error: any) {
-            this.errorMessage = error.message || 'Error al procesar la solicitud. Intente de nuevo.';
+            this.errorMessage = error.message || 'Error al procesar la solicitud.';
             this.loading.set(false);
         }
     }
 
-    private async createNewUser(raw: any) {
-        if (raw.rol === 'CLIENTE') {
-            await this.createCliente(raw);
-        } else {
-            if (!raw.password) {
-                this.errorMessage = 'La contraseña es obligatoria para nuevos usuarios.';
-                this.loading.set(false);
-                return;
-            }
-
-            const dbRole = ROL_MAP_TO_DB[raw.rol];
-            if (!dbRole) {
-                this.errorMessage = `Rol "${raw.rol}" no válido para registro en Supabase.`;
-                this.loading.set(false);
-                return;
-            }
-
-            const cedula = Number(raw.numeroDoc);
-
-            await this.authService.register(
-                raw.email,
-                raw.password,
-                raw.nombreCompleto,
-                cedula,
-                dbRole as any,
-            );
-
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Usuario registrado',
-                detail: `${raw.nombreCompleto} creado exitosamente en Supabase Auth.`,
-            });
+    private async crearUsuario(raw: any) {
+        if (!raw.password) {
+            this.errorMessage = 'La contraseña es obligatoria.';
+            this.loading.set(false);
+            return;
         }
 
-        const usuarioFinal = this.buildUsuarioFromForm();
-        this.onSave.emit(usuarioFinal);
-        this.visible.set(false);
-        this.loading.set(false);
-    }
-
-    private async updateExistingUser(raw: any) {
-        const id = this.usuarioData().id!;
-
-        if (raw.rol === 'CLIENTE') {
-            await this.updateCliente(raw, id);
-        } else {
-            await this.updateUsuarioInDb(raw);
+        const dbRole = ROL_MAP_TO_DB[raw.rol];
+        if (!dbRole) {
+            this.errorMessage = `Rol "${raw.rol}" no válido.`;
+            this.loading.set(false);
+            return;
         }
 
-        const usuarioFinal = this.buildUsuarioFromForm();
-        this.onSave.emit(usuarioFinal);
-        this.visible.set(false);
-        this.loading.set(false);
-    }
+        const payload: any = {
+            email: raw.email,
+            password: raw.password,
+            nombre_completo: raw.nombreCompleto,
+            cedula: Number(raw.numeroDoc),
+            nombre_rol: dbRole,
+        };
 
-    private async getRolId(nombreRol: string): Promise<string> {
-        const { data, error } = await supabase
-            .from('roles')
-            .select('id_rol')
-            .eq('nombre_rol', nombreRol)
-            .single();
-
-        if (error || !data) throw new Error(`Rol "${nombreRol}" no encontrado.`);
-        return data.id_rol;
-    }
-
-    private async createCliente(raw: any) {
-        const { data: prioridadData, error: prioridadError } = await supabase
-            .from('prioridades_clientes')
-            .select('id_prioridad')
-            .eq('nombre_prioridad', raw.idPrioridad === 'ALTA' ? 'VIP' : raw.idPrioridad === 'MEDIA' ? 'Cadena' : 'Regular')
-            .single();
-
-        if (prioridadError || !prioridadData) throw new Error('Prioridad no encontrada.');
-
-        const { data: cliente, error: clienteError } = await supabase
-            .from('clientes')
-            .insert({
-                nombre_comercial: raw.nombreComercial || raw.nombreCompleto,
-                id_prioridad: prioridadData.id_prioridad,
-            })
-            .select('id_cliente')
-            .single();
-
-        if (clienteError) throw new Error(`Error al crear cliente: ${clienteError.message}`);
-        if (!cliente) throw new Error('No se pudo crear el cliente.');
-
-        const ubicacionesValidas = raw.ubicaciones
-            .filter((u: any) => u.direccion?.trim() && u.municipio);
-
-        for (const ub of ubicacionesValidas) {
-            const { error: ubError } = await supabase.from('ubicaciones').insert({
-                id_cliente: cliente.id_cliente,
-                direccion_completa: ub.direccion,
-                municipio: ub.municipio,
-                ciudad: ub.municipio,
-                estado_provincia: 'Nueva Esparta',
-                latitud: 0,
-                longitud: 0,
-                referencia: ub.referencia || null,
-            });
-
-            if (ubError) throw new Error(`Error al guardar ubicación: ${ubError.message}`);
+        if (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE') {
+            payload.certificado_numero = raw.certMedicoNumero;
+            payload.certificado_vencimiento = this.formatDate(raw.certMedicoVencimiento);
         }
+
+        if (raw.rol === 'CHOFER') {
+            payload.licencia_numero = raw.licenciaNumero;
+            payload.licencia_grado = raw.licenciaGrado;
+            payload.licencia_vencimiento = this.formatDate(raw.licenciaVencimiento);
+        }
+
+        await this.authService.registrarUsuarioPorRol(payload);
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Cliente registrado',
+            summary: 'Registrado',
             detail: `${raw.nombreCompleto} creado exitosamente.`,
         });
+
+        this.cerrarYOutput(raw);
     }
 
-    private async updateCliente(raw: any, id: string) {
-        const { error: updateError } = await supabase
-            .from('clientes')
-            .update({ nombre_comercial: raw.nombreComercial || raw.nombreCompleto })
-            .eq('id_cliente', id);
-
-        if (updateError) throw new Error(`Error al actualizar cliente: ${updateError.message}`);
-
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Cliente actualizado',
-            detail: `${raw.nombreCompleto} modificado exitosamente.`,
-        });
-    }
-
-    private async updateUsuarioInDb(raw: any) {
+    private async actualizarUsuario(raw: any) {
+        const id = this.usuarioData().id!;
         const dbRole = ROL_MAP_TO_DB[raw.rol];
-        const idRol = await this.getRolId(dbRole);
+        const { data: rolData } = await supabase.from('roles').select('id_rol').eq('nombre_rol', dbRole).single();
+        if (!rolData) throw new Error('Rol no encontrado.');
 
-        const { error } = await supabase
-            .from('usuarios')
-            .update({
-                email: raw.email,
-                id_rol: idRol,
-                nombre_completo: raw.nombreCompleto,
-                cedula: Number(raw.numeroDoc),
-            })
-            .eq('id_usuario', this.usuarioData().id);
-
-        if (error) throw new Error(`Error al actualizar usuario: ${error.message}`);
+        await supabase.from('usuarios').update({
+            email: raw.email,
+            id_rol: rolData.id_rol,
+            nombre_completo: raw.nombreCompleto,
+            cedula: Number(raw.numeroDoc),
+        }).eq('id_usuario', id);
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Usuario actualizado',
+            summary: 'Actualizado',
             detail: `${raw.nombreCompleto} modificado exitosamente.`,
         });
+
+        this.cerrarYOutput(raw);
+    }
+
+    private cerrarYOutput(raw: any) {
+        const usuarioFinal = this.buildUsuarioFromForm();
+        this.onSave.emit(usuarioFinal);
+        this.visible.set(false);
+        this.loading.set(false);
     }
 }

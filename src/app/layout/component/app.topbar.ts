@@ -126,35 +126,16 @@ import { AuthService } from '../../auth/service/auth.service';
                 <i class="pi pi-ellipsis-v"></i>
             </button>
 
-            <!-- @if (authService.authStatus() === 'authenticated') {
-                <button class="btn btn-ghost">
-                    {{ authService.user()?.email }}
-                </button>
-
-                <button class="btn btn-error" (click)="authService.logout()">Salir</button>
-            } -->
-
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-bell"></i>
+                    <button
+                        type="button"
+                        class="layout-topbar-action"
+                        (click)="authService.logout()"
+                    >
+                        <i class="pi pi-sign-out"></i>
                         <span>Messages</span>
                     </button>
-                    <!-- 8. PERFIL (Botón de engranaje con menú desplegable) -->
-                    <div class="flex align-items-center">
-                        <!-- El Menú (está oculto hasta que se dispara) -->
-                        <p-menu #profileMenu [model]="userMenuItems" [popup]="true"></p-menu>
-
-                        <!-- El Botón Redondo -->
-                        <button
-                            type="button"
-                            pButton
-                            class="layout-topbar-action p-button-rounded p-button-text p-button-plain"
-                            (click)="profileMenu.toggle($event)"
-                        >
-                            <i class="pi pi-user"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>

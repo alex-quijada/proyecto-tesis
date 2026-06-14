@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 import { ChoferDialogComponent } from './components/chofer-dialog.component';
-import { Chofer, CHOFERES_MOCK, GRADOS_LICENCIA } from './data/choferes-mock';
+import { Chofer, GRADOS_LICENCIA } from './data/choferes-mock';
+import { AuthService } from '../../../auth/service/auth.service';
 
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -43,9 +44,11 @@ import { FormsModule } from '@angular/forms';
 export class ChoferesComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
+    private authService = inject(AuthService);
 
     choferes = signal<Chofer[]>([]);
     choferSelected = signal<Chofer[]>([]);
+    loading = signal(false);
 
     isDialogOpen = signal<boolean>(false);
     choferParaModificar = signal<Chofer>({});
@@ -58,8 +61,27 @@ export class ChoferesComponent implements OnInit {
     ];
     grados = GRADOS_LICENCIA;
 
-    ngOnInit() {
-        this.choferes.set([...CHOFERES_MOCK]);
+    async ngOnInit() {
+        await this.cargarChoferes();
+    }
+
+    private async cargarChoferes() {
+        this.loading.set(true);
+        try {
+            const data = await this.authService.obtenerChoferes();
+            console.log('Choferes cargados:', data);
+            this.choferes.set(data);
+        } catch (error: any) {
+            console.error('Error cargando choferes:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'No se pudieron cargar los choferes',
+                life: 5000,
+            });
+        } finally {
+            this.loading.set(false);
+        }
     }
 
     get choferesFiltrados(): Chofer[] {
@@ -95,61 +117,66 @@ export class ChoferesComponent implements OnInit {
         this.isDialogOpen.set(true);
     }
 
-    handleSaveChofer(choferCapturado: Chofer) {
-        let listaActual = this.choferes();
+    async handleSaveChofer(choferCapturado: Chofer) {
+        await this.cargarChoferes();
 
-        if (choferCapturado.id) {
-            const index = listaActual.findIndex(c => c.id === choferCapturado.id);
-            listaActual[index] = choferCapturado;
-            this.choferes.set([...listaActual]);
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Completado',
+            detail: `Datos de ${choferCapturado.nombreCompleto} actualizados`,
+            life: 3000
+        });
+    }
 
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Actualizado',
-                detail: `Datos de ${choferCapturado.nombreCompleto} actualizados`,
-                life: 3000
+    async deleteChofer(chofer: Chofer) {
+        const confirmed = await new Promise<boolean>(resolve => {
+            this.confirmationService.confirm({
+                message: `¿Estás seguro de eliminar a "${chofer.nombreCompleto}"?`,
+                header: 'Confirmar Eliminación',
+                icon: 'pi pi-exclamation-triangle',
+                rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+                acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
+                accept: () => resolve(true),
+                reject: () => resolve(false),
             });
-        } else {
-            choferCapturado.id = crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9);
-            this.choferes.set([...listaActual, choferCapturado]);
+        });
 
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Registrado',
-                detail: `${choferCapturado.rol} registrado correctamente`,
-                life: 3000
-            });
+        if (!confirmed || !chofer.id) return;
+
+        try {
+            await this.authService.eliminarUsuario(chofer.id);
+            await this.cargarChoferes();
+            this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registro eliminado', life: 3000 });
+        } catch (error: any) {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: error.message, life: 5000 });
         }
     }
 
-    deleteChofer(chofer: Chofer) {
-        this.confirmationService.confirm({
-            message: `¿Estás seguro de eliminar a "${chofer.nombreCompleto}"?`,
-            header: 'Confirmar Eliminación',
-            icon: 'pi pi-exclamation-triangle',
-            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-            acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
-            accept: () => {
-                this.choferes.set(this.choferes().filter((val) => val.id !== chofer.id));
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registro eliminado', life: 3000 });
-            }
+    async deleteSelectedChoferes() {
+        const confirmed = await new Promise<boolean>(resolve => {
+            this.confirmationService.confirm({
+                message: '¿Estás seguro de eliminar los registros seleccionados?',
+                header: 'Eliminación Masiva',
+                icon: 'pi pi-exclamation-triangle',
+                rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+                acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
+                accept: () => resolve(true),
+                reject: () => resolve(false),
+            });
         });
-    }
 
-    deleteSelectedChoferes() {
-        this.confirmationService.confirm({
-            message: '¿Estás seguro de eliminar los registros seleccionados?',
-            header: 'Eliminación Masiva',
-            icon: 'pi pi-exclamation-triangle',
-            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-            acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
-            accept: () => {
-                const selectedIds = this.choferSelected().map(c => c.id);
-                this.choferes.set(this.choferes().filter((val) => !selectedIds.includes(val.id)));
-                this.choferSelected.set([]);
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registros eliminados', life: 3000 });
+        if (!confirmed) return;
+
+        try {
+            for (const c of this.choferSelected()) {
+                if (c.id) await this.authService.eliminarUsuario(c.id);
             }
-        });
+            this.choferSelected.set([]);
+            await this.cargarChoferes();
+            this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registros eliminados', life: 3000 });
+        } catch (error: any) {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: error.message, life: 5000 });
+        }
     }
 
     getRolSeverity(rol: string) {
