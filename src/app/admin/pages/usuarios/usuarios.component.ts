@@ -19,7 +19,6 @@ import { CardModule } from 'primeng/card';
 import { UsuarioDialogComponent } from './components/usuario-dialog.component';
 import { Usuario, ROLES } from './data/usuarios-mock';
 import { AuthService } from '../../../auth/service/auth.service';
-import { USUARIOS_MOCK } from './data/usuarios-mock';
 
 @Component({
     selector: 'app-usuarios',
@@ -94,7 +93,6 @@ export class UsuariosComponent implements OnInit {
             this.usuarios.set(data);
         } catch (error: any) {
             console.error('Error al cargar usuarios desde Supabase:', error);
-            this.usuarios.set([...USUARIOS_MOCK]);
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Usando datos de respaldo',
@@ -119,8 +117,7 @@ export class UsuariosComponent implements OnInit {
                     u.nombreCompleto.toLowerCase().includes(q) ||
                     u.email.toLowerCase().includes(q) ||
                     u.username.toLowerCase().includes(q) ||
-                    u.documentoIdentidad.numero.includes(q) ||
-                    u.telefono.includes(q),
+                    u.documentoIdentidad.numero.includes(q),
             );
         }
         return list;

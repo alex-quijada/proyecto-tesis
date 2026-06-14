@@ -42,7 +42,7 @@
         [rows]="10"
         [paginator]="true"
         [rowsPerPageOptions]="[5, 10, 20, 50]"
-        [globalFilterFields]="['nombreCompleto', 'email', 'username', 'documentoIdentidad.numero', 'telefono', 'rol']"
+        [globalFilterFields]="['nombreCompleto', 'email', 'username', 'documentoIdentidad.numero', 'rol']"
         [tableStyle]="{ 'min-width': '85rem' }"
         [loading]="loading()">
 
@@ -68,7 +68,6 @@
                 <th pSortableColumn="username" style="min-width:10rem">Usuario <p-sortIcon field="username" /></th>
                 <th pSortableColumn="nombreCompleto" style="min-width:14rem">Nombre / Razón Social <p-sortIcon field="nombreCompleto" /></th>
                 <th style="min-width:9rem">Documento</th>
-                <th style="min-width:10rem">Contacto</th>
                 <th pSortableColumn="rol" style="min-width:8rem">Rol <p-sortIcon field="rol" /></th>
                 <th pSortableColumn="activo" style="min-width:7rem">Estado <p-sortIcon field="activo" /></th>
                 <th style="min-width:10rem">Último Acceso</th>
@@ -94,7 +93,6 @@
                         {{ u.documentoIdentidad.prefijo }}-{{ u.documentoIdentidad.numero }}
                     </span>
                 </td>
-                <td class="text-sm">{{ u.telefono || '-' }}</td>
                 <td>
                     <p-tag
                         [value]="rolLabels[u.rol] || u.rol"
@@ -123,7 +121,7 @@
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="9" class="text-center py-8 text-surface-400">
+                <td colspan="8" class="text-center py-8 text-surface-400">
                     <i class="pi pi-inbox text-4xl block mb-2"></i>
                     No hay usuarios registrados
                 </td>

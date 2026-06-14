@@ -1,6 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -22,13 +22,21 @@ import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconf
     ],
     templateUrl: './login-page.html',
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
     private fb = inject(FormBuilder);
     private authService = inject(AuthService);
     private router = inject(Router);
+    private route = inject(ActivatedRoute);
 
     hasError = signal(false);
+    sesionExpirada = signal(false);
     isPosting = signal(false);
+
+    ngOnInit() {
+        if (this.route.snapshot.queryParams['sesionExpirada'] === 'true') {
+            this.sesionExpirada.set(true);
+        }
+    }
 
     loginForm = this.fb.group({
         email: ['', [Validators.required, Validators.email]],

@@ -12,9 +12,9 @@ import { MessageModule } from 'primeng/message';
 import { DividerModule } from 'primeng/divider';
 import { DatePickerModule } from 'primeng/datepicker';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../../../../auth/service/auth.service';
-import { supabase } from '../../../../core/supabase.client';
 import { MessageService } from 'primeng/api';
 
 import {
@@ -35,7 +35,7 @@ const ROL_MAP_TO_DB: Record<string, string> = {
         CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
         InputTextModule, InputNumberModule, SelectModule, FluidModule,
         MessageModule, DividerModule, DatePickerModule,
-        SelectButtonModule,
+        SelectButtonModule, PasswordModule,
     ],
     providers: [MessageService],
     templateUrl: './usuario-dialog.component.html',
@@ -63,21 +63,20 @@ export class UsuarioDialogComponent {
     ];
 
     form: FormGroup = this.fb.group({
-        email: ['chofer_test@logistica.com', [Validators.required, Validators.email]],
-        password: ['123456', [Validators.required, Validators.minLength(6)]],
+        email: ['test_chofer@logistica.com', [Validators.required, Validators.email]],
+        password: ['123456', [Validators.minLength(6)]],
         prefijoDoc: ['V', Validators.required],
-        numeroDoc: [87654321, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
-        nombreCompleto: ['Carlos Test', Validators.required],
-        telefono: ['0414-1112233'],
+        numeroDoc: [12345678, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
+        nombreCompleto: ['Roberto Díaz', Validators.required],
         rol: ['CHOFER', Validators.required],
         activo: [true],
-        fechaIngreso: [new Date()],
-        licenciaNumero: ['L-87654321'],
-        licenciaGrado: ['3ra'],
-        licenciaVencimiento: [new Date('2027-12-31')],
-        certMedicoNumero: ['CMV-123456'],
-        certMedicoExpedicion: [new Date('2026-01-15')],
-        certMedicoVencimiento: [new Date('2027-01-15')],
+        licenciaNumero: ['L-99887766'],
+        licenciaGrado: ['5ta'],
+        licenciaExpedicion: [new Date('2024-03-15')],
+        licenciaVencimiento: [new Date('2028-03-15')],
+        certMedicoNumero: ['CMV-554433'],
+        certMedicoExpedicion: [new Date('2025-12-01')],
+        certMedicoVencimiento: [new Date('2027-12-01')],
     });
 
     get rolValue(): string {
@@ -102,18 +101,18 @@ export class UsuarioDialogComponent {
                     prefijoDoc: data.documentoIdentidad?.prefijo || 'V',
                     numeroDoc: data.documentoIdentidad?.numero ? Number(data.documentoIdentidad.numero) : null,
                     nombreCompleto: data.nombreCompleto || '',
-                    telefono: data.telefono || '',
                     rol: data.rol || '',
                     activo: data.activo ?? true,
-                    fechaIngreso: data.fechaIngreso ? new Date(data.fechaIngreso) : null,
                     licenciaNumero: data.licencia?.numero || '',
                     licenciaGrado: data.licencia?.grado || '',
-                    licenciaVencimiento: data.licencia?.fechaVencimiento ? new Date(data.licencia.fechaVencimiento) : null,
+                    licenciaExpedicion: this.parseLocalDate(data.licencia?.fechaExpedicion),
+                    licenciaVencimiento: this.parseLocalDate(data.licencia?.fechaVencimiento),
                     certMedicoNumero: data.certificadoMedico?.numero || '',
-                    certMedicoExpedicion: data.certificadoMedico?.fechaExpedicion ? new Date(data.certificadoMedico.fechaExpedicion) : null,
-                    certMedicoVencimiento: data.certificadoMedico?.fechaVencimiento ? new Date(data.certificadoMedico.fechaVencimiento) : null,
+                    certMedicoExpedicion: this.parseLocalDate(data.certificadoMedico?.fechaExpedicion),
+                    certMedicoVencimiento: this.parseLocalDate(data.certificadoMedico?.fechaVencimiento),
                 });
             }
+            this.ajustarValidadorPassword();
         });
     }
 
@@ -123,11 +122,19 @@ export class UsuarioDialogComponent {
         this.errorMessage = '';
     }
 
-    private formatDate(d: Date): string {
+    private formatDate(d: Date | null | undefined): string {
+        if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '';
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    private parseLocalDate(dateStr: string | undefined | null): Date | null {
+        if (!dateStr) return null;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
     }
 
     private actualizarValidaciones() {
@@ -147,10 +154,22 @@ export class UsuarioDialogComponent {
 
         setReq('licenciaNumero', esChofer);
         setReq('licenciaGrado', esChofer);
+        setReq('licenciaExpedicion', esChofer);
         setReq('licenciaVencimiento', esChofer);
         setReq('certMedicoNumero', esChoferOAyudante);
         setReq('certMedicoExpedicion', esChoferOAyudante);
         setReq('certMedicoVencimiento', esChoferOAyudante);
+    }
+
+    private ajustarValidadorPassword() {
+        const passwordControl = this.form.get('password');
+        if (!passwordControl) return;
+        if (this.isEditing) {
+            passwordControl.removeValidators(Validators.required);
+        } else {
+            passwordControl.addValidators(Validators.required);
+        }
+        passwordControl.updateValueAndValidity();
     }
 
     onRolChange() {
@@ -165,13 +184,16 @@ export class UsuarioDialogComponent {
             email: raw.email,
             documentoIdentidad: { prefijo: raw.prefijoDoc, numero: String(raw.numeroDoc) },
             nombreCompleto: raw.nombreCompleto,
-            telefono: raw.telefono || '',
             rol: raw.rol,
             activo: raw.activo,
             fechaCreacion: this.usuarioData().fechaCreacion || this.formatDate(new Date()),
-            fechaIngreso: raw.fechaIngreso ? this.formatDate(raw.fechaIngreso) : undefined,
             licencia: raw.rol === 'CHOFER'
-                ? { numero: raw.licenciaNumero, grado: raw.licenciaGrado, fechaVencimiento: raw.licenciaVencimiento ? this.formatDate(raw.licenciaVencimiento) : '' }
+                ? {
+                    numero: raw.licenciaNumero,
+                    grado: raw.licenciaGrado,
+                    fechaExpedicion: raw.licenciaExpedicion ? this.formatDate(raw.licenciaExpedicion) : '',
+                    fechaVencimiento: raw.licenciaVencimiento ? this.formatDate(raw.licenciaVencimiento) : '',
+                  }
                 : undefined,
             certificadoMedico: (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE')
                 ? { numero: raw.certMedicoNumero, fechaExpedicion: raw.certMedicoExpedicion ? this.formatDate(raw.certMedicoExpedicion) : '', fechaVencimiento: raw.certMedicoVencimiento ? this.formatDate(raw.certMedicoVencimiento) : '' }
@@ -231,16 +253,19 @@ export class UsuarioDialogComponent {
             nombre_completo: raw.nombreCompleto,
             cedula: Number(raw.numeroDoc),
             nombre_rol: dbRole,
+            prefijo_doc: raw.prefijoDoc || 'V',
         };
 
         if (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE') {
             payload.certificado_numero = raw.certMedicoNumero;
+            payload.certificado_expedicion = this.formatDate(raw.certMedicoExpedicion);
             payload.certificado_vencimiento = this.formatDate(raw.certMedicoVencimiento);
         }
 
         if (raw.rol === 'CHOFER') {
             payload.licencia_numero = raw.licenciaNumero;
             payload.licencia_grado = raw.licenciaGrado;
+            payload.licencia_expedicion = this.formatDate(raw.licenciaExpedicion);
             payload.licencia_vencimiento = this.formatDate(raw.licenciaVencimiento);
         }
 
@@ -258,15 +283,39 @@ export class UsuarioDialogComponent {
     private async actualizarUsuario(raw: any) {
         const id = this.usuarioData().id!;
         const dbRole = ROL_MAP_TO_DB[raw.rol];
-        const { data: rolData } = await supabase.from('roles').select('id_rol').eq('nombre_rol', dbRole).single();
-        if (!rolData) throw new Error('Rol no encontrado.');
+        if (!dbRole) {
+            this.errorMessage = `Rol "${raw.rol}" no válido.`;
+            this.loading.set(false);
+            return;
+        }
 
-        await supabase.from('usuarios').update({
+        const payload: any = {
+            user_id: id,
             email: raw.email,
-            id_rol: rolData.id_rol,
             nombre_completo: raw.nombreCompleto,
             cedula: Number(raw.numeroDoc),
-        }).eq('id_usuario', id);
+            nombre_rol: dbRole,
+            prefijo_doc: raw.prefijoDoc || 'V',
+        };
+
+        if (raw.password) {
+            payload.password = raw.password;
+        }
+
+        if (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE') {
+            payload.certificado_numero = raw.certMedicoNumero;
+            payload.certificado_expedicion = this.formatDate(raw.certMedicoExpedicion);
+            payload.certificado_vencimiento = this.formatDate(raw.certMedicoVencimiento);
+        }
+
+        if (raw.rol === 'CHOFER') {
+            payload.licencia_numero = raw.licenciaNumero;
+            payload.licencia_grado = raw.licenciaGrado;
+            payload.licencia_expedicion = this.formatDate(raw.licenciaExpedicion);
+            payload.licencia_vencimiento = this.formatDate(raw.licenciaVencimiento);
+        }
+
+        await this.authService.actualizarUsuarioPorRol(payload);
 
         this.messageService.add({
             severity: 'success',

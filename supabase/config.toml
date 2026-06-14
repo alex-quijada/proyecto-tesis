@@ -407,6 +407,9 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.registrar-usuario]
 verify_jwt = false
 
+[functions.actualizar-usuario]
+verify_jwt = false
+
 # [experimental.pgdelta]
 # When enabled, pg-delta becomes the active engine for supported schema flows.
 # enabled = false

@@ -6,6 +6,7 @@ export interface DocumentoIdentidad {
 export interface LicenciaConducir {
     numero: string;
     grado: string;
+    fechaExpedicion?: string;
     fechaVencimiento: string;
 }
 

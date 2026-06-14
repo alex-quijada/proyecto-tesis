@@ -34,8 +34,9 @@ CREATE TABLE public.usuarios (
     email character varying NOT NULL UNIQUE,
     id_rol uuid NOT NULL REFERENCES public.roles(id_rol) ON DELETE RESTRICT,
     nombre_completo character varying(150) NOT NULL,
-    cedula integer NOT NULL UNIQUE,
-    CONSTRAINT usuarios_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES auth.users(id) ON DELETE CASCADE
+    cedula integer NOT NULL UNIQUE,
+    prefijo_doc CHAR(1) NOT NULL DEFAULT 'V' CHECK (prefijo_doc IN ('V', 'E', 'J', 'P', 'G')),
+    CONSTRAINT usuarios_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
 -- ==========================================
@@ -176,16 +177,17 @@ BEGIN
   WHERE nombre_rol = COALESCE(new.raw_user_meta_data->>'nombre_rol', 'Chofer') 
   LIMIT 1;
 
-  -- Inserta directamente en la tabla pública sincronizada
-  INSERT INTO public.usuarios (id_usuario, email, id_rol, nombre_completo, cedula)
-  VALUES (
-    new.id,
-    new.email,
-    default_role_id,
-    COALESCE(new.raw_user_meta_data->>'nombre_completo', 'Usuario Nuevo'),
-    (new.raw_user_meta_data->>'cedula')::integer
-  );
-  return new;
+  -- Inserta directamente en la tabla pública sincronizada
+  INSERT INTO public.usuarios (id_usuario, email, id_rol, nombre_completo, cedula, prefijo_doc)
+  VALUES (
+    new.id,
+    new.email,
+    default_role_id,
+    COALESCE(new.raw_user_meta_data->>'nombre_completo', 'Usuario Nuevo'),
+    (new.raw_user_meta_data->>'cedula')::integer,
+    COALESCE(new.raw_user_meta_data->>'prefijo_doc', 'V')
+  );
+  return new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

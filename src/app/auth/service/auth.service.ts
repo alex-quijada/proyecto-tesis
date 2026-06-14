@@ -95,33 +95,59 @@ export class AuthService {
     async listarUsuarios(): Promise<Usuario[]> {
         const { data, error } = await this.supabase
             .from('usuarios')
-            .select(
-                `
+            .select(`
                 id_usuario,
                 email,
                 nombre_completo,
                 cedula,
+                prefijo_doc,
                 roles ( nombre_rol )
-            `,
-            )
+            `)
             .order('nombre_completo', { ascending: true });
 
         if (error) throw new Error(`Error al cargar usuarios: ${error.message}`);
 
+        const ids = (data || []).map(r => r.id_usuario);
+        let adicionales: any[] = [];
+        if (ids.length > 0) {
+            const { data: ad, error: rpcError } = await this.supabase.rpc('obtener_datos_adicionales_usuarios', { usuario_ids: ids });
+            if (!rpcError) {
+                adicionales = ad || [];
+            } else {
+                console.warn('Error al cargar datos adicionales de usuarios:', rpcError);
+            }
+        }
+        const adMap = new Map(adicionales.map((a: any) => [a.usuario_id, a]));
+
         return (data || []).map((row: any) => {
             const nombreRol: string = row.roles?.nombre_rol || 'Analista';
             const dialogRol = this.ROL_MAP_TO_DIALOG[nombreRol] || 'ANALISTA';
+            const ad = adMap.get(row.id_usuario);
 
             return {
                 id: row.id_usuario,
                 username: row.email?.split('@')[0] || 'usuario',
                 email: row.email || '',
-                documentoIdentidad: { prefijo: 'V', numero: String(row.cedula || 0) },
+                documentoIdentidad: { prefijo: row.prefijo_doc || 'V', numero: String(row.cedula || 0) },
                 nombreCompleto: row.nombre_completo || '',
-                telefono: '',
                 rol: dialogRol,
                 activo: true,
                 fechaCreacion: '',
+                licencia: ad?.licencia_numero
+                    ? {
+                        numero: ad.licencia_numero || '',
+                        grado: ad.licencia_grado || '',
+                        fechaExpedicion: ad.licencia_expedicion || '',
+                        fechaVencimiento: ad.licencia_vencimiento || '',
+                      }
+                    : undefined,
+                certificadoMedico: ad?.certificado_numero
+                    ? {
+                        numero: ad.certificado_numero || '',
+                        fechaExpedicion: ad.certificado_expedicion || '',
+                        fechaVencimiento: ad.certificado_vencimiento || '',
+                      }
+                    : undefined,
             } as Usuario;
         });
     }
@@ -160,7 +186,7 @@ export class AuthService {
 
         return (data || []).map((row: any): Chofer => ({
             id: row.id_usuario,
-            documentoIdentidad: { prefijo: 'V', numero: String(row.cedula || '') },
+            documentoIdentidad: { prefijo: row.prefijo_doc || 'V', numero: String(row.cedula || '') },
             nombreCompleto: row.nombre_completo || '',
             telefono: '',
             rol: row.nombre_rol === 'chofer' ? 'Chofer' : 'Ayudante',
@@ -169,20 +195,42 @@ export class AuthService {
                 ? {
                     numero: row.licencia_numero || '',
                     grado: row.licencia_grado || '',
+                    fechaExpedicion: row.licencia_expedicion || '',
                     fechaVencimiento: row.licencia_vencimiento || '',
                   }
                 : undefined,
             certificadoMedico: row.certificado_numero
                 ? {
                     numero: row.certificado_numero || '',
-                    fechaExpedicion: '',
+                    fechaExpedicion: row.certificado_expedicion || '',
                     fechaVencimiento: row.certificado_vencimiento || '',
                   }
                 : undefined,
         }));
     }
 
+    private cerrarSesionExpirada() {
+        this.supabase.auth.signOut();
+        this.userSubject.next(null);
+        this.router.navigate(['auth/login'], {
+            queryParams: { sesionExpirada: 'true' },
+        });
+    }
+
     async registrarUsuarioPorRol(datosFormulario: any): Promise<any> {
+        let token: string | undefined;
+        try {
+            const refreshed = await this.supabase.auth.refreshSession();
+            token = refreshed.data.session?.access_token;
+        } catch {
+            this.cerrarSesionExpirada();
+            throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
+        }
+        if (!token) {
+            this.cerrarSesionExpirada();
+            throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
+        }
+
         const { data, error } = await this.supabase.functions.invoke('registrar-usuario', {
             body: {
                 email: datosFormulario.email,
@@ -190,7 +238,9 @@ export class AuthService {
                 nombre_completo: datosFormulario.nombre_completo,
                 cedula: Number(datosFormulario.cedula),
                 nombre_rol: datosFormulario.nombre_rol,
+                prefijo_doc: datosFormulario.prefijo_doc || 'V',
             },
+            headers: { Authorization: `Bearer ${token}` },
         });
 
         if (error) {
@@ -198,9 +248,15 @@ export class AuthService {
             if (error instanceof FunctionsHttpError) {
                 try {
                     const body = await error.context.json();
+                    console.error('registrar-usuario error body:', body);
                     funcMsg = body?.error || body?.message || funcMsg;
                 } catch { /* ignora */ }
             }
+            if (funcMsg?.includes('Sesión inválida') || funcMsg?.includes('expirada')) {
+                this.cerrarSesionExpirada();
+                throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
+            }
+            console.error('registrar-usuario error:', funcMsg);
             throw new Error(funcMsg);
         }
 
@@ -216,6 +272,7 @@ export class AuthService {
             await doInsert('certificados_medicos', {
                 usuario_id: usuarioId,
                 certificado_numero: datosFormulario.certificado_numero,
+                certificado_expedicion: datosFormulario.certificado_expedicion || null,
                 certificado_vencimiento: datosFormulario.certificado_vencimiento,
             });
         }
@@ -225,8 +282,63 @@ export class AuthService {
                 usuario_id: usuarioId,
                 licencia_numero: datosFormulario.licencia_numero,
                 licencia_grado: datosFormulario.licencia_grado,
+                licencia_expedicion: datosFormulario.licencia_expedicion || null,
                 licencia_vencimiento: datosFormulario.licencia_vencimiento,
             });
+        }
+
+        return data;
+    }
+
+    async actualizarUsuarioPorRol(datosFormulario: any): Promise<any> {
+        let token: string | undefined;
+        try {
+            const refreshed = await this.supabase.auth.refreshSession();
+            token = refreshed.data.session?.access_token;
+        } catch {
+            this.cerrarSesionExpirada();
+            throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
+        }
+        if (!token) {
+            this.cerrarSesionExpirada();
+            throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
+        }
+
+        const { data, error } = await this.supabase.functions.invoke('actualizar-usuario', {
+            body: {
+                user_id: datosFormulario.user_id,
+                email: datosFormulario.email,
+                password: datosFormulario.password || '',
+                nombre_completo: datosFormulario.nombre_completo,
+                cedula: Number(datosFormulario.cedula),
+                nombre_rol: datosFormulario.nombre_rol,
+                prefijo_doc: datosFormulario.prefijo_doc || 'V',
+                certificado_numero: datosFormulario.certificado_numero,
+                certificado_expedicion: datosFormulario.certificado_expedicion,
+                certificado_vencimiento: datosFormulario.certificado_vencimiento,
+                licencia_numero: datosFormulario.licencia_numero,
+                licencia_grado: datosFormulario.licencia_grado,
+                licencia_expedicion: datosFormulario.licencia_expedicion,
+                licencia_vencimiento: datosFormulario.licencia_vencimiento,
+            },
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (error) {
+            let funcMsg = error.message;
+            console.error('actualizar-usuario error:', error);
+            if (error instanceof FunctionsHttpError) {
+                try {
+                    const body = await error.context.json();
+                    console.error('actualizar-usuario body:', body);
+                    funcMsg = body?.error || body?.message || funcMsg;
+                } catch { /* ignora */ }
+            }
+            if (funcMsg?.includes('Sesión inválida') || funcMsg?.includes('expirada')) {
+                this.cerrarSesionExpirada();
+                throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
+            }
+            throw new Error(funcMsg);
         }
 
         return data;
