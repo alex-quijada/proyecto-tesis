@@ -74,7 +74,7 @@ export class LoginPage implements OnInit {
                 userRole === 'Administrador'
             ) {
                 // Redirige al panel administrativo principal gestionado por AppLayout (dashboard)
-                this.router.navigate(['/']);
+                this.router.navigate(['/app']);
             } else {
                 // Caso alternativo de seguridad
                 console.warn('Usuario sin rol logístico asignado válido.');

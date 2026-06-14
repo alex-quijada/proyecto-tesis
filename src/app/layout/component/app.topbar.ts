@@ -50,7 +50,7 @@ import { AuthService } from '../../auth/service/auth.service';
             >
                 <i class="pi pi-bars"></i>
             </button>
-            <a class="layout-topbar-logo" routerLink="/">
+            <a class="layout-topbar-logo" routerLink="/app">
                 <!--svg viewBox="0 0 54 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         fill-rule="evenodd"
@@ -194,8 +194,8 @@ export class AppTopbar {
             {
                 label: 'Usuario',
                 items: [
-                    { label: 'Mi Perfil', icon: 'pi pi-user', routerLink: ['/profile'] },
-                    { label: 'Configuración', icon: 'pi pi-cog', routerLink: ['/settings'] },
+                    { label: 'Mi Perfil', icon: 'pi pi-user', routerLink: ['/app/profile'] },
+                    { label: 'Configuración', icon: 'pi pi-cog', routerLink: ['/app/settings'] },
                     { separator: true },
                     {
                         label: 'Cerrar Sesión',

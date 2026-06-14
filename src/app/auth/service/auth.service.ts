@@ -1,16 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { SupabaseClient, User, FunctionsHttpError } from '@supabase/supabase-js';
+import { SupabaseClient, User, FunctionsHttpError, createClient } from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
 import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
 import { Chofer } from '../../admin/pages/choferes/data/choferes-mock';
-import { supabase } from '../../core/supabase.client';
+import { environment } from '@/environments/environment';
 
 @Injectable({
     providedIn: 'root',
 })
 export class AuthService {
-    private supabase: SupabaseClient = supabase;
+    private supabaseClient = createClient(environment.supabaseUrl, environment.supabaseKey);
+    private supabase: SupabaseClient = this.supabaseClient;
     private router = inject(Router);
 
     private userSubject = new BehaviorSubject<User | null>(null);
@@ -44,8 +45,6 @@ export class AuthService {
         return this.userSubject.getValue();
     }
 
-
-
     // Función para iniciar sesión
     async login(email: string, password: string) {
         const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -60,7 +59,7 @@ export class AuthService {
     async logout() {
         await this.supabase.auth.signOut();
         this.userSubject.next(null);
-        this.router.navigate(['auth/login']);
+        this.router.navigate(['/']);
     }
 
     /**
@@ -95,22 +94,27 @@ export class AuthService {
     async listarUsuarios(): Promise<Usuario[]> {
         const { data, error } = await this.supabase
             .from('usuarios')
-            .select(`
+            .select(
+                `
                 id_usuario,
                 email,
                 nombre_completo,
                 cedula,
                 prefijo_doc,
                 roles ( nombre_rol )
-            `)
+            `,
+            )
             .order('nombre_completo', { ascending: true });
 
         if (error) throw new Error(`Error al cargar usuarios: ${error.message}`);
 
-        const ids = (data || []).map(r => r.id_usuario);
+        const ids = (data || []).map((r) => r.id_usuario);
         let adicionales: any[] = [];
         if (ids.length > 0) {
-            const { data: ad, error: rpcError } = await this.supabase.rpc('obtener_datos_adicionales_usuarios', { usuario_ids: ids });
+            const { data: ad, error: rpcError } = await this.supabase.rpc(
+                'obtener_datos_adicionales_usuarios',
+                { usuario_ids: ids },
+            );
             if (!rpcError) {
                 adicionales = ad || [];
             } else {
@@ -128,24 +132,27 @@ export class AuthService {
                 id: row.id_usuario,
                 username: row.email?.split('@')[0] || 'usuario',
                 email: row.email || '',
-                documentoIdentidad: { prefijo: row.prefijo_doc || 'V', numero: String(row.cedula || 0) },
+                documentoIdentidad: {
+                    prefijo: row.prefijo_doc || 'V',
+                    numero: String(row.cedula || 0),
+                },
                 nombreCompleto: row.nombre_completo || '',
                 rol: dialogRol,
                 activo: true,
                 fechaCreacion: '',
                 licencia: ad?.licencia_numero
                     ? {
-                        numero: ad.licencia_numero || '',
-                        grado: ad.licencia_grado || '',
-                        fechaExpedicion: ad.licencia_expedicion || '',
-                        fechaVencimiento: ad.licencia_vencimiento || '',
+                          numero: ad.licencia_numero || '',
+                          grado: ad.licencia_grado || '',
+                          fechaExpedicion: ad.licencia_expedicion || '',
+                          fechaVencimiento: ad.licencia_vencimiento || '',
                       }
                     : undefined,
                 certificadoMedico: ad?.certificado_numero
                     ? {
-                        numero: ad.certificado_numero || '',
-                        fechaExpedicion: ad.certificado_expedicion || '',
-                        fechaVencimiento: ad.certificado_vencimiento || '',
+                          numero: ad.certificado_numero || '',
+                          fechaExpedicion: ad.certificado_expedicion || '',
+                          fechaVencimiento: ad.certificado_vencimiento || '',
                       }
                     : undefined,
             } as Usuario;
@@ -179,40 +186,44 @@ export class AuthService {
     }
 
     async obtenerChoferes(): Promise<Chofer[]> {
-        const { data, error } = await this.supabase
-            .rpc('obtener_choferes');
+        const { data, error } = await this.supabase.rpc('obtener_choferes');
 
         if (error) throw new Error(`Error al cargar choferes: ${error.message}`);
 
-        return (data || []).map((row: any): Chofer => ({
-            id: row.id_usuario,
-            documentoIdentidad: { prefijo: row.prefijo_doc || 'V', numero: String(row.cedula || '') },
-            nombreCompleto: row.nombre_completo || '',
-            telefono: '',
-            rol: row.nombre_rol === 'chofer' ? 'Chofer' : 'Ayudante',
-            fechaIngreso: '',
-            licencia: row.licencia_numero
-                ? {
-                    numero: row.licencia_numero || '',
-                    grado: row.licencia_grado || '',
-                    fechaExpedicion: row.licencia_expedicion || '',
-                    fechaVencimiento: row.licencia_vencimiento || '',
-                  }
-                : undefined,
-            certificadoMedico: row.certificado_numero
-                ? {
-                    numero: row.certificado_numero || '',
-                    fechaExpedicion: row.certificado_expedicion || '',
-                    fechaVencimiento: row.certificado_vencimiento || '',
-                  }
-                : undefined,
-        }));
+        return (data || []).map(
+            (row: any): Chofer => ({
+                id: row.id_usuario,
+                documentoIdentidad: {
+                    prefijo: row.prefijo_doc || 'V',
+                    numero: String(row.cedula || ''),
+                },
+                nombreCompleto: row.nombre_completo || '',
+                telefono: '',
+                rol: row.nombre_rol === 'chofer' ? 'Chofer' : 'Ayudante',
+                fechaIngreso: '',
+                licencia: row.licencia_numero
+                    ? {
+                          numero: row.licencia_numero || '',
+                          grado: row.licencia_grado || '',
+                          fechaExpedicion: row.licencia_expedicion || '',
+                          fechaVencimiento: row.licencia_vencimiento || '',
+                      }
+                    : undefined,
+                certificadoMedico: row.certificado_numero
+                    ? {
+                          numero: row.certificado_numero || '',
+                          fechaExpedicion: row.certificado_expedicion || '',
+                          fechaVencimiento: row.certificado_vencimiento || '',
+                      }
+                    : undefined,
+            }),
+        );
     }
 
     private cerrarSesionExpirada() {
         this.supabase.auth.signOut();
         this.userSubject.next(null);
-        this.router.navigate(['auth/login'], {
+        this.router.navigate(['/'], {
             queryParams: { sesionExpirada: 'true' },
         });
     }
@@ -250,7 +261,9 @@ export class AuthService {
                     const body = await error.context.json();
                     console.error('registrar-usuario error body:', body);
                     funcMsg = body?.error || body?.message || funcMsg;
-                } catch { /* ignora */ }
+                } catch {
+                    /* ignora */
+                }
             }
             if (funcMsg?.includes('Sesión inválida') || funcMsg?.includes('expirada')) {
                 this.cerrarSesionExpirada();
@@ -277,7 +290,11 @@ export class AuthService {
             });
         }
 
-        if (datosFormulario.licencia_numero && datosFormulario.licencia_grado && datosFormulario.licencia_vencimiento) {
+        if (
+            datosFormulario.licencia_numero &&
+            datosFormulario.licencia_grado &&
+            datosFormulario.licencia_vencimiento
+        ) {
             await doInsert('licencias_conducir', {
                 usuario_id: usuarioId,
                 licencia_numero: datosFormulario.licencia_numero,
@@ -332,7 +349,9 @@ export class AuthService {
                     const body = await error.context.json();
                     console.error('actualizar-usuario body:', body);
                     funcMsg = body?.error || body?.message || funcMsg;
-                } catch { /* ignora */ }
+                } catch {
+                    /* ignora */
+                }
             }
             if (funcMsg?.includes('Sesión inválida') || funcMsg?.includes('expirada')) {
                 this.cerrarSesionExpirada();
