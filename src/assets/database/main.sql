@@ -70,13 +70,11 @@ CREATE TABLE public.vehiculos (
     placa character varying(20) NOT NULL UNIQUE,
     marca character varying(50) NOT NULL,
     modelo character varying(50) NOT NULL,
-    anio integer NOT NULL,
-    imagen_url text,
-    id_tipo_vehiculo uuid NOT NULL REFERENCES public.tipos_vehiculos(id_tipo_vehiculo) ON DELETE RESTRICT,
-    id_tipo_caja uuid NOT NULL REFERENCES public.tipos_cajas(id_tipo_caja) ON DELETE RESTRICT,
-    capacidad_pallets integer DEFAULT 0,
-    capacidad_volumen numeric(10, 2) NOT NULL,
-    peso_maximo numeric(10, 2) NOT NULL,
+    anio integer NOT NULL,
+    id_tipo_vehiculo uuid NOT NULL REFERENCES public.tipos_vehiculos(id_tipo_vehiculo) ON DELETE RESTRICT,
+    id_tipo_caja uuid NOT NULL REFERENCES public.tipos_cajas(id_tipo_caja) ON DELETE RESTRICT,
+    capacidad_pallets integer DEFAULT 0,
+    peso_maximo numeric(10, 2) NOT NULL,
     id_estado_vehiculo uuid NOT NULL REFERENCES public.estados_vehiculos(id_estado_vehiculo) ON DELETE RESTRICT
 );
 

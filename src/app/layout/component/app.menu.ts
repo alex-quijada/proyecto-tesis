@@ -39,9 +39,9 @@ export class AppMenu {
                         icon: 'pi pi-fw pi-map',
                         path: '/operaciones/rutas',
                         items: [
+                            { label: 'Asignación de Carga', icon: 'pi pi-fw pi-box', routerLink: ['/app/rutas/carga'] },
                             { label: 'Optimización de Rutas', icon: 'pi pi-fw pi-directions', routerLink: ['/app/rutas/optimizacion'] },
-                            { label: 'Monitoreo en Tiempo Real', icon: 'pi pi-fw pi-map-marker', routerLink: ['/app/rutas/seguimiento'] },
-                            { label: 'Asignación de Carga', icon: 'pi pi-fw pi-box', routerLink: ['/app/rutas/carga'] }
+                            { label: 'Monitoreo en Tiempo Real', icon: 'pi pi-fw pi-map-marker', routerLink: ['/app/rutas/seguimiento'] }
                         ]
                     },
                     {
@@ -54,15 +54,7 @@ export class AppMenu {
                             { label: 'Control de Combustible', icon: 'pi pi-fw pi-percentage', routerLink: ['/app/vehiculos/combustible'] }
                         ]
                     },
-                    {
-                        label: 'Choferes',
-                        icon: 'pi pi-fw pi-id-card',
-                        path: '/operaciones/choferes',
-                        items: [
-                            { label: 'Listado', icon: 'pi pi-fw pi-list', routerLink: ['/app/choferes'] },
-                            { label: 'Mi Ruta (vista móvil)', icon: 'pi pi-fw pi-map', routerLink: ['/app/choferes/mi-ruta'] },
-                        ]
-                    },
+                    { label: 'Choferes', icon: 'pi pi-fw pi-id-card', routerLink: ['/app/choferes'] },
                     { label: 'Clientes', icon: 'pi pi-fw pi-users', routerLink: ['/app/clientes'] }
                 ]
             },

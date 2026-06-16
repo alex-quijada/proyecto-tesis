@@ -34,10 +34,6 @@ export class VehiculoDetalleDialogComponent {
     mantenimientos: any[] = [];
     activeTab = '0';
 
-    esImagenDefault(imagen: string | undefined | null): boolean {
-        return !imagen || imagen.startsWith('default-');
-    }
-
     getSeverity(estado?: string) {
         switch (estado) {
             case 'OPERATIVO': return 'success';
@@ -65,17 +61,6 @@ export class VehiculoDetalleDialogComponent {
             case 'ARTICULADO': return 'secondary';
             default: return 'info';
         }
-    }
-
-    getValidezColor(fecha?: string): string {
-        if (!fecha) return 'text-surface-400';
-        const hoy = new Date();
-        const venc = new Date(fecha);
-        const diffMs = venc.getTime() - hoy.getTime();
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) return 'text-red-500';
-        if (diffDays < 60) return 'text-yellow-500';
-        return 'text-green-500';
     }
 
     getSeverityEstadoMtto(estado: string) {

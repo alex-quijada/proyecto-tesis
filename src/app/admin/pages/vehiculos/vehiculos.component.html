@@ -44,7 +44,7 @@
         <ng-template #header>
             <tr>
                 <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                <th style="width: 5rem">Vista</th>
+                <th style="width: 5rem">Tipo de Vehículo</th>
                 <th pSortableColumn="placa" style="min-width:8rem">Placa <p-sortIcon field="placa" /></th>
                 <th pSortableColumn="marca" style="min-width:10rem">Marca / Modelo <p-sortIcon field="marca" /></th>
                 <th style="min-width:7rem">Capacidad</th>
@@ -58,8 +58,7 @@
             <tr>
                 <td><p-tableCheckbox [value]="carro" /></td>
                 <td>
-                    <img *ngIf="carro.imagen && !carro.imagen.startsWith('default-')" [src]="carro.imagen" alt="Vehículo" class="w-10 h-10 rounded shadow-md object-cover border border-surface-200 dark:border-surface-700" />
-                    <div *ngIf="!carro.imagen || carro.imagen.startsWith('default-')" class="w-10 h-10 rounded shadow-md bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 flex items-center justify-center">
+                    <div class="w-10 h-10 rounded shadow-md bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 flex items-center justify-center">
                         <i [ngClass]="{ 'pi pi-car': carro.tipo === 'CARRO', 'pi pi-directions': carro.tipo === 'MOTO', 'pi pi-truck': carro.tipo === 'CAMION' || !carro.tipo }" class="text-lg text-surface-500 dark:text-surface-400"></i>
                     </div>
                 </td>
@@ -84,8 +83,6 @@
                 </td>
                 <td>
                     <div class="flex gap-1">
-                        <p-button icon="pi pi-gauge" severity="info" rounded outlined size="small" (onClick)="verDetalle(carro)" pTooltip="Kilometraje / Mantenimiento" />
-                        <p-button icon="pi pi-file" severity="help" rounded outlined size="small" (onClick)="verDetalle(carro)" pTooltip="Documentos Legales" />
                         <p-button icon="pi pi-pencil" severity="success" rounded outlined size="small" (onClick)="editVehiculo(carro)" pTooltip="Editar Datos" />
                         <p-button icon="pi pi-trash" severity="danger" rounded outlined size="small" (onClick)="deleteVehiculo(carro)" pTooltip="Remover" />
                     </div>

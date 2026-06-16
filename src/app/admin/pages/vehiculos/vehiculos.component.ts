@@ -171,14 +171,4 @@ export class VehiculosComponent implements OnInit {
         }
     }
 
-    getValidezColor(fecha?: string): string {
-        if (!fecha) return 'text-surface-400';
-        const hoy = new Date();
-        const venc = new Date(fecha);
-        const diffMs = venc.getTime() - hoy.getTime();
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) return 'text-red-500';
-        if (diffDays < 60) return 'text-yellow-500';
-        return 'text-green-500';
-    }
 }

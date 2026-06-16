@@ -63,10 +63,6 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-2 mt-2">
-                    <label for="imagen" class="font-semibold text-surface-500 dark:text-surface-400">Imagen del Vehículo (Opcional - URL)</label>
-                    <input pInputText id="imagen" formControlName="imagen" placeholder="https://ejemplo.com/foto-camion.jpg" />
-                </div>
             </p-fluid>
 
             <p-divider />
@@ -126,109 +122,6 @@
                 </div>
             </p-fluid>
 
-            <p-divider />
-
-            <p-fluid formGroupName="seguro">
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
-                    <i class="pi pi-shield mr-1"></i>
-                    Seguro
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="poliza" class="font-semibold">N° de Póliza <span class="text-red-500">*</span></label>
-                        <input pInputText id="poliza" formControlName="poliza" placeholder="Ej: POL-001-2025" />
-                        <small *ngIf="submitted && form.get('seguro.poliza')?.invalid" class="text-red-500">Obligatorio</small>
-                    </div>
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="seguroEmpresa" class="font-semibold">Empresa Aseguradora <span class="text-red-500">*</span></label>
-                        <input pInputText id="seguroEmpresa" formControlName="empresa" placeholder="Ej: Seguros La Previsora" />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="cobertura" class="font-semibold">Tipo de Cobertura <span class="text-red-500">*</span></label>
-                        <p-select
-                            id="cobertura"
-                            formControlName="tipoCobertura"
-                            [options]="tiposCobertura"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar"
-                            appendTo="body">
-                        </p-select>
-                    </div>
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="seguroVencimiento" class="font-semibold">Fecha de Vencimiento <span class="text-red-500">*</span></label>
-                        <p-datepicker
-                            id="seguroVencimiento"
-                            formControlName="fechaVencimiento"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body" />
-                    </div>
-                </div>
-            </p-fluid>
-
-            <p-divider />
-
-            <p-fluid formGroupName="documentosLegales">
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
-                    <i class="pi pi-file mr-1"></i>
-                    Documentos Legales
-                </div>
-
-                <div class="flex flex-col gap-2 mt-2">
-                    <label for="numRegistro" class="font-semibold">N° de Registro / Propiedad <span class="text-red-500">*</span></label>
-                    <input pInputText id="numRegistro" formControlName="numeroRegistro" placeholder="Ej: REG-ABCD-2022" />
-                    <small *ngIf="submitted && form.get('documentosLegales.numeroRegistro')?.invalid" class="text-red-500">Obligatorio</small>
-                </div>
-
-                <div class="font-semibold text-sm text-surface-500 dark:text-surface-400 mt-3 mb-1">
-                    Contrato (Opcional — si aplica)
-                </div>
-
-                <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label for="numContrato" class="font-semibold text-sm">N° Contrato</label>
-                        <input pInputText id="numContrato" formControlName="numeroContrato" placeholder="CT-001" />
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label for="empContrato" class="font-semibold text-sm">Empresa</label>
-                        <input pInputText id="empContrato" formControlName="empresaContrato" placeholder="Entidad financiera" />
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label for="vencContrato" class="font-semibold text-sm">Vencimiento</label>
-                        <p-datepicker
-                            id="vencContrato"
-                            formControlName="vencimientoContrato"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body" />
-                    </div>
-                </div>
-
-                <div class="font-semibold text-sm text-surface-500 dark:text-surface-400 mt-3 mb-1">
-                    Revisión Técnica (Opcional)
-                </div>
-
-                <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="rtNumero" class="font-semibold text-sm">N° Certificado</label>
-                        <input pInputText id="rtNumero" formControlName="revisionTecnicaNumero" placeholder="RT-2025-1234" />
-                    </div>
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="rtVencimiento" class="font-semibold text-sm">Vencimiento</label>
-                        <p-datepicker
-                            id="rtVencimiento"
-                            formControlName="revisionTecnicaVencimiento"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body" />
-                    </div>
-                </div>
-            </p-fluid>
         </form>
     </ng-template>
 

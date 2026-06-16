@@ -9,10 +9,9 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
-import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
 
-import { Vehiculo, TIPOS_COBERTURA } from '../data/vehiculos-mock';
+import { Vehiculo } from '../data/vehiculos-mock';
 
 @Component({
     selector: 'app-vehiculo-dialog',
@@ -27,7 +26,6 @@ import { Vehiculo, TIPOS_COBERTURA } from '../data/vehiculos-mock';
         SelectModule,
         FluidModule,
         MessageModule,
-        DatePickerModule,
         DividerModule,
     ],
     templateUrl: './vehiculo-dialog.component.html'
@@ -61,33 +59,16 @@ export class VehiculoDialogComponent {
         { label: 'Inactivo', value: 'INACTIVO' },
     ];
 
-    tiposCobertura = TIPOS_COBERTURA;
-
     form: FormGroup = this.fb.group({
         tipo: ['CARRO', Validators.required],
         placa: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9\s-]{6,9}$/)]],
         marca: ['', Validators.required],
         modelo: ['', Validators.required],
         anio: [new Date().getFullYear(), [Validators.required, Validators.min(1950), Validators.max(new Date().getFullYear() + 1)]],
-        imagen: [''],
         capacidadPallets: [0, Validators.required],
         pesoMaximo: [0, [Validators.required, Validators.min(0)]],
         tipoCaja: ['SECA', Validators.required],
         estado: ['OPERATIVO', Validators.required],
-        seguro: this.fb.group({
-            poliza: ['', Validators.required],
-            empresa: ['', Validators.required],
-            tipoCobertura: ['', Validators.required],
-            fechaVencimiento: ['', Validators.required],
-        }),
-        documentosLegales: this.fb.group({
-            numeroRegistro: ['', Validators.required],
-            numeroContrato: [''],
-            empresaContrato: [''],
-            vencimientoContrato: [''],
-            revisionTecnicaNumero: [''],
-            revisionTecnicaVencimiento: [''],
-        }),
     });
 
     constructor() {
@@ -103,25 +84,10 @@ export class VehiculoDialogComponent {
                     marca: data.marca || '',
                     modelo: data.modelo || '',
                     anio: data.anio || new Date().getFullYear(),
-                    imagen: data.imagen || '',
                     capacidadPallets: data.capacidadPallets ?? 0,
                     pesoMaximo: data.pesoMaximo ?? 0,
                     tipoCaja: data.tipoCaja || 'SECA',
                     estado: data.estado || 'OPERATIVO',
-                    seguro: {
-                        poliza: data.seguro?.poliza || '',
-                        empresa: data.seguro?.empresa || '',
-                        tipoCobertura: data.seguro?.tipoCobertura || '',
-                        fechaVencimiento: data.seguro?.fechaVencimiento ? new Date(data.seguro.fechaVencimiento) : null,
-                    },
-                    documentosLegales: {
-                        numeroRegistro: data.documentosLegales?.numeroRegistro || '',
-                        numeroContrato: data.documentosLegales?.numeroContrato || '',
-                        empresaContrato: data.documentosLegales?.empresaContrato || '',
-                        vencimientoContrato: data.documentosLegales?.vencimientoContrato ? new Date(data.documentosLegales.vencimientoContrato) : null,
-                        revisionTecnicaNumero: data.documentosLegales?.revisionTecnicaNumero || '',
-                        revisionTecnicaVencimiento: data.documentosLegales?.revisionTecnicaVencimiento ? new Date(data.documentosLegales.revisionTecnicaVencimiento) : null,
-                    },
                 });
             } else {
                 this.form.reset({
@@ -130,7 +96,6 @@ export class VehiculoDialogComponent {
                     marca: '',
                     modelo: '',
                     anio: new Date().getFullYear(),
-                    imagen: '',
                     capacidadPallets: 0,
                     pesoMaximo: 0,
                     tipoCaja: 'SECA',
@@ -153,13 +118,6 @@ export class VehiculoDialogComponent {
         this.visible.set(false);
         this.submitted = false;
         this.errorMessage = '';
-    }
-
-    private formatDate(d: Date): string {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
     }
 
     validarPlaca(): boolean {
@@ -220,25 +178,10 @@ export class VehiculoDialogComponent {
             marca: raw.marca,
             modelo: raw.modelo,
             anio: raw.anio,
-            imagen: raw.imagen || 'default-' + (raw.tipo?.toLowerCase() || 'camion'),
             capacidadPallets: raw.capacidadPallets,
             tipoCaja: raw.tipoCaja,
             pesoMaximo: raw.pesoMaximo,
             estado: raw.estado,
-            seguro: {
-                poliza: raw.seguro.poliza,
-                empresa: raw.seguro.empresa,
-                tipoCobertura: raw.seguro.tipoCobertura,
-                fechaVencimiento: raw.seguro.fechaVencimiento ? this.formatDate(raw.seguro.fechaVencimiento) : '',
-            },
-            documentosLegales: {
-                numeroRegistro: raw.documentosLegales.numeroRegistro,
-                numeroContrato: raw.documentosLegales.numeroContrato || undefined,
-                empresaContrato: raw.documentosLegales.empresaContrato || undefined,
-                vencimientoContrato: raw.documentosLegales.vencimientoContrato ? this.formatDate(raw.documentosLegales.vencimientoContrato) : undefined,
-                revisionTecnicaNumero: raw.documentosLegales.revisionTecnicaNumero || undefined,
-                revisionTecnicaVencimiento: raw.documentosLegales.revisionTecnicaVencimiento ? this.formatDate(raw.documentosLegales.revisionTecnicaVencimiento) : undefined,
-            },
         };
 
         this.onSave.emit(vehiculoFinal);
