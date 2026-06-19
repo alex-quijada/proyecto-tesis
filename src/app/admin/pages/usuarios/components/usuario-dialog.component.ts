@@ -70,23 +70,20 @@ export class UsuarioDialogComponent {
     ];
 
     form: FormGroup = this.fb.group({
-        email: ['test_chofer@logistica.com', [Validators.required, Validators.email]],
-        password: ['123456', [Validators.minLength(6)]],
+        email: ['', [Validators.required, Validators.email]],
+        password: ['', [Validators.minLength(6)]],
         prefijoDoc: ['V', Validators.required],
-        numeroDoc: [
-            12345678,
-            [Validators.required, Validators.min(10000), Validators.max(999999999999)],
-        ],
-        nombreCompleto: ['Roberto Díaz', Validators.required],
-        rol: ['CHOFER', Validators.required],
+        numeroDoc: [0, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
+        nombreCompleto: ['', Validators.required],
+        rol: ['ANALISTA', Validators.required],
         activo: [true],
-        licenciaNumero: ['L-99887766'],
-        licenciaGrado: ['5ta'],
-        licenciaExpedicion: [new Date('2024-03-15')],
-        licenciaVencimiento: [new Date('2028-03-15')],
-        certMedicoNumero: ['CMV-554433'],
-        certMedicoExpedicion: [new Date('2025-12-01')],
-        certMedicoVencimiento: [new Date('2027-12-01')],
+        licenciaNumero: [''],
+        licenciaGrado: ['3ra'],
+        licenciaExpedicion: [null],
+        licenciaVencimiento: [null],
+        certMedicoNumero: [''],
+        certMedicoExpedicion: [null],
+        certMedicoVencimiento: [null],
     });
 
     get rolValue(): string {
