@@ -15,7 +15,20 @@ import { TagModule } from 'primeng/tag';
 @Component({
     selector: 'app-misc-demo',
     standalone: true,
-    imports: [CommonModule, ProgressBarModule, BadgeModule, AvatarModule, ScrollPanelModule, TagModule, ChipModule, ButtonModule, SkeletonModule, AvatarGroupModule, ScrollTopModule, OverlayBadgeModule],
+    imports: [
+        CommonModule,
+        ProgressBarModule,
+        BadgeModule,
+        AvatarModule,
+        ScrollPanelModule,
+        TagModule,
+        ChipModule,
+        ButtonModule,
+        SkeletonModule,
+        AvatarGroupModule,
+        ScrollTopModule,
+        OverlayBadgeModule,
+    ],
     template: `
         <div class="card">
             <div class="font-semibold text-xl mb-4">ProgressBar</div>
@@ -57,7 +70,13 @@ import { TagModule } from 'primeng/tag';
                     <div class="font-semibold my-4">Button</div>
                     <div class="flex gap-2">
                         <p-button label="Emails" badge="8"></p-button>
-                        <p-button label="Messages" icon="pi pi-users" severity="warn" badge="8" badgeSeverity="danger"></p-button>
+                        <p-button
+                            label="Messages"
+                            icon="pi pi-users"
+                            severity="warn"
+                            badge="8"
+                            badgeSeverity="danger"
+                        ></p-button>
                     </div>
 
                     <div class="font-semibold my-4">Sizes</div>
@@ -72,18 +91,54 @@ import { TagModule } from 'primeng/tag';
                     <div class="font-semibold text-xl mb-4">Avatar</div>
                     <div class="font-semibold mb-4">Group</div>
                     <p-avatargroup styleClass="mb-4">
-                        <p-avatar image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png" size="large" shape="circle"></p-avatar>
-                        <p-avatar image="https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png" size="large" shape="circle"></p-avatar>
-                        <p-avatar image="https://primefaces.org/cdn/primeng/images/demo/avatar/onyamalimba.png" size="large" shape="circle"></p-avatar>
-                        <p-avatar image="https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png" size="large" shape="circle"></p-avatar>
-                        <p-avatar image="https://primefaces.org/cdn/primeng/images/demo/avatar/xuxuefeng.png" size="large" shape="circle"></p-avatar>
-                        <p-avatar label="+2" shape="circle" size="large" [style]="{ 'background-color': '#9c27b0', color: '#ffffff' }"></p-avatar>
+                        <p-avatar
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png"
+                            size="large"
+                            shape="circle"
+                        ></p-avatar>
+                        <p-avatar
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png"
+                            size="large"
+                            shape="circle"
+                        ></p-avatar>
+                        <p-avatar
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/onyamalimba.png"
+                            size="large"
+                            shape="circle"
+                        ></p-avatar>
+                        <p-avatar
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/ionibowcher.png"
+                            size="large"
+                            shape="circle"
+                        ></p-avatar>
+                        <p-avatar
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/xuxuefeng.png"
+                            size="large"
+                            shape="circle"
+                        ></p-avatar>
+                        <p-avatar
+                            label="+2"
+                            shape="circle"
+                            size="large"
+                            [style]="{ 'background-color': '#9c27b0', color: '#ffffff' }"
+                        ></p-avatar>
                     </p-avatargroup>
 
                     <div class="font-semibold my-4">Label - Circle</div>
                     <p-avatar class="mr-2" label="P" size="xlarge" shape="circle"></p-avatar>
-                    <p-avatar class="mr-2" label="V" size="large" [style]="{ 'background-color': '#2196F3', color: '#ffffff' }" shape="circle"></p-avatar>
-                    <p-avatar class="mr-2" label="U" [style]="{ 'background-color': '#9c27b0', color: '#ffffff' }" shape="circle"></p-avatar>
+                    <p-avatar
+                        class="mr-2"
+                        label="V"
+                        size="large"
+                        [style]="{ 'background-color': '#2196F3', color: '#ffffff' }"
+                        shape="circle"
+                    ></p-avatar>
+                    <p-avatar
+                        class="mr-2"
+                        label="U"
+                        [style]="{ 'background-color': '#9c27b0', color: '#ffffff' }"
+                        shape="circle"
+                    ></p-avatar>
 
                     <div class="font-semibold my-4">Icon - Badge</div>
                     <p-overlaybadge value="4" severity="danger" class="inline-flex">
@@ -136,7 +191,11 @@ import { TagModule } from 'primeng/tag';
                         <p-tag icon="pi pi-user" value="Primary"></p-tag>
                         <p-tag icon="pi pi-check" severity="success" value="Success"></p-tag>
                         <p-tag icon="pi pi-info-circle" severity="info" value="Info"></p-tag>
-                        <p-tag icon="pi pi-exclamation-triangle" severity="warn" value="Warning"></p-tag>
+                        <p-tag
+                            icon="pi pi-exclamation-triangle"
+                            severity="warn"
+                            value="Warning"
+                        ></p-tag>
                         <p-tag icon="pi pi-times" severity="danger" value="Danger"></p-tag>
                     </div>
                 </div>
@@ -156,20 +215,42 @@ import { TagModule } from 'primeng/tag';
                         <p-chip label="Apple" icon="pi pi-apple" styleClass="m-1"></p-chip>
                         <p-chip label="Facebook" icon="pi pi-facebook" styleClass="m-1"></p-chip>
                         <p-chip label="Google" icon="pi pi-google" styleClass="m-1"></p-chip>
-                        <p-chip label="Microsoft" icon="pi pi-microsoft" styleClass="m-1" [removable]="true"></p-chip>
+                        <p-chip
+                            label="Microsoft"
+                            icon="pi pi-microsoft"
+                            styleClass="m-1"
+                            [removable]="true"
+                        ></p-chip>
                     </div>
 
                     <div class="font-semibold my-4">Image</div>
                     <div class="flex items-center flex-col sm:flex-row">
-                        <p-chip label="Amy Elsner" image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png" styleClass="m-1"></p-chip>
-                        <p-chip label="Asiya Javayant" image="https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png" styleClass="m-1"></p-chip>
-                        <p-chip label="Onyama Limba" image="https://primefaces.org/cdn/primeng/images/demo/avatar/onyamalimba.png" styleClass="m-1"></p-chip>
-                        <p-chip label="Xuxue Feng" image="https://primefaces.org/cdn/primeng/images/demo/avatar/xuxuefeng.png" styleClass="m-1" [removable]="true"></p-chip>
+                        <p-chip
+                            label="Amy Elsner"
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png"
+                            styleClass="m-1"
+                        ></p-chip>
+                        <p-chip
+                            label="Asiya Javayant"
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/asiyajavayant.png"
+                            styleClass="m-1"
+                        ></p-chip>
+                        <p-chip
+                            label="Onyama Limba"
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/onyamalimba.png"
+                            styleClass="m-1"
+                        ></p-chip>
+                        <p-chip
+                            label="Xuxue Feng"
+                            image="https://primefaces.org/cdn/primeng/images/demo/avatar/xuxuefeng.png"
+                            styleClass="m-1"
+                            [removable]="true"
+                        ></p-chip>
                     </div>
                 </div>
             </div>
         </div>
-    `
+    `,
 })
 export class MiscDemo {
     value = 0;

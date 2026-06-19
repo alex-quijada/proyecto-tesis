@@ -20,7 +20,7 @@ import { LayoutService } from '@/app/layout/service/layout.service';
             <app-footer></app-footer>
         </div>
         <div class="layout-mask"></div>
-    </div> `
+    </div> `,
 })
 export class AppLayout {
     layoutService = inject(LayoutService);
@@ -42,9 +42,10 @@ export class AppLayout {
         return {
             'layout-overlay': config.menuMode === 'overlay',
             'layout-static': config.menuMode === 'static',
-            'layout-static-inactive': state.staticMenuDesktopInactive && config.menuMode === 'static',
+            'layout-static-inactive':
+                state.staticMenuDesktopInactive && config.menuMode === 'static',
             'layout-overlay-active': state.overlayMenuActive,
-            'layout-mobile-active': state.mobileMenuActive
+            'layout-mobile-active': state.mobileMenuActive,
         };
-    })
+    });
 }

@@ -39,17 +39,17 @@ interface DriverSession {
 }
 
 const ORDEN_MUNICIPIOS: Record<string, number> = {
-    'PENINSULA_DE_MACANAO': 1,
-    'TUBORES': 2,
-    'DIAZ': 3,
-    'GARCIA': 4,
-    'ARISMENDI': 5,
-    'GOMEZ': 6,
-    'MANEIRO': 7,
-    'MARINO': 8,
-    'MARCANO': 9,
-    'ANTOLIN_DEL_CAMPO': 10,
-    'VILLALBA': 11,
+    PENINSULA_DE_MACANAO: 1,
+    TUBORES: 2,
+    DIAZ: 3,
+    GARCIA: 4,
+    ARISMENDI: 5,
+    GOMEZ: 6,
+    MANEIRO: 7,
+    MARINO: 8,
+    MARCANO: 9,
+    ANTOLIN_DEL_CAMPO: 10,
+    VILLALBA: 11,
 };
 
 @Component({
@@ -98,11 +98,11 @@ export class MiRutaComponent implements OnInit {
     }
 
     get guiasPendientes(): GuiaDespacho[] {
-        return this.guiasAsignadas().filter(g => g.estado !== 'FINALIZADO');
+        return this.guiasAsignadas().filter((g) => g.estado !== 'FINALIZADO');
     }
 
     get guiasCompletadas(): GuiaDespacho[] {
-        return this.guiasAsignadas().filter(g => g.estado === 'FINALIZADO');
+        return this.guiasAsignadas().filter((g) => g.estado === 'FINALIZADO');
     }
 
     get avance(): number {
@@ -134,16 +134,16 @@ export class MiRutaComponent implements OnInit {
         const chofer = CHOFERES_MOCK.find((ch: any) => ch.id === idChofer);
         if (!chofer) return;
 
-        const vehiculo = VEHICULOS_MOCK.find((v: any) =>
-            GUIAS_MOCK.some((g: any) => g.idChofer === idChofer && g.idVehiculo === v.id)
-        ) || VEHICULOS_MOCK[0];
+        const vehiculo =
+            VEHICULOS_MOCK.find((v: any) =>
+                GUIAS_MOCK.some((g: any) => g.idChofer === idChofer && g.idVehiculo === v.id),
+            ) || VEHICULOS_MOCK[0];
 
-        const guias = GUIAS_MOCK
-            .filter((g: any) => g.idChofer === idChofer)
-            .sort((a: any, b: any) => ORDEN_MUNICIPIOS[a.municipio] - ORDEN_MUNICIPIOS[b.municipio]);
+        const guias = GUIAS_MOCK.filter((g: any) => g.idChofer === idChofer).sort(
+            (a: any, b: any) => ORDEN_MUNICIPIOS[a.municipio] - ORDEN_MUNICIPIOS[b.municipio],
+        );
 
-        const rutasUnicas: string[] = GUIAS_MOCK
-            .filter((g: any) => g.idChofer === idChofer)
+        const rutasUnicas: string[] = GUIAS_MOCK.filter((g: any) => g.idChofer === idChofer)
             .map((g: any) => g.idRuta)
             .filter((id: string | undefined): id is string => !!id);
 
@@ -152,19 +152,23 @@ export class MiRutaComponent implements OnInit {
             nombre: chofer.nombreCompleto!,
             documento: `${chofer.documentoIdentidad!.prefijo}-${chofer.documentoIdentidad!.numero}`,
             telefono: chofer.telefono!,
-            vehiculo: vehiculo ? {
-                id: vehiculo.id!,
-                placa: vehiculo.placa!,
-                marca: vehiculo.marca!,
-                modelo: vehiculo.modelo!,
-                anio: vehiculo.anio!,
-                tipo: vehiculo.tipo || 'CARRO',
-                imagen: vehiculo.imagen,
-            } : null,
-            ruta: rutasUnicas.length ? {
-                codigo: rutasUnicas[0],
-                fecha: new Date().toISOString().split('T')[0],
-            } : null,
+            vehiculo: vehiculo
+                ? {
+                      id: vehiculo.id!,
+                      placa: vehiculo.placa!,
+                      marca: vehiculo.marca!,
+                      modelo: vehiculo.modelo!,
+                      anio: vehiculo.anio!,
+                      tipo: vehiculo.tipo || 'CARRO',
+                      imagen: vehiculo.imagen,
+                  }
+                : null,
+            ruta: rutasUnicas.length
+                ? {
+                      codigo: rutasUnicas[0],
+                      fecha: new Date().toISOString().split('T')[0],
+                  }
+                : null,
         });
 
         this.guiasAsignadas.set(guias);
@@ -176,7 +180,9 @@ export class MiRutaComponent implements OnInit {
         return e?.label || estado;
     }
 
-    getEstadoSeverity(estado: string): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    getEstadoSeverity(
+        estado: string,
+    ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
         const e = ESTADOS_GUIA.find((eg: any) => eg.value === estado);
         return (e?.severity as any) || 'info';
     }
@@ -200,7 +206,7 @@ export class MiRutaComponent implements OnInit {
 
         this.firmasMap.set(guia.id, event.firma);
 
-        const updated = this.guiasAsignadas().map(g => {
+        const updated = this.guiasAsignadas().map((g) => {
             if (g.id === guia.id) {
                 const ahora = new Date();
                 const fecha = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
@@ -246,8 +252,8 @@ export class MiRutaComponent implements OnInit {
 
     optimizarRuta() {
         const guias = this.guiasAsignadas();
-        const pendientes = guias.filter(g => g.estado !== 'FINALIZADO');
-        const completadas = guias.filter(g => g.estado === 'FINALIZADO');
+        const pendientes = guias.filter((g) => g.estado !== 'FINALIZADO');
+        const completadas = guias.filter((g) => g.estado === 'FINALIZADO');
 
         pendientes.sort((a, b) => {
             const ordenA = ORDEN_MUNICIPIOS[a.municipio] ?? 99;
@@ -266,7 +272,7 @@ export class MiRutaComponent implements OnInit {
 
     moverGuia(index: number, direction: number) {
         const guias = [...this.guiasPendientes];
-        const completadas = this.guiasAsignadas().filter(g => g.estado === 'FINALIZADO');
+        const completadas = this.guiasAsignadas().filter((g) => g.estado === 'FINALIZADO');
         const target = index + direction;
         if (target < 0 || target >= guias.length) return;
         [guias[index], guias[target]] = [guias[target], guias[index]];
@@ -274,7 +280,7 @@ export class MiRutaComponent implements OnInit {
     }
 
     toggleReordering() {
-        this.reordering.update(v => !v);
+        this.reordering.update((v) => !v);
     }
 
     cambiarTab(tab: 'ruta' | 'mapa' | 'completadas') {
@@ -283,11 +289,16 @@ export class MiRutaComponent implements OnInit {
 
     getColorBorde(estado: string): string {
         switch (estado) {
-            case 'EN_PROCESO': return 'border-l-blue-500';
-            case 'CARGADO': return 'border-l-yellow-500';
-            case 'EN_ESPERA': return 'border-l-orange-500';
-            case 'FINALIZADO': return 'border-l-green-500';
-            default: return 'border-l-surface-300';
+            case 'EN_PROCESO':
+                return 'border-l-blue-500';
+            case 'CARGADO':
+                return 'border-l-yellow-500';
+            case 'EN_ESPERA':
+                return 'border-l-orange-500';
+            case 'FINALIZADO':
+                return 'border-l-green-500';
+            default:
+                return 'border-l-surface-300';
         }
     }
 

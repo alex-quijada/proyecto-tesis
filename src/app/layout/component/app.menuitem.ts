@@ -13,7 +13,14 @@ import { filter } from 'rxjs/operators';
             <div class="layout-menuitem-root-text">{{ item().label }}</div>
         }
         @if ((!hasRouterLink() || hasChildren()) && isVisible()) {
-            <a [attr.href]="item().url" (click)="itemClick($event)" [ngClass]="item().class" [attr.target]="item().target" tabindex="0" pRipple>
+            <a
+                [attr.href]="item().url"
+                (click)="itemClick($event)"
+                [ngClass]="item().class"
+                [attr.target]="item().target"
+                tabindex="0"
+                pRipple
+            >
                 <i [ngClass]="item().icon" class="layout-menuitem-icon"></i>
                 <span class="layout-menuitem-text">{{ item().label }}</span>
                 @if (hasChildren()) {
@@ -27,7 +34,14 @@ import { filter } from 'rxjs/operators';
                 [ngClass]="item().class"
                 [routerLink]="item().routerLink"
                 routerLinkActive="active-route"
-                [routerLinkActiveOptions]="item().routerLinkActiveOptions || { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+                [routerLinkActiveOptions]="
+                    item().routerLinkActiveOptions || {
+                        paths: 'exact',
+                        queryParams: 'ignored',
+                        matrixParams: 'ignored',
+                        fragment: 'ignored',
+                    }
+                "
                 [fragment]="item().fragment"
                 [queryParamsHandling]="item().queryParamsHandling"
                 [preserveFragment]="item().preserveFragment"
@@ -47,16 +61,26 @@ import { filter } from 'rxjs/operators';
             </a>
         }
         @if (hasChildren() && isVisible() && (root() || isActive())) {
-            <ul [animate.enter]="initialized() ? 'p-submenu-enter' : null" [animate.leave]="'p-submenu-leave'" [class.layout-root-submenulist]="root()">
+            <ul
+                [animate.enter]="initialized() ? 'p-submenu-enter' : null"
+                [animate.leave]="'p-submenu-leave'"
+                [class.layout-root-submenulist]="root()"
+            >
                 @for (child of item().items; track child?.label) {
-                    <li app-menuitem [item]="child" [parentPath]="fullPath()" [root]="false" [class]="child['badgeClass']"></li>
+                    <li
+                        app-menuitem
+                        [item]="child"
+                        [parentPath]="fullPath()"
+                        [root]="false"
+                        [class]="child['badgeClass']"
+                    ></li>
                 }
             </ul>
         }
     `,
     host: {
         '[class.active-menuitem]': 'isActive()',
-        '[class.layout-root-menuitem]': 'root()'
+        '[class.layout-root-menuitem]': 'root()',
     },
     styles: [
         `
@@ -89,8 +113,8 @@ import { filter } from 'rxjs/operators';
                     overflow: hidden;
                 }
             }
-        `
-    ]
+        `,
+    ],
 })
 export class AppMenuitem {
     layoutService = inject(LayoutService);
@@ -157,7 +181,7 @@ export class AppMenuitem {
             paths: 'exact',
             queryParams: 'ignored',
             matrixParams: 'ignored',
-            fragment: 'ignored'
+            fragment: 'ignored',
         });
 
         if (isRouteActive) {
@@ -165,7 +189,7 @@ export class AppMenuitem {
             if (parentPath) {
                 this.layoutService.layoutState.update((val) => ({
                     ...val,
-                    activePath: parentPath
+                    activePath: parentPath,
                 }));
             }
         }
@@ -187,13 +211,13 @@ export class AppMenuitem {
             if (this.isActive()) {
                 this.layoutService.layoutState.update((val) => ({
                     ...val,
-                    activePath: this.parentPath()
+                    activePath: this.parentPath(),
                 }));
             } else {
                 this.layoutService.layoutState.update((val) => ({
                     ...val,
                     activePath: this.fullPath(),
-                    menuHoverActive: true
+                    menuHoverActive: true,
                 }));
             }
         } else {
@@ -202,7 +226,7 @@ export class AppMenuitem {
                 overlayMenuActive: false,
                 staticMenuMobileActive: false,
                 mobileMenuActive: false,
-                menuHoverActive: false
+                menuHoverActive: false,
             }));
         }
     }

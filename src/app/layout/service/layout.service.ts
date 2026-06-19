@@ -18,7 +18,7 @@ interface LayoutState {
 }
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: 'root',
 })
 export class LayoutService {
     layoutConfig = signal<LayoutConfig>({
@@ -26,7 +26,7 @@ export class LayoutService {
         primary: 'emerald',
         surface: null,
         darkTheme: false,
-        menuMode: 'static'
+        menuMode: 'static',
     });
 
     layoutState = signal<LayoutState>({
@@ -35,12 +35,14 @@ export class LayoutService {
         configSidebarVisible: false,
         mobileMenuActive: false,
         menuHoverActive: false,
-        activePath: null
+        activePath: null,
     });
 
     theme = computed(() => (this.layoutConfig().darkTheme ? 'light' : 'dark'));
 
-    isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().mobileMenuActive);
+    isSidebarActive = computed(
+        () => this.layoutState().overlayMenuActive || this.layoutState().mobileMenuActive,
+    );
 
     isDarkTheme = computed(() => this.layoutConfig().darkTheme);
 
@@ -79,9 +81,10 @@ export class LayoutService {
 
     private startViewTransition(config: LayoutConfig): void {
         try {
-            document.startViewTransition(() => {
+            const transition = document.startViewTransition(() => {
                 this.toggleDarkMode(config);
             });
+            transition.finished.catch(() => {});
         } catch {
             this.toggleDarkMode(config);
         }
@@ -98,13 +101,22 @@ export class LayoutService {
 
     onMenuToggle() {
         if (this.isOverlay()) {
-            this.layoutState.update((prev) => ({ ...prev, overlayMenuActive: !this.layoutState().overlayMenuActive }));
+            this.layoutState.update((prev) => ({
+                ...prev,
+                overlayMenuActive: !this.layoutState().overlayMenuActive,
+            }));
         }
 
         if (this.isDesktop()) {
-            this.layoutState.update((prev) => ({ ...prev, staticMenuDesktopInactive: !this.layoutState().staticMenuDesktopInactive }));
+            this.layoutState.update((prev) => ({
+                ...prev,
+                staticMenuDesktopInactive: !this.layoutState().staticMenuDesktopInactive,
+            }));
         } else {
-            this.layoutState.update((prev) => ({ ...prev, mobileMenuActive: !this.layoutState().mobileMenuActive }));
+            this.layoutState.update((prev) => ({
+                ...prev,
+                mobileMenuActive: !this.layoutState().mobileMenuActive,
+            }));
         }
     }
 

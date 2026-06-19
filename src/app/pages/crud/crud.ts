@@ -52,17 +52,35 @@ interface ExportColumn {
         TagModule,
         InputIconModule,
         IconFieldModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
     ],
     template: `
         <p-toolbar styleClass="mb-6">
             <ng-template #start>
-                <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-                <p-button severity="secondary" label="Delete" icon="pi pi-trash" outlined (onClick)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length" />
+                <p-button
+                    label="New"
+                    icon="pi pi-plus"
+                    severity="secondary"
+                    class="mr-2"
+                    (onClick)="openNew()"
+                />
+                <p-button
+                    severity="secondary"
+                    label="Delete"
+                    icon="pi pi-trash"
+                    outlined
+                    (onClick)="deleteSelectedProducts()"
+                    [disabled]="!selectedProducts || !selectedProducts.length"
+                />
             </ng-template>
 
             <ng-template #end>
-                <p-button label="Export" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+                <p-button
+                    label="Export"
+                    icon="pi pi-upload"
+                    severity="secondary"
+                    (onClick)="exportCSV()"
+                />
             </ng-template>
         </p-toolbar>
 
@@ -86,7 +104,12 @@ interface ExportColumn {
                     <h5 class="m-0">Manage Products</h5>
                     <p-iconfield>
                         <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Search..." />
+                        <input
+                            pInputText
+                            type="text"
+                            (input)="onGlobalFilter(dt, $event)"
+                            placeholder="Search..."
+                        />
                     </p-iconfield>
                 </div>
             </ng-template>
@@ -128,7 +151,15 @@ interface ExportColumn {
                     <td style="min-width: 12rem">{{ product.code }}</td>
                     <td style="min-width: 16rem">{{ product.name }}</td>
                     <td>
-                        <img [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" [alt]="product.name" style="width: 64px" class="rounded" />
+                        <img
+                            [src]="
+                                'https://primefaces.org/cdn/primeng/images/demo/product/' +
+                                product.image
+                            "
+                            [alt]="product.name"
+                            style="width: 64px"
+                            class="rounded"
+                        />
                     </td>
                     <td>{{ product.price | currency: 'USD' }}</td>
                     <td>{{ product.category }}</td>
@@ -136,52 +167,128 @@ interface ExportColumn {
                         <p-rating [(ngModel)]="product.rating" [readonly]="true" />
                     </td>
                     <td>
-                        <p-tag [value]="product.inventoryStatus" [severity]="getSeverity(product.inventoryStatus)" />
+                        <p-tag
+                            [value]="product.inventoryStatus"
+                            [severity]="getSeverity(product.inventoryStatus)"
+                        />
                     </td>
                     <td>
-                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editProduct(product)" />
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteProduct(product)" />
+                        <p-button
+                            icon="pi pi-pencil"
+                            class="mr-2"
+                            [rounded]="true"
+                            [outlined]="true"
+                            (click)="editProduct(product)"
+                        />
+                        <p-button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            [rounded]="true"
+                            [outlined]="true"
+                            (click)="deleteProduct(product)"
+                        />
                     </td>
                 </tr>
             </ng-template>
         </p-table>
 
-        <p-dialog [(visible)]="productDialog" [style]="{ width: '450px' }" header="Product Details" [modal]="true">
+        <p-dialog
+            [(visible)]="productDialog"
+            [style]="{ width: '450px' }"
+            header="Product Details"
+            [modal]="true"
+        >
             <ng-template #content>
                 <div class="flex flex-col gap-6">
-                    <img [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" [alt]="product.image" class="block m-auto pb-4" *ngIf="product.image" />
+                    <img
+                        [src]="
+                            'https://primefaces.org/cdn/primeng/images/demo/product/' +
+                            product.image
+                        "
+                        [alt]="product.image"
+                        class="block m-auto pb-4"
+                        *ngIf="product.image"
+                    />
                     <div>
                         <label for="name" class="block font-bold mb-3">Name</label>
-                        <input type="text" pInputText id="name" [(ngModel)]="product.name" required autofocus fluid />
-                        <small class="text-red-500" *ngIf="submitted && !product.name">Name is required.</small>
+                        <input
+                            type="text"
+                            pInputText
+                            id="name"
+                            [(ngModel)]="product.name"
+                            required
+                            autofocus
+                            fluid
+                        />
+                        <small class="text-red-500" *ngIf="submitted && !product.name"
+                            >Name is required.</small
+                        >
                     </div>
                     <div>
                         <label for="description" class="block font-bold mb-3">Description</label>
-                        <textarea id="description" pTextarea [(ngModel)]="product.description" required rows="3" cols="20" fluid></textarea>
+                        <textarea
+                            id="description"
+                            pTextarea
+                            [(ngModel)]="product.description"
+                            required
+                            rows="3"
+                            cols="20"
+                            fluid
+                        ></textarea>
                     </div>
 
                     <div>
-                        <label for="inventoryStatus" class="block font-bold mb-3">Inventory Status</label>
-                        <p-select [(ngModel)]="product.inventoryStatus" inputId="inventoryStatus" [options]="statuses" optionLabel="label" optionValue="label" placeholder="Select a Status" fluid />
+                        <label for="inventoryStatus" class="block font-bold mb-3"
+                            >Inventory Status</label
+                        >
+                        <p-select
+                            [(ngModel)]="product.inventoryStatus"
+                            inputId="inventoryStatus"
+                            [options]="statuses"
+                            optionLabel="label"
+                            optionValue="label"
+                            placeholder="Select a Status"
+                            fluid
+                        />
                     </div>
 
                     <div>
                         <span class="block font-bold mb-4">Category</span>
                         <div class="grid grid-cols-12 gap-4">
                             <div class="flex items-center gap-2 col-span-6">
-                                <p-radiobutton id="category1" name="category" value="Accessories" [(ngModel)]="product.category" />
+                                <p-radiobutton
+                                    id="category1"
+                                    name="category"
+                                    value="Accessories"
+                                    [(ngModel)]="product.category"
+                                />
                                 <label for="category1">Accessories</label>
                             </div>
                             <div class="flex items-center gap-2 col-span-6">
-                                <p-radiobutton id="category2" name="category" value="Clothing" [(ngModel)]="product.category" />
+                                <p-radiobutton
+                                    id="category2"
+                                    name="category"
+                                    value="Clothing"
+                                    [(ngModel)]="product.category"
+                                />
                                 <label for="category2">Clothing</label>
                             </div>
                             <div class="flex items-center gap-2 col-span-6">
-                                <p-radiobutton id="category3" name="category" value="Electronics" [(ngModel)]="product.category" />
+                                <p-radiobutton
+                                    id="category3"
+                                    name="category"
+                                    value="Electronics"
+                                    [(ngModel)]="product.category"
+                                />
                                 <label for="category3">Electronics</label>
                             </div>
                             <div class="flex items-center gap-2 col-span-6">
-                                <p-radiobutton id="category4" name="category" value="Fitness" [(ngModel)]="product.category" />
+                                <p-radiobutton
+                                    id="category4"
+                                    name="category"
+                                    value="Fitness"
+                                    [(ngModel)]="product.category"
+                                />
                                 <label for="category4">Fitness</label>
                             </div>
                         </div>
@@ -190,7 +297,14 @@ interface ExportColumn {
                     <div class="grid grid-cols-12 gap-4">
                         <div class="col-span-6">
                             <label for="price" class="block font-bold mb-3">Price</label>
-                            <p-inputnumber id="price" [(ngModel)]="product.price" mode="currency" currency="USD" locale="en-US" fluid />
+                            <p-inputnumber
+                                id="price"
+                                [(ngModel)]="product.price"
+                                mode="currency"
+                                currency="USD"
+                                locale="en-US"
+                                fluid
+                            />
                         </div>
                         <div class="col-span-6">
                             <label for="quantity" class="block font-bold mb-3">Quantity</label>
@@ -208,7 +322,7 @@ interface ExportColumn {
 
         <p-confirmdialog [style]="{ width: '450px' }" />
     `,
-    providers: [MessageService, ProductService, ConfirmationService]
+    providers: [MessageService, ProductService, ConfirmationService],
 })
 export class Crud implements OnInit {
     productDialog: boolean = false;
@@ -232,7 +346,7 @@ export class Crud implements OnInit {
     constructor(
         private productService: ProductService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
     ) {}
 
     exportCSV() {
@@ -251,7 +365,7 @@ export class Crud implements OnInit {
         this.statuses = [
             { label: 'INSTOCK', value: 'instock' },
             { label: 'LOWSTOCK', value: 'lowstock' },
-            { label: 'OUTOFSTOCK', value: 'outofstock' }
+            { label: 'OUTOFSTOCK', value: 'outofstock' },
         ];
 
         this.cols = [
@@ -259,7 +373,7 @@ export class Crud implements OnInit {
             { field: 'name', header: 'Name' },
             { field: 'image', header: 'Image' },
             { field: 'price', header: 'Price' },
-            { field: 'category', header: 'Category' }
+            { field: 'category', header: 'Category' },
         ];
 
         this.exportColumns = this.cols.map((col) => ({ title: col.header, dataKey: col.field }));
@@ -286,15 +400,17 @@ export class Crud implements OnInit {
             header: 'Confirm',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                this.products.set(this.products().filter((val) => !this.selectedProducts?.includes(val)));
+                this.products.set(
+                    this.products().filter((val) => !this.selectedProducts?.includes(val)),
+                );
                 this.selectedProducts = null;
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Successful',
                     detail: 'Products Deleted',
-                    life: 3000
+                    life: 3000,
                 });
-            }
+            },
         });
     }
 
@@ -315,9 +431,9 @@ export class Crud implements OnInit {
                     severity: 'success',
                     summary: 'Successful',
                     detail: 'Product Deleted',
-                    life: 3000
+                    life: 3000,
                 });
-            }
+            },
         });
     }
 
@@ -366,7 +482,7 @@ export class Crud implements OnInit {
                     severity: 'success',
                     summary: 'Successful',
                     detail: 'Product Updated',
-                    life: 3000
+                    life: 3000,
                 });
             } else {
                 this.product.id = this.createId();
@@ -375,7 +491,7 @@ export class Crud implements OnInit {
                     severity: 'success',
                     summary: 'Successful',
                     detail: 'Product Created',
-                    life: 3000
+                    life: 3000,
                 });
                 this.products.set([..._products, this.product]);
             }

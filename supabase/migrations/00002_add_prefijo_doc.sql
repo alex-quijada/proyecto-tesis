@@ -79,6 +79,7 @@ $$;
 -- ==========================================
 -- Actualizar RPC obtener_datos_adicionales_usuarios
 -- ==========================================
+DROP FUNCTION IF EXISTS obtener_datos_adicionales_usuarios(uuid[]);
 CREATE OR REPLACE FUNCTION obtener_datos_adicionales_usuarios(usuario_ids uuid[])
 RETURNS TABLE(
     usuario_id uuid,

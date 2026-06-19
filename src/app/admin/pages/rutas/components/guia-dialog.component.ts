@@ -15,9 +15,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { CheckboxModule } from 'primeng/checkbox';
 
-import {
-    GuiaDespacho, ESTADOS_GUIA, MUNICIPIOS_NUEVA_ESPARTA,
-} from '../data/rutas-mock';
+import { GuiaDespacho, ESTADOS_GUIA, MUNICIPIOS_NUEVA_ESPARTA } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
 import { CLIENTES_MOCK } from '../../clientes/data/clientes-mock';
@@ -61,20 +59,20 @@ export class GuiaDialogComponent {
         { label: 'PDF', value: 'PDF' },
     ];
 
-    clientes = CLIENTES_MOCK.map(c => ({
+    clientes = CLIENTES_MOCK.map((c) => ({
         label: `${c.nombreComercial} (${c.documentoIdentidad?.prefijo}-${c.documentoIdentidad?.numero})`,
         value: c.id!,
         rif: `${c.documentoIdentidad?.prefijo}-${c.documentoIdentidad?.numero}`,
         nombreCliente: c.nombreComercial!,
     }));
 
-    choferes = CHOFERES_MOCK.map(ch => ({
+    choferes = CHOFERES_MOCK.map((ch) => ({
         label: `${ch.nombreCompleto} (${ch.documentoIdentidad?.prefijo}-${ch.documentoIdentidad?.numero})`,
         value: ch.id!,
         nombreChofer: ch.nombreCompleto!,
     }));
 
-    vehiculos = VEHICULOS_MOCK.map(v => ({
+    vehiculos = VEHICULOS_MOCK.map((v) => ({
         label: `${v.placa} — ${v.marca} ${v.modelo} (${v.anio})`,
         value: v.id!,
         placaVehiculo: v.placa!,
@@ -119,7 +117,9 @@ export class GuiaDialogComponent {
                 observaciones: data.observaciones || '',
                 fechaCarga: data.fechaCarga ? new Date(data.fechaCarga) : null,
                 fechaSalida: data.fechaSalida ? new Date(data.fechaSalida) : null,
-                fechaLlegadaCliente: data.fechaLlegadaCliente ? new Date(data.fechaLlegadaCliente) : null,
+                fechaLlegadaCliente: data.fechaLlegadaCliente
+                    ? new Date(data.fechaLlegadaCliente)
+                    : null,
                 fechaRegreso: data.fechaRegreso ? new Date(data.fechaRegreso) : null,
                 tuvoDevolucion: data.tuvoDevolucion || false,
             });
@@ -157,33 +157,51 @@ export class GuiaDialogComponent {
 
         const raw = this.form.getRawValue();
 
-        const cliente = this.clientes.find(c => c.value === raw.idCliente);
-        const chofer = this.choferes.find(ch => ch.value === raw.idChofer);
-        const vehiculo = this.vehiculos.find(v => v.value === raw.idVehiculo);
+        const cliente = this.clientes.find((c) => c.value === raw.idCliente);
+        const chofer = this.choferes.find((ch) => ch.value === raw.idChofer);
+        const vehiculo = this.vehiculos.find((v) => v.value === raw.idVehiculo);
 
         const fechaCreacion = this.guiaData().fechaCreacion || this.formatDate(new Date());
 
         const eventos: any[] = [
-            ...(raw.fechaSalida ? [{
-                tipo: 'SALIDA' as const,
-                fecha: this.formatDateTime(raw.fechaSalida),
-                descripcion: 'Salida desde base',
-            }] : []),
-            ...(raw.fechaLlegadaCliente ? [{
-                tipo: 'LLEGADA_CLIENTE' as const,
-                fecha: this.formatDateTime(raw.fechaLlegadaCliente),
-                descripcion: 'Llegada a cliente',
-            }] : []),
-            ...(raw.tuvoDevolucion ? [{
-                tipo: 'DEVOLUCION' as const,
-                fecha: raw.fechaRegreso ? this.formatDateTime(raw.fechaRegreso) : this.formatDate(new Date()),
-                descripcion: 'Devolución registrada',
-            }] : []),
-            ...(raw.fechaRegreso ? [{
-                tipo: 'REGRESO_BASE' as const,
-                fecha: this.formatDateTime(raw.fechaRegreso),
-                descripcion: 'Regreso a base',
-            }] : []),
+            ...(raw.fechaSalida
+                ? [
+                      {
+                          tipo: 'SALIDA' as const,
+                          fecha: this.formatDateTime(raw.fechaSalida),
+                          descripcion: 'Salida desde base',
+                      },
+                  ]
+                : []),
+            ...(raw.fechaLlegadaCliente
+                ? [
+                      {
+                          tipo: 'LLEGADA_CLIENTE' as const,
+                          fecha: this.formatDateTime(raw.fechaLlegadaCliente),
+                          descripcion: 'Llegada a cliente',
+                      },
+                  ]
+                : []),
+            ...(raw.tuvoDevolucion
+                ? [
+                      {
+                          tipo: 'DEVOLUCION' as const,
+                          fecha: raw.fechaRegreso
+                              ? this.formatDateTime(raw.fechaRegreso)
+                              : this.formatDate(new Date()),
+                          descripcion: 'Devolución registrada',
+                      },
+                  ]
+                : []),
+            ...(raw.fechaRegreso
+                ? [
+                      {
+                          tipo: 'REGRESO_BASE' as const,
+                          fecha: this.formatDateTime(raw.fechaRegreso),
+                          descripcion: 'Regreso a base',
+                      },
+                  ]
+                : []),
         ];
 
         const guiaFinal: GuiaDespacho = {
@@ -199,7 +217,9 @@ export class GuiaDialogComponent {
             fechaCreacion,
             fechaCarga: raw.fechaCarga ? this.formatDate(raw.fechaCarga) : undefined,
             fechaSalida: raw.fechaSalida ? this.formatDateTime(raw.fechaSalida) : undefined,
-            fechaLlegadaCliente: raw.fechaLlegadaCliente ? this.formatDateTime(raw.fechaLlegadaCliente) : undefined,
+            fechaLlegadaCliente: raw.fechaLlegadaCliente
+                ? this.formatDateTime(raw.fechaLlegadaCliente)
+                : undefined,
             fechaRegreso: raw.fechaRegreso ? this.formatDateTime(raw.fechaRegreso) : undefined,
             municipio: raw.municipio,
             direccionEntrega: raw.direccionEntrega,

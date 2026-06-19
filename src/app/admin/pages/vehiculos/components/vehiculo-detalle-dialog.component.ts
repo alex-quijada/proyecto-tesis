@@ -11,6 +11,7 @@ import { DividerModule } from 'primeng/divider';
 
 import { Vehiculo } from '../data/vehiculos-mock';
 import { MANTENIMIENTOS_MOCK } from '../mantenimiento/data/mantenimiento-mock';
+import { TipoVehiculoIconoPipe } from '../pipes/tipo-vehiculo-icono.pipe';
 
 @Component({
     selector: 'app-vehiculo-detalle-dialog',
@@ -24,8 +25,9 @@ import { MANTENIMIENTOS_MOCK } from '../mantenimiento/data/mantenimiento-mock';
         TableModule,
         ScrollPanelModule,
         DividerModule,
+        TipoVehiculoIconoPipe,
     ],
-    templateUrl: './vehiculo-detalle-dialog.component.html'
+    templateUrl: './vehiculo-detalle-dialog.component.html',
 })
 export class VehiculoDetalleDialogComponent {
     visible = model<boolean>(false);
@@ -36,40 +38,59 @@ export class VehiculoDetalleDialogComponent {
 
     getSeverity(estado?: string) {
         switch (estado) {
-            case 'OPERATIVO': return 'success';
-            case 'MANTENIMIENTO': return 'warn';
-            case 'INACTIVO': return 'danger';
-            default: return 'info';
+            case 'OPERATIVO':
+                return 'success';
+            case 'MANTENIMIENTO':
+                return 'warn';
+            case 'INACTIVO':
+                return 'danger';
+            default:
+                return 'info';
         }
     }
 
     getLabelCaja(tipo?: string) {
         switch (tipo) {
-            case 'SECA': return 'Caja Seca';
-            case 'PLATAFORMA': return 'Plataforma Abierta';
-            case 'REFRIGERADO': return 'Refrigerado';
-            case 'ARTICULADO': return 'Articulado';
-            default: return 'No Definido';
+            case 'SECA':
+                return 'Caja Seca';
+            case 'PLATAFORMA':
+                return 'Plataforma Abierta';
+            case 'REFRIGERADO':
+                return 'Refrigerado';
+            case 'ARTICULADO':
+                return 'Articulado';
+            default:
+                return 'No Definido';
         }
     }
 
     getSeverityCaja(tipo?: string) {
         switch (tipo) {
-            case 'REFRIGERADO': return 'info';
-            case 'SECA': return 'secondary';
-            case 'PLATAFORMA': return 'warn';
-            case 'ARTICULADO': return 'secondary';
-            default: return 'info';
+            case 'REFRIGERADO':
+                return 'info';
+            case 'SECA':
+                return 'secondary';
+            case 'PLATAFORMA':
+                return 'warn';
+            case 'ARTICULADO':
+                return 'secondary';
+            default:
+                return 'info';
         }
     }
 
     getSeverityEstadoMtto(estado: string) {
         switch (estado) {
-            case 'PROGRAMADO': return 'info';
-            case 'EN_PROCESO': return 'warn';
-            case 'REALIZADO': return 'success';
-            case 'CANCELADO': return 'danger';
-            default: return 'secondary';
+            case 'PROGRAMADO':
+                return 'info';
+            case 'EN_PROCESO':
+                return 'warn';
+            case 'REALIZADO':
+                return 'success';
+            case 'CANCELADO':
+                return 'danger';
+            default:
+                return 'secondary';
         }
     }
 
@@ -77,13 +98,16 @@ export class VehiculoDetalleDialogComponent {
         effect(() => {
             const v = this.vehiculo();
             if (v?.id) {
-                this.mantenimientos = MANTENIMIENTOS_MOCK
-                    .filter(m => m.idVehiculo === v.id)
-                    .map(m => ({
+                this.mantenimientos = MANTENIMIENTOS_MOCK.filter((m) => m.idVehiculo === v.id).map(
+                    (m) => ({
                         ...m,
                         tipoLabel: m.tipo === 'PREVENTIVO' ? 'Preventivo' : 'Correctivo',
-                        estadoLabel: m.estado === 'EN_PROCESO' ? 'En Proceso' : m.estado.charAt(0) + m.estado.slice(1).toLowerCase(),
-                    }));
+                        estadoLabel:
+                            m.estado === 'EN_PROCESO'
+                                ? 'En Proceso'
+                                : m.estado.charAt(0) + m.estado.slice(1).toLowerCase(),
+                    }),
+                );
             } else {
                 this.mantenimientos = [];
             }

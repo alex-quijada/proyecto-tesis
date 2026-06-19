@@ -4,7 +4,9 @@
 
     <div class="flex flex-col gap-1 mb-4">
         <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">Gestión de Usuarios</h1>
-        <p class="text-sm text-surface-500">Administre todos los usuarios del sistema en un solo lugar</p>
+        <p class="text-sm text-surface-500">
+            Administre todos los usuarios del sistema en un solo lugar
+        </p>
     </div>
 
     <p-toolbar styleClass="mb-6">
@@ -16,7 +18,8 @@
                     icon="pi pi-trash"
                     severity="danger"
                     size="small"
-                    (onClick)="deleteSelectedUsuarios()" />
+                    (onClick)="deleteSelectedUsuarios()"
+                />
 
                 <p-select
                     [(ngModel)]="filtroRol"
@@ -25,12 +28,18 @@
                     optionValue="value"
                     placeholder="Filtrar por rol"
                     appendTo="body"
-                    styleClass="w-44" />
+                    styleClass="w-44"
+                />
             </div>
         </ng-template>
 
         <ng-template #end>
-            <p-button label="Nuevo Usuario" icon="pi pi-plus" severity="success" (onClick)="openNew()" />
+            <p-button
+                label="Nuevo Usuario"
+                icon="pi pi-plus"
+                severity="success"
+                (onClick)="openNew()"
+            />
         </ng-template>
     </p-toolbar>
 
@@ -42,10 +51,16 @@
         [rows]="10"
         [paginator]="true"
         [rowsPerPageOptions]="[5, 10, 20, 50]"
-        [globalFilterFields]="['nombreCompleto', 'email', 'username', 'documentoIdentidad.numero', 'rol']"
+        [globalFilterFields]="[
+            'nombreCompleto',
+            'email',
+            'username',
+            'documentoIdentidad.numero',
+            'rol',
+        ]"
         [tableStyle]="{ 'min-width': '85rem' }"
-        [loading]="loading()">
-
+        [loading]="loading()"
+    >
         <ng-template #caption>
             <div class="flex flex-wrap gap-2 items-center justify-between">
                 <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
@@ -55,9 +70,20 @@
                 <div class="flex items-center gap-2">
                     <p-iconfield>
                         <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="dt.filterGlobal($any($event.target).value, 'contains')" placeholder="Buscar..." />
+                        <input
+                            pInputText
+                            type="text"
+                            (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+                            placeholder="Buscar..."
+                        />
                     </p-iconfield>
-                    <p-button icon="pi pi-refresh" text size="small" pTooltip="Refrescar" (onClick)="refrescar()" />
+                    <p-button
+                        icon="pi pi-refresh"
+                        text
+                        size="small"
+                        pTooltip="Refrescar"
+                        (onClick)="refrescar()"
+                    />
                 </div>
             </div>
         </ng-template>
@@ -65,12 +91,20 @@
         <ng-template #header>
             <tr>
                 <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                <th pSortableColumn="username" style="min-width:10rem">Usuario <p-sortIcon field="username" /></th>
-                <th pSortableColumn="nombreCompleto" style="min-width:14rem">Nombre / Razón Social <p-sortIcon field="nombreCompleto" /></th>
-                <th style="min-width:9rem">Documento</th>
-                <th pSortableColumn="rol" style="min-width:8rem">Rol <p-sortIcon field="rol" /></th>
-                <th pSortableColumn="activo" style="min-width:7rem">Estado <p-sortIcon field="activo" /></th>
-                <th style="min-width:10rem">Último Acceso</th>
+                <th pSortableColumn="username" style="min-width: 10rem">
+                    Usuario <p-sortIcon field="username" />
+                </th>
+                <th pSortableColumn="nombreCompleto" style="min-width: 14rem">
+                    Nombre / Razón Social <p-sortIcon field="nombreCompleto" />
+                </th>
+                <th style="min-width: 9rem">Documento</th>
+                <th pSortableColumn="rol" style="min-width: 8rem">
+                    Rol <p-sortIcon field="rol" />
+                </th>
+                <th pSortableColumn="activo" style="min-width: 7rem">
+                    Estado <p-sortIcon field="activo" />
+                </th>
+                <th style="min-width: 10rem">Último Acceso</th>
                 <th style="width: 90px">Acciones</th>
             </tr>
         </ng-template>
@@ -82,38 +116,57 @@
                     <div class="flex items-center gap-2">
                         <i class="pi pi-user text-primary"></i>
                         <div class="flex flex-col">
-                            <span class="font-semibold text-surface-900 dark:text-surface-0">{{ u.username }}</span>
+                            <span class="font-semibold text-surface-900 dark:text-surface-0">{{
+                                u.username
+                            }}</span>
                             <span class="text-xs text-surface-400">{{ u.email }}</span>
                         </div>
                     </div>
                 </td>
-                <td class="font-bold text-surface-900 dark:text-surface-0">{{ u.nombreCompleto }}</td>
+                <td class="font-bold text-surface-900 dark:text-surface-0">
+                    {{ u.nombreCompleto }}
+                </td>
                 <td>
-                    <span class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded">
+                    <span
+                        class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded"
+                    >
                         {{ u.documentoIdentidad.prefijo }}-{{ u.documentoIdentidad.numero }}
                     </span>
                 </td>
                 <td>
-                    <p-tag
-                        [value]="rolLabels[u.rol] || u.rol"
-                        [severity]="getRolSeverity(u.rol)" />
+                    <p-tag [value]="rolLabels[u.rol] || u.rol" [severity]="getRolSeverity(u.rol)" />
                 </td>
                 <td>
                     <p-tag
                         [value]="u.activo ? 'Activo' : 'Inactivo'"
-                        [severity]="u.activo ? 'success' : 'danger'" />
+                        [severity]="u.activo ? 'success' : 'danger'"
+                    />
                 </td>
                 <td>
-                    <span class="text-xs text-surface-400">{{ u.ultimoAcceso ? (u.ultimoAcceso | date:'dd/MM/yy HH:mm') : 'Nunca' }}</span>
+                    <span class="text-xs text-surface-400">{{
+                        u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yy HH:mm') : 'Nunca'
+                    }}</span>
                 </td>
                 <td>
                     <div class="flex items-center gap-1">
-                        <p-button icon="pi pi-pencil" severity="success" text size="small"
-                            pTooltip="Editar" tooltipPosition="top"
-                            (onClick)="editUsuario(u)" />
-                        <p-button icon="pi pi-trash" severity="danger" text size="small"
-                            pTooltip="Eliminar" tooltipPosition="top"
-                            (onClick)="deleteUsuario(u)" />
+                        <p-button
+                            icon="pi pi-pencil"
+                            severity="success"
+                            text
+                            size="small"
+                            pTooltip="Editar"
+                            tooltipPosition="top"
+                            (onClick)="editUsuario(u)"
+                        />
+                        <p-button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            text
+                            size="small"
+                            pTooltip="Eliminar"
+                            tooltipPosition="top"
+                            (onClick)="deleteUsuario(u)"
+                        />
                     </div>
                 </td>
             </tr>
@@ -133,4 +186,5 @@
 <app-usuario-dialog
     [(visible)]="dialogVisible"
     [usuarioData]="editingUsuario"
-    (onSave)="onSave($event)" />
+    (onSave)="onSave($event)"
+/>

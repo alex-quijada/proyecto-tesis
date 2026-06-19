@@ -36,10 +36,10 @@ import { FormsModule } from '@angular/forms';
         ConfirmDialogModule,
         TooltipModule,
         SelectModule,
-        ChoferDialogComponent
+        ChoferDialogComponent,
     ],
     providers: [ConfirmationService, MessageService],
-    templateUrl: './choferes.component.html'
+    templateUrl: './choferes.component.html',
 })
 export class ChoferesComponent implements OnInit {
     private messageService = inject(MessageService);
@@ -86,7 +86,7 @@ export class ChoferesComponent implements OnInit {
 
     get choferesFiltrados(): Chofer[] {
         if (!this.filtroRol) return this.choferes();
-        return this.choferes().filter(c => c.rol === this.filtroRol);
+        return this.choferes().filter((c) => c.rol === this.filtroRol);
     }
 
     getDocumentoDisplay(c: Chofer): string {
@@ -95,7 +95,7 @@ export class ChoferesComponent implements OnInit {
     }
 
     getGradoLabel(value: string): string {
-        const g = this.grados.find(g => g.value === value);
+        const g = this.grados.find((g) => g.value === value);
         return g ? g.label : value;
     }
 
@@ -124,12 +124,12 @@ export class ChoferesComponent implements OnInit {
             severity: 'success',
             summary: 'Completado',
             detail: `Datos de ${choferCapturado.nombreCompleto} actualizados`,
-            life: 3000
+            life: 3000,
         });
     }
 
     async deleteChofer(chofer: Chofer) {
-        const confirmed = await new Promise<boolean>(resolve => {
+        const confirmed = await new Promise<boolean>((resolve) => {
             this.confirmationService.confirm({
                 message: `¿Estás seguro de eliminar a "${chofer.nombreCompleto}"?`,
                 header: 'Confirmar Eliminación',
@@ -146,14 +146,24 @@ export class ChoferesComponent implements OnInit {
         try {
             await this.authService.eliminarUsuario(chofer.id);
             await this.cargarChoferes();
-            this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registro eliminado', life: 3000 });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Completado',
+                detail: 'Registro eliminado',
+                life: 3000,
+            });
         } catch (error: any) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: error.message, life: 5000 });
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message,
+                life: 5000,
+            });
         }
     }
 
     async deleteSelectedChoferes() {
-        const confirmed = await new Promise<boolean>(resolve => {
+        const confirmed = await new Promise<boolean>((resolve) => {
             this.confirmationService.confirm({
                 message: '¿Estás seguro de eliminar los registros seleccionados?',
                 header: 'Eliminación Masiva',
@@ -173,17 +183,30 @@ export class ChoferesComponent implements OnInit {
             }
             this.choferSelected.set([]);
             await this.cargarChoferes();
-            this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registros eliminados', life: 3000 });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Completado',
+                detail: 'Registros eliminados',
+                life: 3000,
+            });
         } catch (error: any) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: error.message, life: 5000 });
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message,
+                life: 5000,
+            });
         }
     }
 
     getRolSeverity(rol: string) {
         switch (rol) {
-            case 'Chofer': return 'info';
-            case 'Ayudante': return 'warn';
-            default: return 'secondary';
+            case 'Chofer':
+                return 'info';
+            case 'Ayudante':
+                return 'warn';
+            default:
+                return 'secondary';
         }
     }
 

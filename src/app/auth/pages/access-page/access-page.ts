@@ -8,6 +8,6 @@ import { AppFloatingConfigurator } from '../../../layout/component/app.floatingc
     selector: 'app-access',
     standalone: true,
     imports: [ButtonModule, RouterModule, RippleModule, AppFloatingConfigurator, ButtonModule],
-    templateUrl: './access-page.html'
+    templateUrl: './access-page.html',
 })
 export class AccessPage {}

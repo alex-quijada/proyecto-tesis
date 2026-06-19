@@ -2,89 +2,143 @@
     [(visible)]="visible"
     [style]="{ width: '800px' }"
     [header]="guiaData().id ? 'Modificar Guía de Despacho' : 'Agregar Guía de Despacho'"
-    [modal]="true">
-
+    [modal]="true"
+>
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-
-            <p-message *ngIf="errorMessage" severity="error" [text]="errorMessage" class="mb-2"></p-message>
+            <p-message
+                *ngIf="errorMessage"
+                severity="error"
+                [text]="errorMessage"
+                class="mb-2"
+            ></p-message>
 
             <p-fluid>
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                <div
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
                     <i class="pi pi-file mr-1"></i>
                     Información de la Guía
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">N° de Guía <span class="text-red-500">*</span></label>
+                        <label class="font-semibold"
+                            >N° de Guía <span class="text-red-500">*</span></label
+                        >
                         <input pInputText formControlName="numeroGuia" placeholder="G-2026-XXXX" />
-                        <small *ngIf="submitted && form.get('numeroGuia')?.invalid" class="text-red-500">Requerido</small>
+                        <small
+                            *ngIf="submitted && form.get('numeroGuia')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Cliente <span class="text-red-500">*</span></label>
+                        <label class="font-semibold"
+                            >Cliente <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             formControlName="idCliente"
                             [options]="clientes"
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Seleccionar cliente"
-                            appendTo="body" />
-                        <small *ngIf="submitted && form.get('idCliente')?.invalid" class="text-red-500">Requerido</small>
+                            appendTo="body"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('idCliente')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Chofer <span class="text-red-500">*</span></label>
+                        <label class="font-semibold"
+                            >Chofer <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             formControlName="idChofer"
                             [options]="choferes"
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Seleccionar chofer"
-                            appendTo="body" />
-                        <small *ngIf="submitted && form.get('idChofer')?.invalid" class="text-red-500">Requerido</small>
+                            appendTo="body"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('idChofer')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Vehículo <span class="text-red-500">*</span></label>
+                        <label class="font-semibold"
+                            >Vehículo <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             formControlName="idVehiculo"
                             [options]="vehiculos"
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Seleccionar vehículo"
-                            appendTo="body" />
-                        <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500">Requerido</small>
+                            appendTo="body"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('idVehiculo')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Municipio <span class="text-red-500">*</span></label>
+                        <label class="font-semibold"
+                            >Municipio <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             formControlName="municipio"
                             [options]="municipios"
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Seleccionar municipio"
-                            appendTo="body" />
-                        <small *ngIf="submitted && form.get('municipio')?.invalid" class="text-red-500">Requerido</small>
+                            appendTo="body"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('municipio')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Estado <span class="text-red-500">*</span></label>
+                        <label class="font-semibold"
+                            >Estado <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             formControlName="estado"
                             [options]="estados"
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Estado"
-                            appendTo="body" />
+                            appendTo="body"
+                        />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-12 flex flex-col gap-2">
-                        <label class="font-semibold">Dirección de Entrega <span class="text-red-500">*</span></label>
-                        <textarea pTextarea formControlName="direccionEntrega" rows="2" placeholder="Dirección completa"></textarea>
-                        <small *ngIf="submitted && form.get('direccionEntrega')?.invalid" class="text-red-500">Requerido</small>
+                        <label class="font-semibold"
+                            >Dirección de Entrega <span class="text-red-500">*</span></label
+                        >
+                        <textarea
+                            pTextarea
+                            formControlName="direccionEntrega"
+                            rows="2"
+                            placeholder="Dirección completa"
+                        ></textarea>
+                        <small
+                            *ngIf="submitted && form.get('direccionEntrega')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                 </div>
             </p-fluid>
@@ -92,35 +146,64 @@
             <p-divider />
 
             <p-fluid>
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                <div
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
                     <i class="pi pi-box mr-1"></i>
                     Datos de la Carga
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Peso (Kg) <span class="text-red-500">*</span></label>
-                        <p-inputnumber formControlName="pesoKg" [min]="0" [suffix]="' Kg'" placeholder="0" />
-                        <small *ngIf="submitted && form.get('pesoKg')?.invalid" class="text-red-500">Requerido</small>
+                        <label class="font-semibold"
+                            >Peso (Kg) <span class="text-red-500">*</span></label
+                        >
+                        <p-inputnumber
+                            formControlName="pesoKg"
+                            [min]="0"
+                            [suffix]="' Kg'"
+                            placeholder="0"
+                        />
+                        <small *ngIf="submitted && form.get('pesoKg')?.invalid" class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Precio de Carga ($) <span class="text-red-500">*</span></label>
-                        <p-inputnumber formControlName="precioCarga" [min]="0" mode="currency" currency="USD" placeholder="0.00" />
-                        <small *ngIf="submitted && form.get('precioCarga')?.invalid" class="text-red-500">Requerido</small>
+                        <label class="font-semibold"
+                            >Precio de Carga ($) <span class="text-red-500">*</span></label
+                        >
+                        <p-inputnumber
+                            formControlName="precioCarga"
+                            [min]="0"
+                            mode="currency"
+                            currency="USD"
+                            placeholder="0.00"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('precioCarga')?.invalid"
+                            class="text-red-500"
+                            >Requerido</small
+                        >
                     </div>
                     <div class="col-span-4 flex flex-col gap-2 pt-5">
                         <p-selectbutton
                             formControlName="pdfFuente"
                             [options]="fuentes"
                             optionLabel="label"
-                            optionValue="value" />
+                            optionValue="value"
+                        />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-12 flex flex-col gap-2">
                         <label class="font-semibold">Observaciones</label>
-                        <textarea pTextarea formControlName="observaciones" rows="2" placeholder="Notas adicionales..."></textarea>
+                        <textarea
+                            pTextarea
+                            formControlName="observaciones"
+                            rows="2"
+                            placeholder="Notas adicionales..."
+                        ></textarea>
                     </div>
                 </div>
             </p-fluid>
@@ -128,7 +211,9 @@
             <p-divider />
 
             <p-fluid>
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                <div
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
                     <i class="pi pi-calendar mr-1"></i>
                     Registro de Tiempos
                 </div>
@@ -136,26 +221,58 @@
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
                         <label class="font-semibold">Fecha de Carga</label>
-                        <p-datepicker formControlName="fechaCarga" dateFormat="dd/mm/yy" placeholder="dd/mm/aaaa" appendTo="body" [showTime]="true" hourFormat="24" />
+                        <p-datepicker
+                            formControlName="fechaCarga"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body"
+                            [showTime]="true"
+                            hourFormat="24"
+                        />
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
                         <label class="font-semibold">Salida</label>
-                        <p-datepicker formControlName="fechaSalida" dateFormat="dd/mm/yy" placeholder="dd/mm/aaaa" appendTo="body" [showTime]="true" hourFormat="24" />
+                        <p-datepicker
+                            formControlName="fechaSalida"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body"
+                            [showTime]="true"
+                            hourFormat="24"
+                        />
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
                         <label class="font-semibold">Llegada a Cliente</label>
-                        <p-datepicker formControlName="fechaLlegadaCliente" dateFormat="dd/mm/yy" placeholder="dd/mm/aaaa" appendTo="body" [showTime]="true" hourFormat="24" />
+                        <p-datepicker
+                            formControlName="fechaLlegadaCliente"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body"
+                            [showTime]="true"
+                            hourFormat="24"
+                        />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
                         <label class="font-semibold">Regreso a Base</label>
-                        <p-datepicker formControlName="fechaRegreso" dateFormat="dd/mm/yy" placeholder="dd/mm/aaaa" appendTo="body" [showTime]="true" hourFormat="24" />
+                        <p-datepicker
+                            formControlName="fechaRegreso"
+                            dateFormat="dd/mm/yy"
+                            placeholder="dd/mm/aaaa"
+                            appendTo="body"
+                            [showTime]="true"
+                            hourFormat="24"
+                        />
                     </div>
                     <div class="col-span-4 flex flex-col gap-2 pt-5">
                         <div class="flex items-center gap-2">
-                            <p-checkbox formControlName="tuvoDevolucion" [binary]="true" inputId="devolucion" />
+                            <p-checkbox
+                                formControlName="tuvoDevolucion"
+                                [binary]="true"
+                                inputId="devolucion"
+                            />
                             <label for="devolucion" class="font-semibold">Tuvo Devolución</label>
                         </div>
                     </div>

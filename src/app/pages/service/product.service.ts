@@ -33,7 +33,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 24,
                 inventoryStatus: 'INSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1001',
@@ -45,7 +45,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 61,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1002',
@@ -57,7 +57,7 @@ export class ProductService {
                 category: 'Fitness',
                 quantity: 2,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1003',
@@ -69,7 +69,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 25,
                 inventoryStatus: 'INSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1004',
@@ -81,7 +81,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 73,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1005',
@@ -93,7 +93,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 0,
                 inventoryStatus: 'OUTOFSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1006',
@@ -105,7 +105,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 5,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1007',
@@ -117,7 +117,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 23,
                 inventoryStatus: 'INSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1008',
@@ -129,7 +129,7 @@ export class ProductService {
                 category: 'Electronics',
                 quantity: 2,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1009',
@@ -141,7 +141,7 @@ export class ProductService {
                 category: 'Electronics',
                 quantity: 63,
                 inventoryStatus: 'INSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1010',
@@ -153,7 +153,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 0,
                 inventoryStatus: 'OUTOFSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1011',
@@ -165,7 +165,7 @@ export class ProductService {
                 category: 'Electronics',
                 quantity: 23,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1012',
@@ -177,7 +177,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 74,
                 inventoryStatus: 'INSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1013',
@@ -189,7 +189,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 0,
                 inventoryStatus: 'OUTOFSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1014',
@@ -201,7 +201,7 @@ export class ProductService {
                 category: 'Electronics',
                 quantity: 8,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1015',
@@ -213,7 +213,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 34,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1016',
@@ -225,7 +225,7 @@ export class ProductService {
                 category: 'Fitness',
                 quantity: 12,
                 inventoryStatus: 'INSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1017',
@@ -237,7 +237,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 42,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1018',
@@ -249,7 +249,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 41,
                 inventoryStatus: 'INSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1019',
@@ -261,7 +261,7 @@ export class ProductService {
                 category: 'Fitness',
                 quantity: 63,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1020',
@@ -273,7 +273,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 0,
                 inventoryStatus: 'OUTOFSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1021',
@@ -285,7 +285,7 @@ export class ProductService {
                 category: 'Fitness',
                 quantity: 6,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1022',
@@ -297,7 +297,7 @@ export class ProductService {
                 category: 'Accessories',
                 quantity: 62,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1023',
@@ -309,7 +309,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 2,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1024',
@@ -321,7 +321,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 0,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1025',
@@ -333,7 +333,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 52,
                 inventoryStatus: 'INSTOCK',
-                rating: 4
+                rating: 4,
             },
             {
                 id: '1026',
@@ -345,7 +345,7 @@ export class ProductService {
                 category: 'Clothing',
                 quantity: 3,
                 inventoryStatus: 'LOWSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1027',
@@ -357,7 +357,7 @@ export class ProductService {
                 category: 'Electronics',
                 quantity: 35,
                 inventoryStatus: 'INSTOCK',
-                rating: 3
+                rating: 3,
             },
             {
                 id: '1028',
@@ -369,7 +369,7 @@ export class ProductService {
                 category: 'Fitness',
                 quantity: 15,
                 inventoryStatus: 'INSTOCK',
-                rating: 5
+                rating: 5,
             },
             {
                 id: '1029',
@@ -381,8 +381,8 @@ export class ProductService {
                 category: 'Fitness',
                 quantity: 25,
                 inventoryStatus: 'INSTOCK',
-                rating: 8
-            }
+                rating: 8,
+            },
         ];
     }
 
@@ -407,7 +407,7 @@ export class ProductService {
                         amount: 65,
                         quantity: 1,
                         customer: 'David James',
-                        status: 'PENDING'
+                        status: 'PENDING',
                     },
                     {
                         id: '1000-1',
@@ -416,7 +416,7 @@ export class ProductService {
                         amount: 130,
                         quantity: 2,
                         customer: 'Leon Rodrigues',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1000-2',
@@ -425,7 +425,7 @@ export class ProductService {
                         amount: 65,
                         quantity: 1,
                         customer: 'Juan Alejandro',
-                        status: 'RETURNED'
+                        status: 'RETURNED',
                     },
                     {
                         id: '1000-3',
@@ -434,9 +434,9 @@ export class ProductService {
                         amount: 195,
                         quantity: 3,
                         customer: 'Claire Morrow',
-                        status: 'CANCELLED'
-                    }
-                ]
+                        status: 'CANCELLED',
+                    },
+                ],
             },
             {
                 id: '1001',
@@ -457,7 +457,7 @@ export class ProductService {
                         amount: 72,
                         quantity: 1,
                         customer: 'Maisha Jefferson',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1001-1',
@@ -466,9 +466,9 @@ export class ProductService {
                         amount: 144,
                         quantity: 2,
                         customer: 'Octavia Murillo',
-                        status: 'PENDING'
-                    }
-                ]
+                        status: 'PENDING',
+                    },
+                ],
             },
             {
                 id: '1002',
@@ -489,7 +489,7 @@ export class ProductService {
                         amount: 79,
                         quantity: 1,
                         customer: 'Stacey Leja',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1002-1',
@@ -498,9 +498,9 @@ export class ProductService {
                         amount: 79,
                         quantity: 1,
                         customer: 'Ashley Wickens',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1003',
@@ -513,7 +513,7 @@ export class ProductService {
                 quantity: 25,
                 inventoryStatus: 'INSTOCK',
                 rating: 5,
-                orders: []
+                orders: [],
             },
             {
                 id: '1004',
@@ -534,7 +534,7 @@ export class ProductService {
                         amount: 60,
                         quantity: 4,
                         customer: 'Mayumi Misaki',
-                        status: 'PENDING'
+                        status: 'PENDING',
                     },
                     {
                         id: '1004-1',
@@ -543,9 +543,9 @@ export class ProductService {
                         amount: 2,
                         quantity: 30,
                         customer: 'Francesco Salvatore',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1005',
@@ -566,7 +566,7 @@ export class ProductService {
                         amount: 120,
                         quantity: 1,
                         customer: 'Isabel Sinclair',
-                        status: 'RETURNED'
+                        status: 'RETURNED',
                     },
                     {
                         id: '1005-1',
@@ -575,7 +575,7 @@ export class ProductService {
                         amount: 240,
                         quantity: 2,
                         customer: 'Lionel Clifford',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1005-2',
@@ -584,9 +584,9 @@ export class ProductService {
                         amount: 120,
                         quantity: 1,
                         customer: 'Cody Chavez',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1006',
@@ -607,7 +607,7 @@ export class ProductService {
                         amount: 32,
                         quantity: 1,
                         customer: 'Arvin Darci',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1006-1',
@@ -616,9 +616,9 @@ export class ProductService {
                         amount: 64,
                         quantity: 2,
                         customer: 'Izzy Jones',
-                        status: 'PENDING'
-                    }
-                ]
+                        status: 'PENDING',
+                    },
+                ],
             },
             {
                 id: '1007',
@@ -639,9 +639,9 @@ export class ProductService {
                         amount: 34,
                         quantity: 1,
                         customer: 'Jennifer Smith',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1008',
@@ -662,7 +662,7 @@ export class ProductService {
                         amount: 99,
                         quantity: 1,
                         customer: 'Jeanfrancois David',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1008-1',
@@ -671,9 +671,9 @@ export class ProductService {
                         amount: 198,
                         quantity: 2,
                         customer: 'Ivar Greenwood',
-                        status: 'RETURNED'
-                    }
-                ]
+                        status: 'RETURNED',
+                    },
+                ],
             },
             {
                 id: '1009',
@@ -694,7 +694,7 @@ export class ProductService {
                         amount: 299,
                         quantity: 1,
                         customer: 'Kadeem Mujtaba',
-                        status: 'PENDING'
+                        status: 'PENDING',
                     },
                     {
                         id: '1009-1',
@@ -703,7 +703,7 @@ export class ProductService {
                         amount: 299,
                         quantity: 1,
                         customer: 'Ashley Wickens',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1009-2',
@@ -712,7 +712,7 @@ export class ProductService {
                         amount: 299,
                         quantity: 1,
                         customer: 'Julie Johnson',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1009-3',
@@ -721,9 +721,9 @@ export class ProductService {
                         amount: 299,
                         quantity: 1,
                         customer: 'Tony Costa',
-                        status: 'CANCELLED'
-                    }
-                ]
+                        status: 'CANCELLED',
+                    },
+                ],
             },
             {
                 id: '1010',
@@ -744,7 +744,7 @@ export class ProductService {
                         amount: 24,
                         quantity: 1,
                         customer: 'James Butt',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1010-1',
@@ -753,9 +753,9 @@ export class ProductService {
                         amount: 48,
                         quantity: 2,
                         customer: 'Josephine Darakjy',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1011',
@@ -776,9 +776,9 @@ export class ProductService {
                         amount: 89,
                         quantity: 1,
                         customer: 'Art Venere',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1012',
@@ -799,7 +799,7 @@ export class ProductService {
                         amount: 49,
                         quantity: 1,
                         customer: 'Lenna Paprocki',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1012-1',
@@ -808,9 +808,9 @@ export class ProductService {
                         amount: 49,
                         quantity: 1,
                         customer: 'Donette Foller',
-                        status: 'PENDING'
-                    }
-                ]
+                        status: 'PENDING',
+                    },
+                ],
             },
             {
                 id: '1013',
@@ -831,9 +831,9 @@ export class ProductService {
                         amount: 48,
                         quantity: 1,
                         customer: 'Simona Morasca',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1014',
@@ -854,7 +854,7 @@ export class ProductService {
                         amount: 175,
                         quantity: 1,
                         customer: 'Lenna Paprocki',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1014-1',
@@ -863,9 +863,9 @@ export class ProductService {
                         amount: 175,
                         quantity: 1,
                         customer: 'Donette Foller',
-                        status: 'CANCELLED'
-                    }
-                ]
+                        status: 'CANCELLED',
+                    },
+                ],
             },
             {
                 id: '1015',
@@ -886,9 +886,9 @@ export class ProductService {
                         amount: 98,
                         quantity: 2,
                         customer: 'Mitsue Tollner',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1016',
@@ -901,7 +901,7 @@ export class ProductService {
                 quantity: 12,
                 inventoryStatus: 'INSTOCK',
                 rating: 3,
-                orders: []
+                orders: [],
             },
             {
                 id: '1017',
@@ -922,9 +922,9 @@ export class ProductService {
                         amount: 85,
                         quantity: 1,
                         customer: 'Minna Amigon',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1018',
@@ -945,7 +945,7 @@ export class ProductService {
                         amount: 56,
                         quantity: 1,
                         customer: 'Abel Maclead',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1018-1',
@@ -954,9 +954,9 @@ export class ProductService {
                         amount: 56,
                         quantity: 1,
                         customer: 'Minna Amigon',
-                        status: 'RETURNED'
-                    }
-                ]
+                        status: 'RETURNED',
+                    },
+                ],
             },
             {
                 id: '1019',
@@ -969,7 +969,7 @@ export class ProductService {
                 quantity: 63,
                 inventoryStatus: 'INSTOCK',
                 rating: 4,
-                orders: []
+                orders: [],
             },
             {
                 id: '1020',
@@ -990,7 +990,7 @@ export class ProductService {
                         amount: 110,
                         quantity: 1,
                         customer: 'Kiley Caldarera',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1020-1',
@@ -999,9 +999,9 @@ export class ProductService {
                         amount: 220,
                         quantity: 2,
                         customer: 'Graciela Ruta',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1021',
@@ -1022,9 +1022,9 @@ export class ProductService {
                         amount: 79,
                         quantity: 1,
                         customer: 'Cammy Albares',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1022',
@@ -1045,7 +1045,7 @@ export class ProductService {
                         amount: 45,
                         quantity: 1,
                         customer: 'Mattie Poquette',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1022-1',
@@ -1054,9 +1054,9 @@ export class ProductService {
                         amount: 135,
                         quantity: 3,
                         customer: 'Meaghan Garufi',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1023',
@@ -1077,9 +1077,9 @@ export class ProductService {
                         amount: 49,
                         quantity: 1,
                         customer: 'Gladys Rim',
-                        status: 'RETURNED'
-                    }
-                ]
+                        status: 'RETURNED',
+                    },
+                ],
             },
             {
                 id: '1024',
@@ -1092,7 +1092,7 @@ export class ProductService {
                 quantity: 0,
                 inventoryStatus: 'INSTOCK',
                 rating: 4,
-                orders: []
+                orders: [],
             },
             {
                 id: '1025',
@@ -1113,7 +1113,7 @@ export class ProductService {
                         amount: 78,
                         quantity: 1,
                         customer: 'Yuki Whobrey',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1025-1',
@@ -1122,9 +1122,9 @@ export class ProductService {
                         amount: 78,
                         quantity: 1,
                         customer: 'Fletcher Flosi',
-                        status: 'PENDING'
-                    }
-                ]
+                        status: 'PENDING',
+                    },
+                ],
             },
             {
                 id: '1026',
@@ -1145,9 +1145,9 @@ export class ProductService {
                         amount: 98,
                         quantity: 2,
                         customer: 'Bette Nicka',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1027',
@@ -1168,7 +1168,7 @@ export class ProductService {
                         amount: 89,
                         quantity: 1,
                         customer: 'Veronika Inouye',
-                        status: 'DELIVERED'
+                        status: 'DELIVERED',
                     },
                     {
                         id: '1027-1',
@@ -1177,9 +1177,9 @@ export class ProductService {
                         amount: 89,
                         quantity: 1,
                         customer: 'Willard Kolmetz',
-                        status: 'DELIVERED'
-                    }
-                ]
+                        status: 'DELIVERED',
+                    },
+                ],
             },
             {
                 id: '1028',
@@ -1192,7 +1192,7 @@ export class ProductService {
                 quantity: 15,
                 inventoryStatus: 'INSTOCK',
                 rating: 5,
-                orders: []
+                orders: [],
             },
             {
                 id: '1029',
@@ -1213,10 +1213,10 @@ export class ProductService {
                         amount: 4,
                         quantity: 80,
                         customer: 'Maryann Royster',
-                        status: 'DELIVERED'
-                    }
-                ]
-            }
+                        status: 'DELIVERED',
+                    },
+                ],
+            },
         ];
     }
 
@@ -1252,7 +1252,7 @@ export class ProductService {
         'Teal T-Shirt',
         'Yellow Earbuds',
         'Yoga Mat',
-        'Yoga Set'
+        'Yoga Set',
     ];
 
     constructor(private http: HttpClient) {}
@@ -1282,7 +1282,7 @@ export class ProductService {
             quantity: this.generateQuantity(),
             category: 'Product Category',
             inventoryStatus: this.generateStatus(),
-            rating: this.generateRating()
+            rating: this.generateRating(),
         };
 
         product.image = product.name?.toLocaleLowerCase().split(/[ ,]+/).join('-') + '.jpg';

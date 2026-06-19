@@ -2,20 +2,28 @@
     [(visible)]="visible"
     [style]="{ width: '700px' }"
     [header]="mantenimientoData().id ? 'Editar Mantenimiento' : 'Registrar Mantenimiento'"
-    [modal]="true">
-
+    [modal]="true"
+>
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-
-            <p-message *ngIf="errorMessage" severity="error" [text]="errorMessage" class="mb-2"></p-message>
+            <p-message
+                *ngIf="errorMessage"
+                severity="error"
+                [text]="errorMessage"
+                class="mb-2"
+            ></p-message>
 
             <p-fluid>
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                <div
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
                     Datos del Mantenimiento
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label for="vehiculo" class="font-semibold">Unidad <span class="text-red-500">*</span></label>
+                    <label for="vehiculo" class="font-semibold"
+                        >Unidad <span class="text-red-500">*</span></label
+                    >
                     <p-select
                         id="vehiculo"
                         formControlName="idVehiculo"
@@ -23,14 +31,19 @@
                         optionLabel="label"
                         optionValue="value"
                         placeholder="Seleccionar vehículo"
-                        appendTo="body">
+                        appendTo="body"
+                    >
                     </p-select>
-                    <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500">Seleccione una unidad</small>
+                    <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500"
+                        >Seleccione una unidad</small
+                    >
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-6 flex flex-col gap-2">
-                        <label for="tipo" class="font-semibold">Tipo <span class="text-red-500">*</span></label>
+                        <label for="tipo" class="font-semibold"
+                            >Tipo <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             id="tipo"
                             formControlName="tipo"
@@ -38,11 +51,14 @@
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Tipo de mantenimiento"
-                            appendTo="body">
+                            appendTo="body"
+                        >
                         </p-select>
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
-                        <label for="estado" class="font-semibold">Estado <span class="text-red-500">*</span></label>
+                        <label for="estado" class="font-semibold"
+                            >Estado <span class="text-red-500">*</span></label
+                        >
                         <p-select
                             id="estado"
                             formControlName="estado"
@@ -50,20 +66,24 @@
                             optionLabel="label"
                             optionValue="value"
                             placeholder="Estado"
-                            appendTo="body">
+                            appendTo="body"
+                        >
                         </p-select>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label for="fechaProgramada" class="font-semibold">Fecha Programada <span class="text-red-500">*</span></label>
+                        <label for="fechaProgramada" class="font-semibold"
+                            >Fecha Programada <span class="text-red-500">*</span></label
+                        >
                         <p-datepicker
                             id="fechaProgramada"
                             formControlName="fechaProgramada"
                             dateFormat="dd/mm/yy"
                             placeholder="dd/mm/aaaa"
-                            appendTo="body" />
+                            appendTo="body"
+                        />
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
                         <label for="fechaRealizado" class="font-semibold">Fecha Realizado</label>
@@ -72,42 +92,62 @@
                             formControlName="fechaRealizado"
                             dateFormat="dd/mm/yy"
                             placeholder="dd/mm/aaaa"
-                            appendTo="body" />
+                            appendTo="body"
+                        />
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label for="kilometraje" class="font-semibold">Kilometraje (Km) <span class="text-red-500">*</span></label>
+                        <label for="kilometraje" class="font-semibold"
+                            >Kilometraje (Km) <span class="text-red-500">*</span></label
+                        >
                         <p-inputnumber
                             id="kilometraje"
                             formControlName="kilometraje"
                             [min]="0"
                             [useGrouping]="false"
-                            placeholder="Ej: 45000" />
+                            placeholder="Ej: 45000"
+                        />
                     </div>
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
-                    <label for="descripcion" class="font-semibold">Descripción <span class="text-red-500">*</span></label>
+                    <label for="descripcion" class="font-semibold"
+                        >Descripción <span class="text-red-500">*</span></label
+                    >
                     <textarea
                         pTextarea
                         id="descripcion"
                         formControlName="descripcion"
                         rows="3"
-                        placeholder="Detalle del mantenimiento realizado o por realizar..."></textarea>
-                    <small *ngIf="submitted && form.get('descripcion')?.invalid" class="text-red-500">La descripción es obligatoria</small>
+                        placeholder="Detalle del mantenimiento realizado o por realizar..."
+                    ></textarea>
+                    <small
+                        *ngIf="submitted && form.get('descripcion')?.invalid"
+                        class="text-red-500"
+                        >La descripción es obligatoria</small
+                    >
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
-                    <label for="responsable" class="font-semibold">Responsable <span class="text-red-500">*</span></label>
+                    <label for="responsable" class="font-semibold"
+                        >Responsable <span class="text-red-500">*</span></label
+                    >
                     <input
                         pInputText
                         id="responsable"
                         formControlName="responsable"
-                        placeholder="Nombre del taller o mecánico encargado" />
-                    <small *ngIf="submitted && form.get('responsable')?.invalid" class="text-red-500">El responsable es obligatorio</small>
+                        placeholder="Nombre del taller o mecánico encargado"
+                    />
+                    <small
+                        *ngIf="submitted && form.get('responsable')?.invalid"
+                        class="text-red-500"
+                        >El responsable es obligatorio</small
+                    >
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
-                    <label for="costo" class="font-semibold">Costo ($) <span class="text-red-500">*</span></label>
+                    <label for="costo" class="font-semibold"
+                        >Costo ($) <span class="text-red-500">*</span></label
+                    >
                     <p-inputnumber
                         id="costo"
                         formControlName="costo"
@@ -115,28 +155,38 @@
                         mode="currency"
                         currency="USD"
                         [prefix]="'$ '"
-                        placeholder="0.00" />
+                        placeholder="0.00"
+                    />
                 </div>
             </p-fluid>
 
             <p-divider />
 
             <p-fluid>
-                <div class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1">
+                <div
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
                     <i class="pi pi-calendar-clock mr-1"></i>
                     Próximo Mantenimiento
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-6 flex flex-col gap-2">
-                        <label for="proximoKm" class="font-semibold">Próximo Km <span class="text-red-500">*</span></label>
+                        <label for="proximoKm" class="font-semibold"
+                            >Próximo Km <span class="text-red-500">*</span></label
+                        >
                         <p-inputnumber
                             id="proximoKm"
                             formControlName="proximoKm"
                             [min]="0"
                             [useGrouping]="false"
-                            placeholder="Ej: 50000" />
-                        <small *ngIf="submitted && form.get('proximoKm')?.invalid" class="text-red-500">Indique el kilometraje del próximo servicio</small>
+                            placeholder="Ej: 50000"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('proximoKm')?.invalid"
+                            class="text-red-500"
+                            >Indique el kilometraje del próximo servicio</small
+                        >
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label for="proximaFecha" class="font-semibold">Próxima Fecha</label>
@@ -145,7 +195,8 @@
                             formControlName="proximaFecha"
                             dateFormat="dd/mm/yy"
                             placeholder="dd/mm/aaaa"
-                            appendTo="body" />
+                            appendTo="body"
+                        />
                     </div>
                 </div>
             </p-fluid>
@@ -154,6 +205,10 @@
 
     <ng-template #footer>
         <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
-        <p-button [label]="mantenimientoData().id ? 'Guardar Cambios' : 'Registrar'" icon="pi pi-check" (onClick)="save()" />
+        <p-button
+            [label]="mantenimientoData().id ? 'Guardar Cambios' : 'Registrar'"
+            icon="pi pi-check"
+            (onClick)="save()"
+        />
     </ng-template>
 </p-dialog>

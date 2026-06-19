@@ -13,9 +13,12 @@ import { InputMaskModule } from 'primeng/inputmask';
 import { DividerModule } from 'primeng/divider';
 
 import {
-    Cliente, PRIORIDADES_MOCK,
-    PREFIJOS_DOCUMENTO, MUNICIPIOS_NUEVA_ESPARTA,
-    DocumentoIdentidad, UbicacionResumen
+    Cliente,
+    PRIORIDADES_MOCK,
+    PREFIJOS_DOCUMENTO,
+    MUNICIPIOS_NUEVA_ESPARTA,
+    DocumentoIdentidad,
+    UbicacionResumen,
 } from '../data/clientes-mock';
 
 @Component({
@@ -34,7 +37,7 @@ import {
         InputMaskModule,
         DividerModule,
     ],
-    templateUrl: './cliente-dialog.component.html'
+    templateUrl: './cliente-dialog.component.html',
 })
 export class ClienteDialogComponent {
     private fb = inject(FormBuilder);
@@ -53,12 +56,20 @@ export class ClienteDialogComponent {
     form: FormGroup = this.fb.group({
         documentoIdentidad: this.fb.group({
             prefijo: ['V', Validators.required],
-            numero: ['', [Validators.required, Validators.pattern(/^\d+$/), Validators.minLength(5), Validators.maxLength(12)]]
+            numero: [
+                '',
+                [
+                    Validators.required,
+                    Validators.pattern(/^\d+$/),
+                    Validators.minLength(5),
+                    Validators.maxLength(12),
+                ],
+            ],
         }),
         nombreComercial: ['', Validators.required],
         telefono: ['', [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)]],
         idPrioridad: ['MEDIA', Validators.required],
-        ubicaciones: this.fb.array([])
+        ubicaciones: this.fb.array([]),
     });
 
     constructor() {
@@ -77,7 +88,15 @@ export class ClienteDialogComponent {
             this.ubicacionesForm.clear();
             const ubs: UbicacionResumen[] = data.ubicaciones?.length
                 ? data.ubicaciones
-                : [{ municipio: '', direccion: '', referencia: '', pais: 'Venezuela', estado: 'Nueva Esparta' }];
+                : [
+                      {
+                          municipio: '',
+                          direccion: '',
+                          referencia: '',
+                          pais: 'Venezuela',
+                          estado: 'Nueva Esparta',
+                      },
+                  ];
 
             for (const ub of ubs) {
                 this.ubicacionesForm.push(this.crearUbicacionGroup(ub));
@@ -123,7 +142,8 @@ export class ClienteDialogComponent {
         }
 
         const raw = this.form.getRawValue();
-        const prioridadLabel = this.prioridades.find(p => p.value === raw.idPrioridad)?.label || '';
+        const prioridadLabel =
+            this.prioridades.find((p) => p.value === raw.idPrioridad)?.label || '';
 
         const clienteFinal: Cliente = {
             ...this.clienteData(),

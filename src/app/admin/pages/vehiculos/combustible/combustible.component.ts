@@ -11,8 +11,12 @@ import { BadgeModule } from 'primeng/badge';
 import { CardModule } from 'primeng/card';
 
 import {
-    CargaCombustible, COMBUSTIBLE_MOCK, VEHICULOS_TANQUE,
-    NIVELES_TANQUE, METODOS_CALCULO, TIPOS_COMBUSTIBLE,
+    CargaCombustible,
+    COMBUSTIBLE_MOCK,
+    VEHICULOS_TANQUE,
+    NIVELES_TANQUE,
+    METODOS_CALCULO,
+    TIPOS_COMBUSTIBLE,
 } from './data/combustible-mock';
 import { CombustibleDialogComponent } from './components/combustible-dialog.component';
 
@@ -45,7 +49,9 @@ interface VehiculoConsolidado {
     templateUrl: './combustible.component.html',
 })
 export class CombustibleComponent {
-    registros: CargaCombustible[] = [...COMBUSTIBLE_MOCK].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    registros: CargaCombustible[] = [...COMBUSTIBLE_MOCK].sort((a, b) =>
+        b.fecha.localeCompare(a.fecha),
+    );
     dialogVisible = false;
     editingRecord: CargaCombustible = {} as CargaCombustible;
 
@@ -55,20 +61,20 @@ export class CombustibleComponent {
 
     get metodoLabels(): Record<string, string> {
         const map: Record<string, string> = {};
-        this.metodos.forEach(m => map[m.value] = m.label);
+        this.metodos.forEach((m) => (map[m.value] = m.label));
         return map;
     }
 
     get tipoLabels(): Record<string, string> {
         const map: Record<string, string> = {};
-        this.tipos.forEach(t => map[t.value] = t.label);
+        this.tipos.forEach((t) => (map[t.value] = t.label));
         return map;
     }
 
     get consolidado(): VehiculoConsolidado[] {
         const map = new Map<string, VehiculoConsolidado>();
         for (const v of VEHICULOS_TANQUE) {
-            const cargas = this.registros.filter(r => r.idVehiculo === v.id);
+            const cargas = this.registros.filter((r) => r.idVehiculo === v.id);
             map.set(v.id, {
                 id: v.id,
                 placa: v.placa,
@@ -77,14 +83,16 @@ export class CombustibleComponent {
                 totalCargas: cargas.length,
                 totalLitros: cargas.reduce((s, r) => s + r.litrosCargados, 0),
                 totalGastado: cargas.reduce((s, r) => s + r.costoTotal, 0),
-                ultimaCarga: cargas.length ? cargas.sort((a, b) => b.fecha.localeCompare(a.fecha))[0] : null,
+                ultimaCarga: cargas.length
+                    ? cargas.sort((a, b) => b.fecha.localeCompare(a.fecha))[0]
+                    : null,
             });
         }
         return Array.from(map.values());
     }
 
     getNivelLabel(value: number): string {
-        return this.niveles.find(n => n.value === value)?.label ?? `${value * 100}%`;
+        return this.niveles.find((n) => n.value === value)?.label ?? `${value * 100}%`;
     }
 
     get consumoTanque(): number {
@@ -106,7 +114,7 @@ export class CombustibleComponent {
     }
 
     onSave(carga: CargaCombustible) {
-        const idx = this.registros.findIndex(r => r.id === carga.id);
+        const idx = this.registros.findIndex((r) => r.id === carga.id);
         if (idx >= 0) {
             this.registros[idx] = { ...carga };
             this.registros = [...this.registros].sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -118,15 +126,19 @@ export class CombustibleComponent {
     }
 
     deleteRecord(record: CargaCombustible) {
-        this.registros = this.registros.filter(r => r.id !== record.id);
+        this.registros = this.registros.filter((r) => r.id !== record.id);
     }
 
     getSeverity(metodo: string): 'info' | 'success' | 'warn' {
         switch (metodo) {
-            case 'TANQUE': return 'info';
-            case 'ODOMETRO': return 'success';
-            case 'GPS': return 'warn';
-            default: return 'info';
+            case 'TANQUE':
+                return 'info';
+            case 'ODOMETRO':
+                return 'success';
+            case 'GPS':
+                return 'warn';
+            default:
+                return 'info';
         }
     }
 }

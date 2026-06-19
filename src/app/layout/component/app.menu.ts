@@ -26,9 +26,7 @@ export class AppMenu {
             {
                 label: 'Principal',
                 path: '/principal',
-                items: [
-                    { label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: ['/app'] },
-                ]
+                items: [{ label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: ['/app'] }],
             },
             {
                 label: 'Operaciones de Logística',
@@ -39,48 +37,92 @@ export class AppMenu {
                         icon: 'pi pi-fw pi-map',
                         path: '/operaciones/rutas',
                         items: [
-                            { label: 'Asignación de Carga', icon: 'pi pi-fw pi-box', routerLink: ['/app/rutas/carga'] },
-                            { label: 'Optimización de Rutas', icon: 'pi pi-fw pi-directions', routerLink: ['/app/rutas/optimizacion'] },
-                            { label: 'Monitoreo en Tiempo Real', icon: 'pi pi-fw pi-map-marker', routerLink: ['/app/rutas/seguimiento'] }
-                        ]
+                            {
+                                label: 'Asignación de Carga',
+                                icon: 'pi pi-fw pi-box',
+                                routerLink: ['/app/rutas/carga'],
+                            },
+                            {
+                                label: 'Optimización de Rutas',
+                                icon: 'pi pi-fw pi-directions',
+                                routerLink: ['/app/rutas/optimizacion'],
+                            },
+                            {
+                                label: 'Monitoreo en Tiempo Real',
+                                icon: 'pi pi-fw pi-map-marker',
+                                routerLink: ['/app/rutas/seguimiento'],
+                            },
+                        ],
                     },
                     {
                         label: 'Vehículos',
                         icon: 'pi pi-fw pi-truck',
                         path: '/operaciones/vehiculos',
                         items: [
-                            { label: 'Listado de Unidades', icon: 'pi pi-fw pi-list', routerLink: ['/app/vehiculos'] },
-                            { label: 'Mantenimiento Preventivo', icon: 'pi pi-fw pi-wrench', routerLink: ['/app/vehiculos/mantenimiento'] },
-                            { label: 'Control de Combustible', icon: 'pi pi-fw pi-percentage', routerLink: ['/app/vehiculos/combustible'] }
-                        ]
+                            {
+                                label: 'Listado de Unidades',
+                                icon: 'pi pi-fw pi-list',
+                                routerLink: ['/app/vehiculos'],
+                            },
+                            {
+                                label: 'Mantenimiento Preventivo',
+                                icon: 'pi pi-fw pi-wrench',
+                                routerLink: ['/app/vehiculos/mantenimiento'],
+                            },
+                            {
+                                label: 'Control de Combustible',
+                                icon: 'pi pi-fw pi-percentage',
+                                routerLink: ['/app/vehiculos/combustible'],
+                            },
+                        ],
                     },
-                    { label: 'Choferes', icon: 'pi pi-fw pi-id-card', routerLink: ['/app/choferes'] },
-                    { label: 'Clientes', icon: 'pi pi-fw pi-users', routerLink: ['/app/clientes'] }
-                ]
+                    {
+                        label: 'Choferes',
+                        icon: 'pi pi-fw pi-id-card',
+                        routerLink: ['/app/choferes'],
+                    },
+                    { label: 'Clientes', icon: 'pi pi-fw pi-users', routerLink: ['/app/clientes'] },
+                ],
             },
             {
                 label: 'Seguimiento y Control',
                 path: '/seguimiento',
                 items: [
-                    { label: 'Historial de Entregas', icon: 'pi pi-fw pi-history', routerLink: ['/app/historial'] },
+                    {
+                        label: 'Historial de Entregas',
+                        icon: 'pi pi-fw pi-history',
+                        routerLink: ['/app/historial'],
+                    },
                     {
                         label: 'Informes y Reportes',
                         icon: 'pi pi-fw pi-file-pdf',
                         path: '/informes',
                         items: [
-                            { label: 'Reporte de Eficiencia', icon: 'pi pi-fw pi-file', routerLink: ['/app/informes/eficiencia'] },
-                            { label: 'Reporte de Gastos', icon: 'pi pi-fw pi-money-bill', routerLink: ['/app/informes/gastos'] }
-                        ]
-                    }
-                ]
+                            {
+                                label: 'Reporte de Eficiencia',
+                                icon: 'pi pi-fw pi-file',
+                                routerLink: ['/app/informes/eficiencia'],
+                            },
+                            {
+                                label: 'Reporte de Gastos',
+                                icon: 'pi pi-fw pi-money-bill',
+                                routerLink: ['/app/informes/gastos'],
+                            },
+                        ],
+                    },
+                ],
             },
             {
                 label: 'Administración de Acceso',
                 icon: 'pi pi-fw pi-lock',
                 path: '/admin',
                 items: [
-                    { label: 'Gestión de Usuarios', icon: 'pi pi-fw pi-user-edit', routerLink: ['/app/usuarios'] }
-                ]
+                    {
+                        label: 'Gestión de Usuarios',
+                        icon: 'pi pi-fw pi-user-edit',
+                        routerLink: ['/app/usuarios'],
+                    },
+                ],
             },
             /*
             // CÓDIGO ORIGINAL DE LA PLANTILLA SAKAI (COMENTADO)

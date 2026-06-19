@@ -33,10 +33,10 @@ import { BadgeModule } from 'primeng/badge';
         ConfirmDialogModule,
         TooltipModule,
         BadgeModule,
-        ClienteDialogComponent
+        ClienteDialogComponent,
     ],
     providers: [ConfirmationService, MessageService],
-    templateUrl: './clientes.component.html'
+    templateUrl: './clientes.component.html',
 })
 export class ClientesComponent implements OnInit {
     private messageService = inject(MessageService);
@@ -60,7 +60,7 @@ export class ClientesComponent implements OnInit {
     }
 
     getMunicipioLabel(value: string): string {
-        const m = this.municipios.find(m => m.value === value);
+        const m = this.municipios.find((m) => m.value === value);
         return m ? m.label : value || '';
     }
 
@@ -70,7 +70,15 @@ export class ClientesComponent implements OnInit {
             nombreComercial: '',
             telefono: '',
             idPrioridad: 'MEDIA',
-            ubicaciones: [{ municipio: '', direccion: '', referencia: '', pais: 'Venezuela', estado: 'Nueva Esparta' }]
+            ubicaciones: [
+                {
+                    municipio: '',
+                    direccion: '',
+                    referencia: '',
+                    pais: 'Venezuela',
+                    estado: 'Nueva Esparta',
+                },
+            ],
         });
         this.isDialogOpen.set(true);
     }
@@ -78,7 +86,7 @@ export class ClientesComponent implements OnInit {
     editCliente(cliente: Cliente) {
         this.clienteParaModificar.set({
             ...cliente,
-            ubicaciones: cliente.ubicaciones?.map(u => ({ ...u }))
+            ubicaciones: cliente.ubicaciones?.map((u) => ({ ...u })),
         });
         this.isDialogOpen.set(true);
     }
@@ -87,7 +95,7 @@ export class ClientesComponent implements OnInit {
         let listaActual = this.clientes();
 
         if (clienteCapturado.id) {
-            const index = listaActual.findIndex(c => c.id === clienteCapturado.id);
+            const index = listaActual.findIndex((c) => c.id === clienteCapturado.id);
             listaActual[index] = clienteCapturado;
             this.clientes.set([...listaActual]);
 
@@ -95,7 +103,7 @@ export class ClientesComponent implements OnInit {
                 severity: 'success',
                 summary: 'Actualizado',
                 detail: 'Cliente modificado correctamente',
-                life: 3000
+                life: 3000,
             });
         } else {
             clienteCapturado.id = crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9);
@@ -105,7 +113,7 @@ export class ClientesComponent implements OnInit {
                 severity: 'success',
                 summary: 'Registrado',
                 detail: 'Nuevo cliente agregado',
-                life: 3000
+                life: 3000,
             });
         }
     }
@@ -119,8 +127,13 @@ export class ClientesComponent implements OnInit {
             acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
             accept: () => {
                 this.clientes.set(this.clientes().filter((val) => val.id !== cliente.id));
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Cliente eliminado', life: 3000 });
-            }
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Completado',
+                    detail: 'Cliente eliminado',
+                    life: 3000,
+                });
+            },
         });
     }
 
@@ -132,20 +145,29 @@ export class ClientesComponent implements OnInit {
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
             acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
             accept: () => {
-                const selectedIds = this.clienteSelected().map(c => c.id);
+                const selectedIds = this.clienteSelected().map((c) => c.id);
                 this.clientes.set(this.clientes().filter((val) => !selectedIds.includes(val.id)));
                 this.clienteSelected.set([]);
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Clientes eliminados', life: 3000 });
-            }
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Completado',
+                    detail: 'Clientes eliminados',
+                    life: 3000,
+                });
+            },
         });
     }
 
     getSeverity(prioridad: string) {
         switch (prioridad) {
-            case 'Alta': return 'danger';
-            case 'Media': return 'warn';
-            case 'Baja': return 'info';
-            default: return 'secondary';
+            case 'Alta':
+                return 'danger';
+            case 'Media':
+                return 'warn';
+            case 'Baja':
+                return 'info';
+            default:
+                return 'secondary';
         }
     }
 }

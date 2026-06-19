@@ -18,7 +18,14 @@ import { ChipModule } from 'primeng/chip';
 
 import { GuiaDialogComponent } from './components/guia-dialog.component';
 import { RutaDialogComponent } from './components/ruta-dialog.component';
-import { GuiaDespacho, Ruta, GUIAS_MOCK, RUTAS_MOCK, ESTADOS_GUIA, MUNICIPIOS_NUEVA_ESPARTA } from './data/rutas-mock';
+import {
+    GuiaDespacho,
+    Ruta,
+    GUIAS_MOCK,
+    RUTAS_MOCK,
+    ESTADOS_GUIA,
+    MUNICIPIOS_NUEVA_ESPARTA,
+} from './data/rutas-mock';
 
 @Component({
     selector: 'app-rutas',
@@ -60,16 +67,19 @@ export class RutasComponent implements OnInit {
 
     estadoFiltros = [
         { label: 'Todos los Estados', value: null },
-        ...ESTADOS_GUIA.map(e => ({ label: e.label, value: e.value })),
+        ...ESTADOS_GUIA.map((e) => ({ label: e.label, value: e.value })),
     ];
 
     municipioFiltros = [
         { label: 'Todos los Municipios', value: null },
-        ...MUNICIPIOS_NUEVA_ESPARTA.map(m => ({ label: m.label, value: m.value })),
+        ...MUNICIPIOS_NUEVA_ESPARTA.map((m) => ({ label: m.label, value: m.value })),
     ];
 
     estadoLabels: Record<string, string> = {};
-    estadoSeverities: Record<string, 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+    estadoSeverities: Record<
+        string,
+        'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
+    > = {
         EN_PROCESO: 'info',
         CARGADO: 'warn',
         EN_ESPERA: 'warn',
@@ -91,10 +101,10 @@ export class RutasComponent implements OnInit {
     get guiasFiltradas(): GuiaDespacho[] {
         let list = this.guias();
         if (this.filtroEstado) {
-            list = list.filter(g => g.estado === this.filtroEstado);
+            list = list.filter((g) => g.estado === this.filtroEstado);
         }
         if (this.filtroMunicipio) {
-            list = list.filter(g => g.municipio === this.filtroMunicipio);
+            list = list.filter((g) => g.municipio === this.filtroMunicipio);
         }
         return list;
     }
@@ -103,7 +113,9 @@ export class RutasComponent implements OnInit {
         return this.estadoLabels[estado] || estado;
     }
 
-    getEstadoSeverity(estado: string): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    getEstadoSeverity(
+        estado: string,
+    ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
         return this.estadoSeverities[estado] || 'info';
     }
 
@@ -126,16 +138,24 @@ export class RutasComponent implements OnInit {
     }
 
     onSaveGuia(guia: GuiaDespacho) {
-        const idx = this.guias().findIndex(g => g.id === guia.id);
+        const idx = this.guias().findIndex((g) => g.id === guia.id);
         if (idx >= 0) {
             const updated = [...this.guias()];
             updated[idx] = { ...guia };
             this.guias.set(updated);
-            this.messageService.add({ severity: 'success', summary: 'Guía actualizada', detail: `${guia.numeroGuia} modificada exitosamente.` });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Guía actualizada',
+                detail: `${guia.numeroGuia} modificada exitosamente.`,
+            });
         } else {
             guia.id = `g-${Date.now()}`;
             this.guias.set([guia, ...this.guias()]);
-            this.messageService.add({ severity: 'success', summary: 'Guía creada', detail: `${guia.numeroGuia} registrada exitosamente.` });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Guía creada',
+                detail: `${guia.numeroGuia} registrada exitosamente.`,
+            });
         }
     }
 
@@ -143,7 +163,11 @@ export class RutasComponent implements OnInit {
         ruta.id = `r-${Date.now()}`;
         ruta.estado = 'PENDIENTE';
         this.rutas.set([ruta, ...this.rutas()]);
-        this.messageService.add({ severity: 'success', summary: 'Ruta creada', detail: `Ruta ${ruta.codigo} asignada exitosamente.` });
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Ruta creada',
+            detail: `Ruta ${ruta.codigo} asignada exitosamente.`,
+        });
     }
 
     deleteGuia(guia: GuiaDespacho) {
@@ -152,8 +176,12 @@ export class RutasComponent implements OnInit {
             header: 'Confirmar Eliminación',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                this.guias.set(this.guias().filter(g => g.id !== guia.id));
-                this.messageService.add({ severity: 'success', summary: 'Eliminada', detail: `Guía ${guia.numeroGuia} eliminada.` });
+                this.guias.set(this.guias().filter((g) => g.id !== guia.id));
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Eliminada',
+                    detail: `Guía ${guia.numeroGuia} eliminada.`,
+                });
             },
         });
     }

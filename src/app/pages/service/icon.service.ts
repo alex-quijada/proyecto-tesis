@@ -17,7 +17,7 @@ export class IconService {
             map((response: any) => {
                 this.icons = response.icons;
                 return this.icons;
-            })
+            }),
         );
     }
 }

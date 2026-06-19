@@ -14,8 +14,11 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
 
 import {
-    CargaCombustible, TIPOS_COMBUSTIBLE, METODOS_CALCULO,
-    NIVELES_TANQUE, VEHICULOS_TANQUE,
+    CargaCombustible,
+    TIPOS_COMBUSTIBLE,
+    METODOS_CALCULO,
+    NIVELES_TANQUE,
+    VEHICULOS_TANQUE,
 } from '../data/combustible-mock';
 
 @Component({
@@ -35,7 +38,7 @@ import {
         DatePickerModule,
         DividerModule,
     ],
-    templateUrl: './combustible-dialog.component.html'
+    templateUrl: './combustible-dialog.component.html',
 })
 export class CombustibleDialogComponent {
     private fb = inject(FormBuilder);
@@ -68,7 +71,7 @@ export class CombustibleDialogComponent {
     });
 
     get vehiculoSelectList() {
-        return this.vehiculos.map(v => ({
+        return this.vehiculos.map((v) => ({
             label: `${v.placa} — ${v.label}`,
             value: v.id,
         }));
@@ -76,7 +79,7 @@ export class CombustibleDialogComponent {
 
     get selectedVehiculo() {
         const id = this.form.get('idVehiculo')?.value;
-        return this.vehiculos.find(v => v.id === id);
+        return this.vehiculos.find((v) => v.id === id);
     }
 
     get nivelAntesValue(): number {
@@ -92,7 +95,7 @@ export class CombustibleDialogComponent {
     }
 
     get metodoDescripcion(): string {
-        const m = METODOS_CALCULO.find(x => x.value === this.metodoCalculoValue);
+        const m = METODOS_CALCULO.find((x) => x.value === this.metodoCalculoValue);
         return m?.desc ?? '';
     }
 
@@ -173,7 +176,7 @@ export class CombustibleDialogComponent {
         }
 
         const raw = this.form.getRawValue();
-        const vehiculo = this.vehiculos.find(v => v.id === raw.idVehiculo);
+        const vehiculo = this.vehiculos.find((v) => v.id === raw.idVehiculo);
 
         const cargaFinal: CargaCombustible = {
             ...this.cargaData(),

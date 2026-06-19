@@ -71,7 +71,11 @@ import { SplitButtonModule } from 'primeng/splitbutton';
                 <div class="font-semibold text-xl">SplitButton</div>
                 <div class="flex flex-wrap gap-2">
                     <p-splitbutton label="Save" [model]="items"></p-splitbutton>
-                    <p-splitbutton label="Save" [model]="items" severity="secondary"></p-splitbutton>
+                    <p-splitbutton
+                        label="Save"
+                        [model]="items"
+                        severity="secondary"
+                    ></p-splitbutton>
                     <p-splitbutton label="Save" [model]="items" severity="success"></p-splitbutton>
                     <p-splitbutton label="Save" [model]="items" severity="info"></p-splitbutton>
                     <p-splitbutton label="Save" [model]="items" severity="warn"></p-splitbutton>
@@ -84,10 +88,18 @@ import { SplitButtonModule } from 'primeng/splitbutton';
                 <div class="font-semibold text-xl">Templating</div>
                 <div class="flex flex-wrap gap-2">
                     <p-button type="button">
-                        <img alt="logo" src="https://primefaces.org/cdn/primeng/images/logo.svg" style="width: 1.5rem" />
+                        <img
+                            alt="logo"
+                            src="https://primefaces.org/cdn/primeng/images/logo.svg"
+                            style="width: 1.5rem"
+                        />
                     </p-button>
                     <p-button type="button" outlined severity="success">
-                        <img alt="logo" src="https://primefaces.org/cdn/primeng/images/logo.svg" style="width: 1.5rem" />
+                        <img
+                            alt="logo"
+                            src="https://primefaces.org/cdn/primeng/images/logo.svg"
+                            style="width: 1.5rem"
+                        />
                         <span class="text-bold">PrimeNG</span>
                     </p-button>
                 </div>
@@ -167,14 +179,38 @@ import { SplitButtonModule } from 'primeng/splitbutton';
             <div class="card flex flex-col gap-4">
                 <div class="font-semibold text-xl">Loading</div>
                 <div class="flex flex-wrap gap-2">
-                    <p-button type="button" label="Search" icon="pi pi-search" [loading]="loading[0]" (click)="load(0)" />
-                    <p-button type="button" label="Search" icon="pi pi-search" iconPos="right" [loading]="loading[1]" (click)="load(1)" />
-                    <p-button type="button" styleClass="h-full" icon="pi pi-search" [loading]="loading[2]" (click)="load(2)" />
-                    <p-button type="button" label="Search" [loading]="loading[3]" (click)="load(3)" />
+                    <p-button
+                        type="button"
+                        label="Search"
+                        icon="pi pi-search"
+                        [loading]="loading[0]"
+                        (click)="load(0)"
+                    />
+                    <p-button
+                        type="button"
+                        label="Search"
+                        icon="pi pi-search"
+                        iconPos="right"
+                        [loading]="loading[1]"
+                        (click)="load(1)"
+                    />
+                    <p-button
+                        type="button"
+                        styleClass="h-full"
+                        icon="pi pi-search"
+                        [loading]="loading[2]"
+                        (click)="load(2)"
+                    />
+                    <p-button
+                        type="button"
+                        label="Search"
+                        [loading]="loading[3]"
+                        (click)="load(3)"
+                    />
                 </div>
             </div>
         </div>
-    </div> `
+    </div> `,
 })
 export class ButtonDemo implements OnInit {
     items: MenuItem[] = [];
@@ -182,7 +218,13 @@ export class ButtonDemo implements OnInit {
     loading = [false, false, false, false];
 
     ngOnInit() {
-        this.items = [{ label: 'Update', icon: 'pi pi-refresh' }, { label: 'Delete', icon: 'pi pi-times' }, { label: 'Angular.io', icon: 'pi pi-info', url: 'http://angular.io' }, { separator: true }, { label: 'Setup', icon: 'pi pi-cog' }];
+        this.items = [
+            { label: 'Update', icon: 'pi pi-refresh' },
+            { label: 'Delete', icon: 'pi pi-times' },
+            { label: 'Angular.io', icon: 'pi pi-info', url: 'http://angular.io' },
+            { separator: true },
+            { label: 'Setup', icon: 'pi pi-cog' },
+        ];
     }
 
     load(index: number) {

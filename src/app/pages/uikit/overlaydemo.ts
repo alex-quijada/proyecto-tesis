@@ -1,29 +1,51 @@
-import {Component, OnInit} from '@angular/core';
-import {ConfirmationService, MessageService} from 'primeng/api';
-import {ButtonModule} from 'primeng/button';
-import {DialogModule} from 'primeng/dialog';
-import {ToastModule} from 'primeng/toast';
-import {DrawerModule} from 'primeng/drawer';
-import {Popover, PopoverModule} from 'primeng/popover';
-import {ConfirmPopupModule} from 'primeng/confirmpopup';
-import {InputTextModule} from 'primeng/inputtext';
-import {FormsModule} from '@angular/forms';
-import {TooltipModule} from 'primeng/tooltip';
-import {TableModule} from 'primeng/table';
-import {Product, ProductService} from '@/app/pages/service/product.service';
+import { Component, OnInit } from '@angular/core';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
+import { ToastModule } from 'primeng/toast';
+import { DrawerModule } from 'primeng/drawer';
+import { Popover, PopoverModule } from 'primeng/popover';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { InputTextModule } from 'primeng/inputtext';
+import { FormsModule } from '@angular/forms';
+import { TooltipModule } from 'primeng/tooltip';
+import { TableModule } from 'primeng/table';
+import { Product, ProductService } from '@/app/pages/service/product.service';
 
 @Component({
     selector: 'app-overlay-demo',
     standalone: true,
-    imports: [ToastModule, DialogModule, ButtonModule, DrawerModule, PopoverModule, ConfirmPopupModule, InputTextModule, FormsModule, TooltipModule, TableModule, ToastModule],
+    imports: [
+        ToastModule,
+        DialogModule,
+        ButtonModule,
+        DrawerModule,
+        PopoverModule,
+        ConfirmPopupModule,
+        InputTextModule,
+        FormsModule,
+        TooltipModule,
+        TableModule,
+        ToastModule,
+    ],
     template: `<div class="flex flex-col md:flex-row gap-8">
         <div class="md:w-1/2">
             <div class="card">
                 <div class="font-semibold text-xl mb-4">Dialog</div>
-                <p-dialog header="Dialog" [(visible)]="display" [breakpoints]="{ '960px': '75vw' }" [style]="{ width: '30vw' }" [modal]="true">
+                <p-dialog
+                    header="Dialog"
+                    [(visible)]="display"
+                    [breakpoints]="{ '960px': '75vw' }"
+                    [style]="{ width: '30vw' }"
+                    [modal]="true"
+                >
                     <p class="leading-normal m-0">
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+                        cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+                        non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
                     </p>
                     <ng-template #footer>
                         <p-button label="Save" (click)="close()" />
@@ -37,7 +59,15 @@ import {Product, ProductService} from '@/app/pages/service/product.service';
                 <div class="flex flex-wrap gap-2">
                     <p-button type="button" label="Show" (click)="toggleDataTable(op2, $event)" />
                     <p-popover #op2 id="overlay_panel" [style]="{ width: '450px' }">
-                        <p-table [value]="products" selectionMode="single" [(selection)]="selectedProduct" dataKey="id" [rows]="5" [paginator]="true" (onRowSelect)="onProductSelect(op2, $event)">
+                        <p-table
+                            [value]="products"
+                            selectionMode="single"
+                            [(selection)]="selectedProduct"
+                            dataKey="id"
+                            [rows]="5"
+                            [paginator]="true"
+                            (onRowSelect)="onProductSelect(op2, $event)"
+                        >
                             <ng-template #header>
                                 <tr>
                                     <th pSortableColumn="name" style="width: 33%;">
@@ -55,7 +85,11 @@ import {Product, ProductService} from '@/app/pages/service/product.service';
                                 <tr [pSelectableRow]="product">
                                     <td>{{ product.name }}</td>
                                     <td>
-                                        <img [src]="'/demo/images/product/' + product.image" [alt]="product.name" class="w-16 shadow-sm" />
+                                        <img
+                                            [src]="'/demo/images/product/' + product.image"
+                                            [alt]="product.name"
+                                            class="w-16 shadow-sm"
+                                        />
                                     </td>
                                     <td>{{ product.price }}</td>
                                 </tr>
@@ -79,69 +113,125 @@ import {Product, ProductService} from '@/app/pages/service/product.service';
                 <div class="font-semibold text-xl mb-4">Drawer</div>
                 <p-drawer [(visible)]="visibleLeft" header="Drawer">
                     <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
                         consequat.
                     </p>
                 </p-drawer>
 
                 <p-drawer [(visible)]="visibleRight" header="Drawer" position="right">
                     <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
                         consequat.
                     </p>
                 </p-drawer>
 
                 <p-drawer [(visible)]="visibleTop" header="Drawer" position="top">
                     <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
                         consequat.
                     </p>
                 </p-drawer>
 
                 <p-drawer [(visible)]="visibleBottom" header="Drawer" position="bottom">
                     <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
                         consequat.
                     </p>
                 </p-drawer>
 
                 <p-drawer [(visible)]="visibleFull" header="Drawer" position="full">
                     <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
                         consequat.
                     </p>
                 </p-drawer>
 
-                <p-button icon="pi pi-arrow-right" (click)="visibleLeft = true" [style]="{ marginRight: '0.25em' }" />
-                <p-button icon="pi pi-arrow-left" (click)="visibleRight = true" [style]="{ marginRight: '0.25em' }" />
-                <p-button icon="pi pi-arrow-down" (click)="visibleTop = true" [style]="{ marginRight: '0.25em' }" />
-                <p-button icon="pi pi-arrow-up" (click)="visibleBottom = true" [style]="{ marginRight: '0.25em' }" />
+                <p-button
+                    icon="pi pi-arrow-right"
+                    (click)="visibleLeft = true"
+                    [style]="{ marginRight: '0.25em' }"
+                />
+                <p-button
+                    icon="pi pi-arrow-left"
+                    (click)="visibleRight = true"
+                    [style]="{ marginRight: '0.25em' }"
+                />
+                <p-button
+                    icon="pi pi-arrow-down"
+                    (click)="visibleTop = true"
+                    [style]="{ marginRight: '0.25em' }"
+                />
+                <p-button
+                    icon="pi pi-arrow-up"
+                    (click)="visibleBottom = true"
+                    [style]="{ marginRight: '0.25em' }"
+                />
                 <p-button icon="pi pi-external-link" (click)="visibleFull = true" />
             </div>
 
             <div class="card">
                 <div class="font-semibold text-xl mb-4">ConfirmPopup</div>
                 <p-confirmpopup key="confirm2"></p-confirmpopup>
-                <p-button #popup (click)="confirm($event)" icon="pi pi-check" label="Confirm" class="mr-2"></p-button>
+                <p-button
+                    #popup
+                    (click)="confirm($event)"
+                    icon="pi pi-check"
+                    label="Confirm"
+                    class="mr-2"
+                ></p-button>
             </div>
 
             <div class="card">
                 <div class="font-semibold text-xl mb-4">ConfirmDialog</div>
-                <p-button label="Delete" icon="pi pi-trash" severity="danger" [style]="{ width: 'auto' }" (click)="openConfirmation()" />
-                <p-dialog header="Confirmation" [(visible)]="displayConfirmation" [style]="{ width: '350px' }" [modal]="true">
+                <p-button
+                    label="Delete"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [style]="{ width: 'auto' }"
+                    (click)="openConfirmation()"
+                />
+                <p-dialog
+                    header="Confirmation"
+                    [(visible)]="displayConfirmation"
+                    [style]="{ width: '350px' }"
+                    [modal]="true"
+                >
                     <div class="flex items-center justify-center">
                         <i class="pi pi-exclamation-triangle mr-6" style="font-size: 2rem"> </i>
                         <span>Are you sure you want to proceed?</span>
                     </div>
                     <ng-template #footer>
-                        <p-button label="No" icon="pi pi-times" (click)="closeConfirmation()" text severity="secondary" />
-                        <p-button label="Yes" icon="pi pi-check" (click)="closeConfirmation()" severity="danger" outlined autofocus />
+                        <p-button
+                            label="No"
+                            icon="pi pi-times"
+                            (click)="closeConfirmation()"
+                            text
+                            severity="secondary"
+                        />
+                        <p-button
+                            label="Yes"
+                            icon="pi pi-check"
+                            (click)="closeConfirmation()"
+                            severity="danger"
+                            outlined
+                            autofocus
+                        />
                     </ng-template>
                 </p-dialog>
             </div>
         </div>
     </div>`,
-    providers: [ConfirmationService, MessageService, ProductService]
+    providers: [ConfirmationService, MessageService, ProductService],
 })
 export class OverlayDemo implements OnInit {
     display: boolean = false;
@@ -165,7 +255,7 @@ export class OverlayDemo implements OnInit {
     constructor(
         private productService: ProductService,
         private confirmationService: ConfirmationService,
-        private messageService: MessageService
+        private messageService: MessageService,
     ) {}
 
     ngOnInit() {
@@ -181,25 +271,25 @@ export class OverlayDemo implements OnInit {
             rejectButtonProps: {
                 label: 'Cancel',
                 severity: 'secondary',
-                outlined: true
+                outlined: true,
             },
             acceptButtonProps: {
-                label: 'Save'
+                label: 'Save',
             },
             accept: () => {
                 this.messageService.add({
                     severity: 'info',
                     summary: 'Confirmed',
-                    detail: 'You have accepted'
+                    detail: 'You have accepted',
                 });
             },
             reject: () => {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Rejected',
-                    detail: 'You have rejected'
+                    detail: 'You have rejected',
                 });
-            }
+            },
         });
     }
 
@@ -221,7 +311,7 @@ export class OverlayDemo implements OnInit {
             severity: 'info',
             summary: 'Product Selected',
             detail: event?.data.name,
-            life: 3000
+            life: 3000,
         });
     }
 

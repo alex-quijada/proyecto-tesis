@@ -50,7 +50,11 @@ export const CHOFERES_MOCK: Chofer[] = [
         rol: 'Chofer',
         fechaIngreso: '2024-01-15',
         licencia: { numero: 'L-12345678', grado: 'D', fechaVencimiento: '2026-06-30' },
-        certificadoMedico: { numero: 'CMV-987654', fechaExpedicion: '2025-01-10', fechaVencimiento: '2026-01-10' },
+        certificadoMedico: {
+            numero: 'CMV-987654',
+            fechaExpedicion: '2025-01-10',
+            fechaVencimiento: '2026-01-10',
+        },
     },
     {
         id: 'ch-2',
@@ -60,7 +64,11 @@ export const CHOFERES_MOCK: Chofer[] = [
         rol: 'Chofer',
         fechaIngreso: '2023-08-20',
         licencia: { numero: 'L-23456789', grado: 'E', fechaVencimiento: '2025-12-31' },
-        certificadoMedico: { numero: 'CMV-876543', fechaExpedicion: '2025-03-15', fechaVencimiento: '2026-03-15' },
+        certificadoMedico: {
+            numero: 'CMV-876543',
+            fechaExpedicion: '2025-03-15',
+            fechaVencimiento: '2026-03-15',
+        },
     },
     {
         id: 'ch-3',
@@ -70,7 +78,11 @@ export const CHOFERES_MOCK: Chofer[] = [
         rol: 'Chofer',
         fechaIngreso: '2024-05-10',
         licencia: { numero: 'L-34567890', grado: 'D', fechaVencimiento: '2027-02-28' },
-        certificadoMedico: { numero: 'CMV-765432', fechaExpedicion: '2025-06-01', fechaVencimiento: '2026-06-01' },
+        certificadoMedico: {
+            numero: 'CMV-765432',
+            fechaExpedicion: '2025-06-01',
+            fechaVencimiento: '2026-06-01',
+        },
     },
     {
         id: 'ch-4',
@@ -80,7 +92,11 @@ export const CHOFERES_MOCK: Chofer[] = [
         rol: 'Ayudante',
         fechaIngreso: '2025-02-01',
         licencia: { numero: 'L-45678901', grado: 'B', fechaVencimiento: '2026-09-15' },
-        certificadoMedico: { numero: 'CMV-654321', fechaExpedicion: '2025-04-20', fechaVencimiento: '2026-04-20' },
+        certificadoMedico: {
+            numero: 'CMV-654321',
+            fechaExpedicion: '2025-04-20',
+            fechaVencimiento: '2026-04-20',
+        },
     },
     {
         id: 'ch-5',
@@ -90,6 +106,10 @@ export const CHOFERES_MOCK: Chofer[] = [
         rol: 'Ayudante',
         fechaIngreso: '2024-11-12',
         licencia: { numero: 'L-87654321', grado: 'B', fechaVencimiento: '2025-11-30' },
-        certificadoMedico: { numero: 'CMV-543210', fechaExpedicion: '2024-12-01', fechaVencimiento: '2025-12-01' },
+        certificadoMedico: {
+            numero: 'CMV-543210',
+            fechaExpedicion: '2024-12-01',
+            fechaVencimiento: '2025-12-01',
+        },
     },
 ];

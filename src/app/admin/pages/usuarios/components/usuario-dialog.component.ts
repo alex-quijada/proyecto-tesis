@@ -17,9 +17,7 @@ import { PasswordModule } from 'primeng/password';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { MessageService } from 'primeng/api';
 
-import {
-    Usuario, ROLES, PREFIJOS_DOCUMENTO, GRADOS_LICENCIA,
-} from '../data/usuarios-mock';
+import { Usuario, ROLES, PREFIJOS_DOCUMENTO, GRADOS_LICENCIA } from '../data/usuarios-mock';
 
 const ROL_MAP_TO_DB: Record<string, string> = {
     ADMIN: 'administrador',
@@ -32,10 +30,19 @@ const ROL_MAP_TO_DB: Record<string, string> = {
     selector: 'app-usuario-dialog',
     standalone: true,
     imports: [
-        CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
-        InputTextModule, InputNumberModule, SelectModule, FluidModule,
-        MessageModule, DividerModule, DatePickerModule,
-        SelectButtonModule, PasswordModule,
+        CommonModule,
+        ReactiveFormsModule,
+        DialogModule,
+        ButtonModule,
+        InputTextModule,
+        InputNumberModule,
+        SelectModule,
+        FluidModule,
+        MessageModule,
+        DividerModule,
+        DatePickerModule,
+        SelectButtonModule,
+        PasswordModule,
     ],
     providers: [MessageService],
     templateUrl: './usuario-dialog.component.html',
@@ -53,7 +60,7 @@ export class UsuarioDialogComponent {
     errorMessage = '';
     loading = signal(false);
 
-    roles = ROLES.filter(r => r.value !== 'CLIENTE');
+    roles = ROLES.filter((r) => r.value !== 'CLIENTE');
     prefijosDoc = PREFIJOS_DOCUMENTO;
     gradosLicencia = GRADOS_LICENCIA;
 
@@ -66,7 +73,10 @@ export class UsuarioDialogComponent {
         email: ['test_chofer@logistica.com', [Validators.required, Validators.email]],
         password: ['123456', [Validators.minLength(6)]],
         prefijoDoc: ['V', Validators.required],
-        numeroDoc: [12345678, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
+        numeroDoc: [
+            12345678,
+            [Validators.required, Validators.min(10000), Validators.max(999999999999)],
+        ],
         nombreCompleto: ['Roberto Díaz', Validators.required],
         rol: ['CHOFER', Validators.required],
         activo: [true],
@@ -99,7 +109,9 @@ export class UsuarioDialogComponent {
                     email: data.email || '',
                     password: '',
                     prefijoDoc: data.documentoIdentidad?.prefijo || 'V',
-                    numeroDoc: data.documentoIdentidad?.numero ? Number(data.documentoIdentidad.numero) : null,
+                    numeroDoc: data.documentoIdentidad?.numero
+                        ? Number(data.documentoIdentidad.numero)
+                        : null,
                     nombreCompleto: data.nombreCompleto || '',
                     rol: data.rol || '',
                     activo: data.activo ?? true,
@@ -108,8 +120,12 @@ export class UsuarioDialogComponent {
                     licenciaExpedicion: this.parseLocalDate(data.licencia?.fechaExpedicion),
                     licenciaVencimiento: this.parseLocalDate(data.licencia?.fechaVencimiento),
                     certMedicoNumero: data.certificadoMedico?.numero || '',
-                    certMedicoExpedicion: this.parseLocalDate(data.certificadoMedico?.fechaExpedicion),
-                    certMedicoVencimiento: this.parseLocalDate(data.certificadoMedico?.fechaVencimiento),
+                    certMedicoExpedicion: this.parseLocalDate(
+                        data.certificadoMedico?.fechaExpedicion,
+                    ),
+                    certMedicoVencimiento: this.parseLocalDate(
+                        data.certificadoMedico?.fechaVencimiento,
+                    ),
                 });
             }
             this.ajustarValidadorPassword();
@@ -187,17 +203,31 @@ export class UsuarioDialogComponent {
             rol: raw.rol,
             activo: raw.activo,
             fechaCreacion: this.usuarioData().fechaCreacion || this.formatDate(new Date()),
-            licencia: raw.rol === 'CHOFER'
-                ? {
-                    numero: raw.licenciaNumero,
-                    grado: raw.licenciaGrado,
-                    fechaExpedicion: raw.licenciaExpedicion ? this.formatDate(raw.licenciaExpedicion) : '',
-                    fechaVencimiento: raw.licenciaVencimiento ? this.formatDate(raw.licenciaVencimiento) : '',
-                  }
-                : undefined,
-            certificadoMedico: (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE')
-                ? { numero: raw.certMedicoNumero, fechaExpedicion: raw.certMedicoExpedicion ? this.formatDate(raw.certMedicoExpedicion) : '', fechaVencimiento: raw.certMedicoVencimiento ? this.formatDate(raw.certMedicoVencimiento) : '' }
-                : undefined,
+            licencia:
+                raw.rol === 'CHOFER'
+                    ? {
+                          numero: raw.licenciaNumero,
+                          grado: raw.licenciaGrado,
+                          fechaExpedicion: raw.licenciaExpedicion
+                              ? this.formatDate(raw.licenciaExpedicion)
+                              : '',
+                          fechaVencimiento: raw.licenciaVencimiento
+                              ? this.formatDate(raw.licenciaVencimiento)
+                              : '',
+                      }
+                    : undefined,
+            certificadoMedico:
+                raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE'
+                    ? {
+                          numero: raw.certMedicoNumero,
+                          fechaExpedicion: raw.certMedicoExpedicion
+                              ? this.formatDate(raw.certMedicoExpedicion)
+                              : '',
+                          fechaVencimiento: raw.certMedicoVencimiento
+                              ? this.formatDate(raw.certMedicoVencimiento)
+                              : '',
+                      }
+                    : undefined,
         };
     }
 
@@ -210,7 +240,7 @@ export class UsuarioDialogComponent {
 
         if (this.form.invalid) {
             const errores: Record<string, any> = {};
-            Object.keys(this.form.controls).forEach(key => {
+            Object.keys(this.form.controls).forEach((key) => {
                 const c = this.form.get(key);
                 if (c?.invalid) errores[key] = c.errors;
             });

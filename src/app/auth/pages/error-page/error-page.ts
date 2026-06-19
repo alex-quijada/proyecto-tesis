@@ -8,6 +8,6 @@ import { AppFloatingConfigurator } from '../../../layout/component/app.floatingc
     selector: 'app-error',
     imports: [ButtonModule, RippleModule, RouterModule, AppFloatingConfigurator, ButtonModule],
     standalone: true,
-    templateUrl: `./error-page.html`
+    templateUrl: `./error-page.html`,
 })
 export class ErrorPage {}

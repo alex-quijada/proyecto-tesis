@@ -11,10 +11,7 @@ import { MessageModule } from 'primeng/message';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
 
-import {
-    Chofer, CHOFERES_MOCK,
-    PREFIJOS_CEDULA, GRADOS_LICENCIA,
-} from '../data/choferes-mock';
+import { Chofer, CHOFERES_MOCK, PREFIJOS_CEDULA, GRADOS_LICENCIA } from '../data/choferes-mock';
 
 @Component({
     selector: 'app-chofer-dialog',
@@ -31,7 +28,7 @@ import {
         DatePickerModule,
         DividerModule,
     ],
-    templateUrl: './chofer-dialog.component.html'
+    templateUrl: './chofer-dialog.component.html',
 })
 export class ChoferDialogComponent {
     private fb = inject(FormBuilder);
@@ -53,7 +50,15 @@ export class ChoferDialogComponent {
     form: FormGroup = this.fb.group({
         documentoIdentidad: this.fb.group({
             prefijo: ['V', Validators.required],
-            numero: ['', [Validators.required, Validators.pattern(/^\d+$/), Validators.minLength(5), Validators.maxLength(9)]]
+            numero: [
+                '',
+                [
+                    Validators.required,
+                    Validators.pattern(/^\d+$/),
+                    Validators.minLength(5),
+                    Validators.maxLength(9),
+                ],
+            ],
         }),
         nombreCompleto: ['', Validators.required],
         telefono: ['', [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)]],
@@ -86,12 +91,18 @@ export class ChoferDialogComponent {
                 licencia: {
                     numero: data.licencia?.numero || '',
                     grado: data.licencia?.grado || '',
-                    fechaVencimiento: data.licencia?.fechaVencimiento ? new Date(data.licencia.fechaVencimiento) : null,
+                    fechaVencimiento: data.licencia?.fechaVencimiento
+                        ? new Date(data.licencia.fechaVencimiento)
+                        : null,
                 },
                 certificadoMedico: {
                     numero: data.certificadoMedico?.numero || '',
-                    fechaExpedicion: data.certificadoMedico?.fechaExpedicion ? new Date(data.certificadoMedico.fechaExpedicion) : null,
-                    fechaVencimiento: data.certificadoMedico?.fechaVencimiento ? new Date(data.certificadoMedico.fechaVencimiento) : null,
+                    fechaExpedicion: data.certificadoMedico?.fechaExpedicion
+                        ? new Date(data.certificadoMedico.fechaExpedicion)
+                        : null,
+                    fechaVencimiento: data.certificadoMedico?.fechaVencimiento
+                        ? new Date(data.certificadoMedico.fechaVencimiento)
+                        : null,
                 },
             });
         });
@@ -131,12 +142,18 @@ export class ChoferDialogComponent {
             licencia: {
                 numero: raw.licencia.numero,
                 grado: raw.licencia.grado,
-                fechaVencimiento: raw.licencia.fechaVencimiento ? this.formatDate(raw.licencia.fechaVencimiento) : '',
+                fechaVencimiento: raw.licencia.fechaVencimiento
+                    ? this.formatDate(raw.licencia.fechaVencimiento)
+                    : '',
             },
             certificadoMedico: {
                 numero: raw.certificadoMedico.numero,
-                fechaExpedicion: raw.certificadoMedico.fechaExpedicion ? this.formatDate(raw.certificadoMedico.fechaExpedicion) : '',
-                fechaVencimiento: raw.certificadoMedico.fechaVencimiento ? this.formatDate(raw.certificadoMedico.fechaVencimiento) : '',
+                fechaExpedicion: raw.certificadoMedico.fechaExpedicion
+                    ? this.formatDate(raw.certificadoMedico.fechaExpedicion)
+                    : '',
+                fechaVencimiento: raw.certificadoMedico.fechaVencimiento
+                    ? this.formatDate(raw.certificadoMedico.fechaVencimiento)
+                    : '',
             },
         };
 

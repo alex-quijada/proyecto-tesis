@@ -1,4 +1,13 @@
-import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, AfterViewInit, signal } from '@angular/core';
+import {
+    Component,
+    EventEmitter,
+    Output,
+    Input,
+    ViewChild,
+    ElementRef,
+    AfterViewInit,
+    signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -10,117 +19,150 @@ import { DividerModule } from 'primeng/divider';
 @Component({
     selector: 'app-firma-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule, CheckboxModule, DividerModule],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        DialogModule,
+        InputTextModule,
+        CheckboxModule,
+        DividerModule,
+    ],
     template: `
-    <p-dialog
-        [(visible)]="visible"
-        [modal]="true"
-        [style]="{ width: '95%', maxWidth: '420px' }"
-        [draggable]="false"
-        [resizable]="false"
-        [closable]="false"
-        [dismissableMask]="false"
-        styleClass="firma-dialog"
-        [breakpoints]="{ '480px': '95vw' }">
-
-        <ng-template pTemplate="header">
-            <div class="flex items-center gap-2 w-full">
-                <i class="pi pi-pen text-primary text-xl"></i>
-                <span class="font-semibold text-sm">Firma de Entrega</span>
-            </div>
-        </ng-template>
-
-        <div class="space-y-4">
-            <!-- Guia info -->
-            <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-sm">
-                <div class="flex justify-between mb-1">
-                    <span class="text-surface-400">Guía:</span>
-                    <span class="font-mono font-semibold">{{ guia?.numeroGuia }}</span>
+        <p-dialog
+            [(visible)]="visible"
+            [modal]="true"
+            [style]="{ width: '95%', maxWidth: '420px' }"
+            [draggable]="false"
+            [resizable]="false"
+            [closable]="false"
+            [dismissableMask]="false"
+            styleClass="firma-dialog"
+            [breakpoints]="{ '480px': '95vw' }"
+        >
+            <ng-template pTemplate="header">
+                <div class="flex items-center gap-2 w-full">
+                    <i class="pi pi-pen text-primary text-xl"></i>
+                    <span class="font-semibold text-sm">Firma de Entrega</span>
                 </div>
-                <div class="flex justify-between mb-1">
-                    <span class="text-surface-400">Cliente:</span>
-                    <span class="font-semibold">{{ guia?.nombreCliente }}</span>
+            </ng-template>
+
+            <div class="space-y-4">
+                <!-- Guia info -->
+                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-sm">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-surface-400">Guía:</span>
+                        <span class="font-mono font-semibold">{{ guia?.numeroGuia }}</span>
+                    </div>
+                    <div class="flex justify-between mb-1">
+                        <span class="text-surface-400">Cliente:</span>
+                        <span class="font-semibold">{{ guia?.nombreCliente }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-surface-400">Monto:</span>
+                        <span class="font-semibold text-primary">{{
+                            guia?.precioCarga | currency: 'USD' : 'symbol' : '1.0-0'
+                        }}</span>
+                    </div>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-surface-400">Monto:</span>
-                    <span class="font-semibold text-primary">{{ guia?.precioCarga | currency:'USD':'symbol':'1.0-0' }}</span>
-                </div>
-            </div>
 
-            <!-- Checklist -->
-            <div class="space-y-2">
-                <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider">Checklist de entrega</span>
-                @for (item of checklistItems; track item.id) {
-                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 cursor-pointer">
-                        <p-checkbox [(ngModel)]="item.checked" [binary]="true" />
-                        <span class="text-sm" [ngClass]="{ 'line-through text-surface-400': item.checked }">{{ item.label }}</span>
-                    </label>
-                }
-            </div>
-
-            <p-divider />
-
-            <!-- Signature pad -->
-            <div>
-                <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider block mb-2">Firma del cliente</span>
-                <div class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl overflow-hidden bg-white"
-                    [ngClass]="{ 'border-primary border-solid': isDrawing }">
-                    <canvas
-                        #signatureCanvas
-                        width="360"
-                        height="160"
-                        class="w-full touch-none cursor-crosshair"
-                        (mousedown)="startDrawing($event)"
-                        (mousemove)="draw($event)"
-                        (mouseup)="stopDrawing()"
-                        (mouseleave)="stopDrawing()"
-                        (touchstart)="onTouchStart($event)"
-                        (touchmove)="onTouchMove($event)"
-                        (touchend)="stopDrawing()">
-                    </canvas>
-                    @if (!hasSignature) {
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span class="text-surface-300 text-sm">Firme aquí</span>
-                        </div>
+                <!-- Checklist -->
+                <div class="space-y-2">
+                    <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider"
+                        >Checklist de entrega</span
+                    >
+                    @for (item of checklistItems; track item.id) {
+                        <label
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 cursor-pointer"
+                        >
+                            <p-checkbox [(ngModel)]="item.checked" [binary]="true" />
+                            <span
+                                class="text-sm"
+                                [ngClass]="{ 'line-through text-surface-400': item.checked }"
+                                >{{ item.label }}</span
+                            >
+                        </label>
                     }
                 </div>
-                <div class="flex justify-between mt-2">
-                    <span class="text-xs text-surface-400">Firma digital del cliente</span>
-                    <button
-                        class="text-xs text-primary font-semibold hover:underline cursor-pointer bg-transparent border-none"
-                        (click)="clearSignature()">
-                        Limpiar
-                    </button>
+
+                <p-divider />
+
+                <!-- Signature pad -->
+                <div>
+                    <span
+                        class="text-xs font-semibold text-surface-400 uppercase tracking-wider block mb-2"
+                        >Firma del cliente</span
+                    >
+                    <div
+                        class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl overflow-hidden bg-white"
+                        [ngClass]="{ 'border-primary border-solid': isDrawing }"
+                    >
+                        <canvas
+                            #signatureCanvas
+                            width="360"
+                            height="160"
+                            class="w-full touch-none cursor-crosshair"
+                            (mousedown)="startDrawing($event)"
+                            (mousemove)="draw($event)"
+                            (mouseup)="stopDrawing()"
+                            (mouseleave)="stopDrawing()"
+                            (touchstart)="onTouchStart($event)"
+                            (touchmove)="onTouchMove($event)"
+                            (touchend)="stopDrawing()"
+                        >
+                        </canvas>
+                        @if (!hasSignature) {
+                            <div
+                                class="absolute inset-0 flex items-center justify-center pointer-events-none"
+                            >
+                                <span class="text-surface-300 text-sm">Firme aquí</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="flex justify-between mt-2">
+                        <span class="text-xs text-surface-400">Firma digital del cliente</span>
+                        <button
+                            class="text-xs text-primary font-semibold hover:underline cursor-pointer bg-transparent border-none"
+                            (click)="clearSignature()"
+                        >
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Observations -->
+                <div>
+                    <span
+                        class="text-xs font-semibold text-surface-400 uppercase tracking-wider block mb-2"
+                        >Observaciones (opcional)</span
+                    >
+                    <textarea
+                        [(ngModel)]="observaciones"
+                        class="w-full border border-surface-300 dark:border-surface-600 rounded-lg p-2 text-sm bg-transparent resize-none"
+                        rows="2"
+                        placeholder="Notas sobre la entrega..."
+                    ></textarea>
                 </div>
             </div>
 
-            <!-- Observations -->
-            <div>
-                <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider block mb-2">Observaciones (opcional)</span>
-                <textarea
-                    [(ngModel)]="observaciones"
-                    class="w-full border border-surface-300 dark:border-surface-600 rounded-lg p-2 text-sm bg-transparent resize-none"
-                    rows="2"
-                    placeholder="Notas sobre la entrega..."></textarea>
-            </div>
-        </div>
-
-        <ng-template pTemplate="footer">
-            <div class="flex gap-2 w-full">
-                <p-button
-                    label="Cancelar"
-                    severity="secondary"
-                    (onClick)="cancelar()"
-                    styleClass="flex-1" />
-                <p-button
-                    label="Confirmar Entrega"
-                    icon="pi pi-check"
-                    [disabled]="!hasSignature || !checklistCompleto"
-                    (onClick)="confirmar()"
-                    styleClass="flex-1" />
-            </div>
-        </ng-template>
-    </p-dialog>
+            <ng-template pTemplate="footer">
+                <div class="flex gap-2 w-full">
+                    <p-button
+                        label="Cancelar"
+                        severity="secondary"
+                        (onClick)="cancelar()"
+                        styleClass="flex-1"
+                    />
+                    <p-button
+                        label="Confirmar Entrega"
+                        icon="pi pi-check"
+                        [disabled]="!hasSignature || !checklistCompleto"
+                        (onClick)="confirmar()"
+                        styleClass="flex-1"
+                    />
+                </div>
+            </ng-template>
+        </p-dialog>
     `,
 })
 export class FirmaDialogComponent implements AfterViewInit {
@@ -147,7 +189,7 @@ export class FirmaDialogComponent implements AfterViewInit {
     ];
 
     get checklistCompleto(): boolean {
-        return this.checklistItems.every(i => i.checked);
+        return this.checklistItems.every((i) => i.checked);
     }
 
     ngAfterViewInit() {
@@ -163,7 +205,7 @@ export class FirmaDialogComponent implements AfterViewInit {
         this.visible = true;
         this.hasSignature = false;
         this.observaciones = '';
-        this.checklistItems.forEach(i => i.checked = false);
+        this.checklistItems.forEach((i) => (i.checked = false));
         setTimeout(() => this.clearCanvas(), 100);
     }
 

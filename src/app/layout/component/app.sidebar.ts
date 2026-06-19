@@ -12,7 +12,7 @@ import { LayoutService } from '@/app/layout/service/layout.service';
         <div class="layout-sidebar">
             <app-menu></app-menu>
         </div>
-    `
+    `,
 })
 export class AppSidebar implements OnInit, OnDestroy {
     layoutService = inject(LayoutService);
@@ -49,7 +49,7 @@ export class AppSidebar implements OnInit, OnDestroy {
         this.router.events
             .pipe(
                 filter((event) => event instanceof NavigationEnd),
-                takeUntil(this.destroy$)
+                takeUntil(this.destroy$),
             )
             .subscribe((event) => {
                 const navEvent = event as NavigationEnd;
@@ -72,7 +72,7 @@ export class AppSidebar implements OnInit, OnDestroy {
             overlayMenuActive: false,
             staticMenuMobileActive: false,
             mobileMenuActive: false,
-            menuHoverActive: false
+            menuHoverActive: false,
         }));
     }
 
@@ -85,7 +85,7 @@ export class AppSidebar implements OnInit, OnDestroy {
                         overlayMenuActive: false,
                         staticMenuMobileActive: false,
                         mobileMenuActive: false,
-                        menuHoverActive: false
+                        menuHoverActive: false,
                     }));
                 }
             };

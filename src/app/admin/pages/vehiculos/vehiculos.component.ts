@@ -2,9 +2,12 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
-import { VehiculoDialogComponent } from './components/vehiculo-dialog.component';
 import { VehiculoDetalleDialogComponent } from './components/vehiculo-detalle-dialog.component';
-import { Vehiculo, VEHICULOS_MOCK } from './data/vehiculos-mock';
+import { VehiculoDialogComponent } from './components/vehiculo-dialog/vehiculo-dialog.component';
+import { Vehiculo } from './data/vehiculos-mock';
+import { VehiculoService } from './service/vehiculo.service';
+import { TipoVehiculoIconoPipe } from './pipes/tipo-vehiculo-icono.pipe';
+import { TipoCajaLabelPipe } from './pipes/tipo-caja-label.pipe';
 
 // PrimeNG
 import { TableModule } from 'primeng/table';
@@ -34,31 +37,50 @@ import { TooltipModule } from 'primeng/tooltip';
         ConfirmDialogModule,
         TooltipModule,
         VehiculoDialogComponent,
-        VehiculoDetalleDialogComponent
+        VehiculoDetalleDialogComponent,
+        TipoVehiculoIconoPipe,
+        TipoCajaLabelPipe,
     ],
     providers: [ConfirmationService, MessageService],
-    templateUrl: './vehiculos.component.html'
+    templateUrl: './vehiculos.component.html',
 })
 export class VehiculosComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
+    private vehiculoService = inject(VehiculoService);
 
-    // Estados reactivos de la tabla de control
     vehiculos = signal<Vehiculo[]>([]);
     vehiculoSelected = signal<Vehiculo[]>([]);
 
-    // Estados para coordinar el componente modal hijo
     isDialogOpen = signal<boolean>(false);
     vehiculoParaModificar = signal<Vehiculo>({});
 
-    // Estados para el detalle
     isDetalleDialogOpen = signal<boolean>(false);
     vehiculoParaDetalle = signal<Vehiculo>({});
 
+    loading = false;
+
     ngOnInit() {
-        // Cargamos la data del archivo estático mock temporalmente.
-        // Al conectar con Supabase, aquí harías el fetch a la base de datos remota.
-        this.vehiculos.set([...VEHICULOS_MOCK]);
+        this.cargarVehiculos();
+    }
+
+    async cargarVehiculos() {
+        this.loading = true;
+        try {
+            const data = await this.vehiculoService.obtenerVehiculos();
+            this.vehiculos.set(data);
+        } catch (error: any) {
+            console.error('Error al cargar vehículos:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'No se pudieron cargar los vehículos',
+                life: 5000,
+            });
+            this.vehiculos.set([]);
+        } finally {
+            this.loading = false;
+        }
     }
 
     openNew() {
@@ -67,7 +89,7 @@ export class VehiculosComponent implements OnInit {
             tipoCaja: 'SECA',
             capacidadPallets: 0,
             pesoMaximo: 0,
-            estado: 'OPERATIVO'
+            estado: 'OPERATIVO',
         });
         this.isDialogOpen.set(true);
     }
@@ -82,34 +104,8 @@ export class VehiculosComponent implements OnInit {
         this.isDetalleDialogOpen.set(true);
     }
 
-    // Procesa los datos capturados y emitidos por el modal independiente
-    handleSaveVehiculo(vehiculoCapturado: Vehiculo) {
-        let listaActual = this.vehiculos();
-
-        if (vehiculoCapturado.id) {
-            // Acción: Editar
-            const index = listaActual.findIndex(v => v.id === vehiculoCapturado.id);
-            listaActual[index] = vehiculoCapturado;
-            this.vehiculos.set([...listaActual]);
-
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Actualizado',
-                detail: 'Datos modificados localmente',
-                life: 3000
-            });
-        } else {
-            // Acción: Crear nuevo (Simulación de ID autogenerado)
-            vehiculoCapturado.id = Math.random().toString(36).substr(2, 9);
-            this.vehiculos.set([...listaActual, vehiculoCapturado]);
-
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Registrado',
-                detail: 'Unidad agregada provisionalmente',
-                life: 3000
-            });
-        }
+    handleSaveVehiculo() {
+        this.cargarVehiculos();
     }
 
     deleteVehiculo(vehiculo: Vehiculo) {
@@ -119,10 +115,27 @@ export class VehiculosComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
             acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
-            accept: () => {
-                this.vehiculos.set(this.vehiculos().filter((val) => val.id !== vehiculo.id));
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Unidad removida', life: 3000 });
-            }
+            accept: async () => {
+                try {
+                    await this.vehiculoService.eliminarVehiculo(
+                        vehiculo.id_vehiculo || vehiculo.id || '',
+                    );
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Completado',
+                        detail: 'Unidad removida',
+                        life: 3000,
+                    });
+                    await this.cargarVehiculos();
+                } catch (error: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.message || 'No se pudo eliminar el vehículo',
+                        life: 5000,
+                    });
+                }
+            },
         });
     }
 
@@ -133,42 +146,57 @@ export class VehiculosComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
             acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
-            accept: () => {
-                const selectedIds = this.vehiculoSelected().map(v => v.id);
-                this.vehiculos.set(this.vehiculos().filter((val) => !selectedIds.includes(val.id)));
-                this.vehiculoSelected.set([]);
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Flota actualizada', life: 3000 });
-            }
+            accept: async () => {
+                try {
+                    const ids = this.vehiculoSelected().map((v) => v.id_vehiculo || v.id || '');
+                    for (const id of ids) {
+                        await this.vehiculoService.eliminarVehiculo(id);
+                    }
+                    this.vehiculoSelected.set([]);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Completado',
+                        detail: 'Flota actualizada',
+                        life: 3000,
+                    });
+                    await this.cargarVehiculos();
+                } catch (error: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.message || 'Error al eliminar vehículos',
+                        life: 5000,
+                    });
+                }
+            },
         });
     }
 
     getSeverity(estado: string) {
         switch (estado) {
-            case 'OPERATIVO': return 'success';
-            case 'MANTENIMIENTO': return 'warn';
-            case 'INACTIVO': return 'danger';
-            default: return 'info';
-        }
-    }
-
-    getLabelCaja(tipo: string) {
-        switch (tipo) {
-            case 'SECA': return 'Caja Seca';
-            case 'PLATAFORMA': return 'Plataforma Abierta';
-            case 'REFRIGERADO': return 'Refrigerado';
-            case 'ARTICULADO': return 'Articulado';
-            default: return 'No Definido';
+            case 'OPERATIVO':
+                return 'success';
+            case 'MANTENIMIENTO':
+                return 'warn';
+            case 'INACTIVO':
+                return 'danger';
+            default:
+                return 'info';
         }
     }
 
     getSeverityCaja(tipo: string) {
         switch (tipo) {
-            case 'REFRIGERADO': return 'info';
-            case 'SECA': return 'secondary';
-            case 'PLATAFORMA': return 'warn';
-            case 'ARTICULADO': return 'secondary';
-            default: return 'info';
+            case 'REFRIGERADO':
+                return 'info';
+            case 'SECA':
+                return 'secondary';
+            case 'PLATAFORMA':
+                return 'warn';
+            case 'ARTICULADO':
+                return 'secondary';
+            default:
+                return 'info';
         }
     }
-
 }

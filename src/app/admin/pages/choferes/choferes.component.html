@@ -2,7 +2,9 @@
     <p-toast />
 
     <div class="flex flex-col gap-1 mb-4">
-        <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">Choferes y Ayudantes</h1>
+        <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">
+            Choferes y Ayudantes
+        </h1>
     </div>
 
     <p-toolbar styleClass="mb-6">
@@ -13,7 +15,8 @@
                     label="Eliminar Seleccionados"
                     icon="pi pi-trash"
                     severity="secondary"
-                    (onClick)="deleteSelectedChoferes()" />
+                    (onClick)="deleteSelectedChoferes()"
+                />
                 <p-select
                     [(ngModel)]="filtroRol"
                     [options]="rolesFiltro"
@@ -21,12 +24,18 @@
                     optionValue="value"
                     placeholder="Filtrar por rol"
                     appendTo="body"
-                    styleClass="w-40" />
+                    styleClass="w-40"
+                />
             </div>
         </ng-template>
 
         <ng-template #end>
-            <p-button label="Nuevo Registro" icon="pi pi-plus" severity="success" (onClick)="openNew()" />
+            <p-button
+                label="Nuevo Registro"
+                icon="pi pi-plus"
+                severity="success"
+                (onClick)="openNew()"
+            />
         </ng-template>
     </p-toolbar>
 
@@ -39,15 +48,27 @@
         [rows]="10"
         [paginator]="true"
         [rowsPerPageOptions]="[5, 10, 20]"
-        [globalFilterFields]="['nombreCompleto', 'documentoIdentidad.prefijo', 'documentoIdentidad.numero', 'rol']"
+        [globalFilterFields]="[
+            'nombreCompleto',
+            'documentoIdentidad.prefijo',
+            'documentoIdentidad.numero',
+            'rol',
+        ]"
         [tableStyle]="{ 'min-width': '85rem' }"
     >
         <ng-template #caption>
             <div class="flex flex-wrap gap-2 items-center justify-between">
-                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">Personal de Transporte</span>
+                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0"
+                    >Personal de Transporte</span
+                >
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="dt.filterGlobal($any($event.target).value, 'contains')" placeholder="Buscar personal..." />
+                    <input
+                        pInputText
+                        type="text"
+                        (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+                        placeholder="Buscar personal..."
+                    />
                 </p-iconfield>
             </div>
         </ng-template>
@@ -55,22 +76,30 @@
         <ng-template #header>
             <tr>
                 <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                <th pSortableColumn="nombreCompleto" style="min-width:13rem">Nombre Completo <p-sortIcon field="nombreCompleto" /></th>
-                <th style="min-width:9rem">Cédula</th>
-                <th pSortableColumn="rol" style="min-width:7rem">Rol <p-sortIcon field="rol" /></th>
-                <th style="min-width:10rem">Teléfono</th>
-                <th style="min-width:16rem">Licencia de Conducir</th>
-                <th style="min-width:14rem">Certificado Médico Vial</th>
-                <th style="min-width:8rem">Acciones</th>
+                <th pSortableColumn="nombreCompleto" style="min-width: 13rem">
+                    Nombre Completo <p-sortIcon field="nombreCompleto" />
+                </th>
+                <th style="min-width: 9rem">Cédula</th>
+                <th pSortableColumn="rol" style="min-width: 7rem">
+                    Rol <p-sortIcon field="rol" />
+                </th>
+                <th style="min-width: 10rem">Teléfono</th>
+                <th style="min-width: 16rem">Licencia de Conducir</th>
+                <th style="min-width: 14rem">Certificado Médico Vial</th>
+                <th style="min-width: 8rem">Acciones</th>
             </tr>
         </ng-template>
 
         <ng-template #body let-chofer>
             <tr>
                 <td><p-tableCheckbox [value]="chofer" /></td>
-                <td class="font-bold text-surface-900 dark:text-surface-0">{{ chofer.nombreCompleto }}</td>
+                <td class="font-bold text-surface-900 dark:text-surface-0">
+                    {{ chofer.nombreCompleto }}
+                </td>
                 <td>
-                    <span class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded">
+                    <span
+                        class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded"
+                    >
                         {{ getDocumentoDisplay(chofer) }}
                     </span>
                 </td>
@@ -81,19 +110,31 @@
                 <td>
                     <div *ngIf="chofer.licencia" class="text-sm flex flex-col gap-1">
                         <span class="font-medium">{{ chofer.licencia.numero }}</span>
-                        <span class="text-xs text-surface-500">{{ getGradoLabel(chofer.licencia.grado) }}</span>
+                        <span class="text-xs text-surface-500">{{
+                            getGradoLabel(chofer.licencia.grado)
+                        }}</span>
                         <span class="flex items-center gap-1 text-xs">
                             <i class="pi pi-calendar"></i>
                             Vence: {{ chofer.licencia.fechaVencimiento }}
-                            <i class="pi pi-circle-fill ml-1"
+                            <i
+                                class="pi pi-circle-fill ml-1"
                                 [ngClass]="{
-                                    'text-green-500': getDocumentoValidez(chofer.licencia.fechaVencimiento) === 'success',
-                                    'text-yellow-500': getDocumentoValidez(chofer.licencia.fechaVencimiento) === 'warn',
-                                    'text-red-500': getDocumentoValidez(chofer.licencia.fechaVencimiento) === 'danger'
-                                }"></i>
+                                    'text-green-500':
+                                        getDocumentoValidez(chofer.licencia.fechaVencimiento) ===
+                                        'success',
+                                    'text-yellow-500':
+                                        getDocumentoValidez(chofer.licencia.fechaVencimiento) ===
+                                        'warn',
+                                    'text-red-500':
+                                        getDocumentoValidez(chofer.licencia.fechaVencimiento) ===
+                                        'danger',
+                                }"
+                            ></i>
                         </span>
                     </div>
-                    <span *ngIf="!chofer.licencia" class="text-surface-400 italic text-sm">Sin licencia</span>
+                    <span *ngIf="!chofer.licencia" class="text-surface-400 italic text-sm"
+                        >Sin licencia</span
+                    >
                 </td>
                 <td>
                     <div *ngIf="chofer.certificadoMedico" class="text-sm flex flex-col gap-1">
@@ -101,20 +142,47 @@
                         <span class="flex items-center gap-1 text-xs">
                             <i class="pi pi-calendar"></i>
                             Vence: {{ chofer.certificadoMedico.fechaVencimiento }}
-                            <i class="pi pi-circle-fill ml-1"
+                            <i
+                                class="pi pi-circle-fill ml-1"
                                 [ngClass]="{
-                                    'text-green-500': getDocumentoValidez(chofer.certificadoMedico.fechaVencimiento) === 'success',
-                                    'text-yellow-500': getDocumentoValidez(chofer.certificadoMedico.fechaVencimiento) === 'warn',
-                                    'text-red-500': getDocumentoValidez(chofer.certificadoMedico.fechaVencimiento) === 'danger'
-                                }"></i>
+                                    'text-green-500':
+                                        getDocumentoValidez(
+                                            chofer.certificadoMedico.fechaVencimiento
+                                        ) === 'success',
+                                    'text-yellow-500':
+                                        getDocumentoValidez(
+                                            chofer.certificadoMedico.fechaVencimiento
+                                        ) === 'warn',
+                                    'text-red-500':
+                                        getDocumentoValidez(
+                                            chofer.certificadoMedico.fechaVencimiento
+                                        ) === 'danger',
+                                }"
+                            ></i>
                         </span>
                     </div>
-                    <span *ngIf="!chofer.certificadoMedico" class="text-surface-400 italic text-sm">Sin certificado</span>
+                    <span *ngIf="!chofer.certificadoMedico" class="text-surface-400 italic text-sm"
+                        >Sin certificado</span
+                    >
                 </td>
                 <td>
                     <div class="flex gap-2">
-                        <p-button icon="pi pi-pencil" severity="success" rounded outlined (onClick)="editChofer(chofer)" pTooltip="Editar" />
-                        <p-button icon="pi pi-trash" severity="danger" rounded outlined (onClick)="deleteChofer(chofer)" pTooltip="Eliminar" />
+                        <p-button
+                            icon="pi pi-pencil"
+                            severity="success"
+                            rounded
+                            outlined
+                            (onClick)="editChofer(chofer)"
+                            pTooltip="Editar"
+                        />
+                        <p-button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            rounded
+                            outlined
+                            (onClick)="deleteChofer(chofer)"
+                            pTooltip="Eliminar"
+                        />
                     </div>
                 </td>
             </tr>
@@ -125,7 +193,8 @@
 <app-chofer-dialog
     [(visible)]="isDialogOpen"
     [choferData]="choferParaModificar()"
-    (onSave)="handleSaveChofer($event)">
+    (onSave)="handleSaveChofer($event)"
+>
 </app-chofer-dialog>
 
 <p-confirmdialog />

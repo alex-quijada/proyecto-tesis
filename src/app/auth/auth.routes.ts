@@ -6,5 +6,5 @@ import { ErrorPage } from './pages/error-page/error-page';
 export default [
     { path: 'access', component: AccessPage },
     { path: 'error', component: ErrorPage },
-    { path: 'login', component: LoginPage }
+    { path: 'login', component: LoginPage },
 ] as Routes;

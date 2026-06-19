@@ -14,14 +14,32 @@ import { Product, ProductService } from '@/app/pages/service/product.service';
     imports: [CommonModule, CarouselModule, ButtonModule, GalleriaModule, ImageModule, TagModule],
     template: `<div class="card">
             <div class="font-semibold text-xl mb-4">Carousel</div>
-            <p-carousel [value]="products()" [numVisible]="3" [numScroll]="3" [circular]="false" [responsiveOptions]="carouselResponsiveOptions">
+            <p-carousel
+                [value]="products()"
+                [numVisible]="3"
+                [numScroll]="3"
+                [circular]="false"
+                [responsiveOptions]="carouselResponsiveOptions"
+            >
                 <ng-template let-product #item>
                     <div class="border border-surface rounded-border m-2 p-4">
                         <div class="mb-4">
                             <div class="relative mx-auto">
-                                <img src="https://primefaces.org/cdn/primeng/images/demo/product/{{ product.image }}" [alt]="product.name" class="w-full rounded-border" />
-                                <div class="absolute bg-black/70 rounded-border" [ngStyle]="{ 'left.px': 5, 'top.px': 5 }">
-                                    <p-tag [value]="product.inventoryStatus" [severity]="getSeverity(product.inventoryStatus)" />
+                                <img
+                                    src="https://primefaces.org/cdn/primeng/images/demo/product/{{
+                                        product.image
+                                    }}"
+                                    [alt]="product.name"
+                                    class="w-full rounded-border"
+                                />
+                                <div
+                                    class="absolute bg-black/70 rounded-border"
+                                    [ngStyle]="{ 'left.px': 5, 'top.px': 5 }"
+                                >
+                                    <p-tag
+                                        [value]="product.inventoryStatus"
+                                        [severity]="getSeverity(product.inventoryStatus)"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -29,7 +47,11 @@ import { Product, ProductService } from '@/app/pages/service/product.service';
                         <div class="flex justify-between items-center">
                             <div class="mt-0 font-semibold text-xl">{{ '$' + product.price }}</div>
                             <span>
-                                <p-button icon="pi pi-heart" severity="secondary" [outlined]="true" />
+                                <p-button
+                                    icon="pi pi-heart"
+                                    severity="secondary"
+                                    [outlined]="true"
+                                />
                                 <p-button icon="pi pi-shopping-cart" styleClass="ml-2" />
                             </span>
                         </div>
@@ -40,12 +62,21 @@ import { Product, ProductService } from '@/app/pages/service/product.service';
 
         <div class="card">
             <div class="font-semibold text-xl mb-4">Image</div>
-            <p-image src="https://primefaces.org/cdn/primeng/images/galleria/galleria10.jpg" alt="Image" width="250" />
+            <p-image
+                src="https://primefaces.org/cdn/primeng/images/galleria/galleria10.jpg"
+                alt="Image"
+                width="250"
+            />
         </div>
 
         <div class="card">
             <div class="font-semibold text-xl mb-4">Galleria</div>
-            <p-galleria [value]="images()" [responsiveOptions]="galleriaResponsiveOptions" [containerStyle]="{ 'max-width': '640px' }" [numVisible]="5">
+            <p-galleria
+                [value]="images()"
+                [responsiveOptions]="galleriaResponsiveOptions"
+                [containerStyle]="{ 'max-width': '640px' }"
+                [numVisible]="5"
+            >
                 <ng-template #item let-item>
                     <img [src]="item.itemImageSrc" style="width:100%" />
                 </ng-template>
@@ -54,7 +85,7 @@ import { Product, ProductService } from '@/app/pages/service/product.service';
                 </ng-template>
             </p-galleria>
         </div>`,
-    providers: [ProductService, PhotoService]
+    providers: [ProductService, PhotoService],
 })
 export class MediaDemo implements OnInit {
     productService = inject(ProductService);
@@ -68,38 +99,38 @@ export class MediaDemo implements OnInit {
     galleriaResponsiveOptions: any[] = [
         {
             breakpoint: '1024px',
-            numVisible: 5
+            numVisible: 5,
         },
         {
             breakpoint: '960px',
-            numVisible: 4
+            numVisible: 4,
         },
         {
             breakpoint: '768px',
-            numVisible: 3
+            numVisible: 3,
         },
         {
             breakpoint: '560px',
-            numVisible: 1
-        }
+            numVisible: 1,
+        },
     ];
 
     carouselResponsiveOptions: any[] = [
         {
             breakpoint: '1024px',
             numVisible: 3,
-            numScroll: 3
+            numScroll: 3,
         },
         {
             breakpoint: '768px',
             numVisible: 2,
-            numScroll: 2
+            numScroll: 2,
         },
         {
             breakpoint: '560px',
             numVisible: 1,
-            numScroll: 1
-        }
+            numScroll: 1,
+        },
     ];
 
     ngOnInit() {

@@ -1,7 +1,7 @@
-import {Component, effect, inject, signal} from '@angular/core';
-import {ChartModule} from 'primeng/chart';
-import {FluidModule} from 'primeng/fluid';
-import {LayoutService} from '@/app/layout/service/layout.service';
+import { Component, effect, inject, signal } from '@angular/core';
+import { ChartModule } from 'primeng/chart';
+import { FluidModule } from 'primeng/fluid';
+import { LayoutService } from '@/app/layout/service/layout.service';
 
 @Component({
     selector: 'app-chart-demo',
@@ -36,7 +36,11 @@ import {LayoutService} from '@/app/layout/service/layout.service';
             <div class="col-span-12 xl:col-span-6">
                 <div class="card flex flex-col items-center">
                     <div class="font-semibold text-xl mb-6">Polar Area</div>
-                    <p-chart type="polarArea" [data]="polarData()" [options]="polarOptions()"></p-chart>
+                    <p-chart
+                        type="polarArea"
+                        [data]="polarData()"
+                        [options]="polarOptions()"
+                    ></p-chart>
                 </div>
             </div>
             <div class="col-span-12 xl:col-span-6">
@@ -46,35 +50,35 @@ import {LayoutService} from '@/app/layout/service/layout.service';
                 </div>
             </div>
         </p-fluid>
-    `
+    `,
 })
 export class ChartDemo {
     layoutService = inject(LayoutService);
 
     lineData = signal<any>(null);
-    
+
     barData = signal<any>(null);
-    
+
     pieData = signal<any>(null);
-    
+
     polarData = signal<any>(null);
-    
+
     radarData = signal<any>(null);
 
     lineOptions = signal<any>(null);
-    
+
     barOptions = signal<any>(null);
-    
+
     pieOptions = signal<any>(null);
-    
+
     polarOptions = signal<any>(null);
-    
+
     radarOptions = signal<any>(null);
 
     chartEffect = effect(() => {
         this.layoutService.layoutConfig().darkTheme;
         setTimeout(() => this.initCharts(), 150);
-    })
+    });
 
     initCharts() {
         const documentStyle = getComputedStyle(document.documentElement);
@@ -89,15 +93,15 @@ export class ChartDemo {
                     label: 'My First dataset',
                     backgroundColor: documentStyle.getPropertyValue('--p-primary-500'),
                     borderColor: documentStyle.getPropertyValue('--p-primary-500'),
-                    data: [65, 59, 80, 81, 56, 55, 40]
+                    data: [65, 59, 80, 81, 56, 55, 40],
                 },
                 {
                     label: 'My Second dataset',
                     backgroundColor: documentStyle.getPropertyValue('--p-primary-200'),
                     borderColor: documentStyle.getPropertyValue('--p-primary-200'),
-                    data: [28, 48, 40, 19, 86, 27, 90]
-                }
-            ]
+                    data: [28, 48, 40, 19, 86, 27, 90],
+                },
+            ],
         });
 
         this.barOptions.set({
@@ -106,33 +110,33 @@ export class ChartDemo {
             plugins: {
                 legend: {
                     labels: {
-                        color: textColor
-                    }
-                }
+                        color: textColor,
+                    },
+                },
             },
             scales: {
                 x: {
                     ticks: {
                         color: textColorSecondary,
                         font: {
-                            weight: 500
-                        }
+                            weight: 500,
+                        },
                     },
                     grid: {
                         display: false,
-                        drawBorder: false
-                    }
+                        drawBorder: false,
+                    },
                 },
                 y: {
                     ticks: {
-                        color: textColorSecondary
+                        color: textColorSecondary,
                     },
                     grid: {
                         color: surfaceBorder,
-                        drawBorder: false
-                    }
-                }
-            }
+                        drawBorder: false,
+                    },
+                },
+            },
         });
 
         this.pieData.set({
@@ -140,10 +144,18 @@ export class ChartDemo {
             datasets: [
                 {
                     data: [540, 325, 702],
-                    backgroundColor: [documentStyle.getPropertyValue('--p-indigo-500'), documentStyle.getPropertyValue('--p-purple-500'), documentStyle.getPropertyValue('--p-teal-500')],
-                    hoverBackgroundColor: [documentStyle.getPropertyValue('--p-indigo-400'), documentStyle.getPropertyValue('--p-purple-400'), documentStyle.getPropertyValue('--p-teal-400')]
-                }
-            ]
+                    backgroundColor: [
+                        documentStyle.getPropertyValue('--p-indigo-500'),
+                        documentStyle.getPropertyValue('--p-purple-500'),
+                        documentStyle.getPropertyValue('--p-teal-500'),
+                    ],
+                    hoverBackgroundColor: [
+                        documentStyle.getPropertyValue('--p-indigo-400'),
+                        documentStyle.getPropertyValue('--p-purple-400'),
+                        documentStyle.getPropertyValue('--p-teal-400'),
+                    ],
+                },
+            ],
         });
 
         this.pieOptions.set({
@@ -151,10 +163,10 @@ export class ChartDemo {
                 legend: {
                     labels: {
                         usePointStyle: true,
-                        color: textColor
-                    }
-                }
-            }
+                        color: textColor,
+                    },
+                },
+            },
         });
 
         this.lineData.set({
@@ -166,7 +178,7 @@ export class ChartDemo {
                     fill: false,
                     backgroundColor: documentStyle.getPropertyValue('--p-primary-500'),
                     borderColor: documentStyle.getPropertyValue('--p-primary-500'),
-                    tension: 0.4
+                    tension: 0.4,
                 },
                 {
                     label: 'Second Dataset',
@@ -174,9 +186,9 @@ export class ChartDemo {
                     fill: false,
                     backgroundColor: documentStyle.getPropertyValue('--p-primary-200'),
                     borderColor: documentStyle.getPropertyValue('--p-primary-200'),
-                    tension: 0.4
-                }
-            ]
+                    tension: 0.4,
+                },
+            ],
         });
 
         this.lineOptions.set({
@@ -185,62 +197,67 @@ export class ChartDemo {
             plugins: {
                 legend: {
                     labels: {
-                        color: textColor
-                    }
-                }
+                        color: textColor,
+                    },
+                },
             },
             scales: {
                 x: {
                     ticks: {
-                        color: textColorSecondary
+                        color: textColorSecondary,
                     },
                     grid: {
                         color: surfaceBorder,
-                        drawBorder: false
-                    }
+                        drawBorder: false,
+                    },
                 },
                 y: {
                     ticks: {
-                        color: textColorSecondary
+                        color: textColorSecondary,
                     },
                     grid: {
                         color: surfaceBorder,
-                        drawBorder: false
-                    }
-                }
-            }
+                        drawBorder: false,
+                    },
+                },
+            },
         });
 
         this.polarData.set({
             datasets: [
                 {
                     data: [11, 16, 7, 3],
-                    backgroundColor: [documentStyle.getPropertyValue('--p-indigo-500'), documentStyle.getPropertyValue('--p-purple-500'), documentStyle.getPropertyValue('--p-teal-500'), documentStyle.getPropertyValue('--p-orange-500')],
-                    label: 'My dataset'
-                }
+                    backgroundColor: [
+                        documentStyle.getPropertyValue('--p-indigo-500'),
+                        documentStyle.getPropertyValue('--p-purple-500'),
+                        documentStyle.getPropertyValue('--p-teal-500'),
+                        documentStyle.getPropertyValue('--p-orange-500'),
+                    ],
+                    label: 'My dataset',
+                },
             ],
-            labels: ['Indigo', 'Purple', 'Teal', 'Orange']
+            labels: ['Indigo', 'Purple', 'Teal', 'Orange'],
         });
 
         this.polarOptions.set({
             plugins: {
                 legend: {
                     labels: {
-                        color: textColor
-                    }
-                }
+                        color: textColor,
+                    },
+                },
             },
             scales: {
                 r: {
                     grid: {
-                        color: surfaceBorder
+                        color: surfaceBorder,
                     },
                     ticks: {
                         display: false,
-                        color: textColorSecondary
-                    }
-                }
-            }
+                        color: textColorSecondary,
+                    },
+                },
+            },
         });
 
         this.radarData.set({
@@ -253,7 +270,7 @@ export class ChartDemo {
                     pointBorderColor: documentStyle.getPropertyValue('--p-indigo-400'),
                     pointHoverBackgroundColor: textColor,
                     pointHoverBorderColor: documentStyle.getPropertyValue('--p-indigo-400'),
-                    data: [65, 59, 90, 81, 56, 55, 40]
+                    data: [65, 59, 90, 81, 56, 55, 40],
                 },
                 {
                     label: 'My Second dataset',
@@ -262,29 +279,29 @@ export class ChartDemo {
                     pointBorderColor: documentStyle.getPropertyValue('--p-purple-400'),
                     pointHoverBackgroundColor: textColor,
                     pointHoverBorderColor: documentStyle.getPropertyValue('--p-purple-400'),
-                    data: [28, 48, 40, 19, 96, 27, 100]
-                }
-            ]
+                    data: [28, 48, 40, 19, 96, 27, 100],
+                },
+            ],
         });
 
         this.radarOptions.set({
             plugins: {
                 legend: {
                     labels: {
-                        color: textColor
-                    }
-                }
+                        color: textColor,
+                    },
+                },
             },
             scales: {
                 r: {
                     pointLabels: {
-                        color: textColor
+                        color: textColor,
                     },
                     grid: {
-                        color: surfaceBorder
-                    }
-                }
-            }
+                        color: surfaceBorder,
+                    },
+                },
+            },
         });
     }
 }

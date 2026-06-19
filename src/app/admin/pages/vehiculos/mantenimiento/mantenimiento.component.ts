@@ -38,7 +38,7 @@ import { FormsModule } from '@angular/forms';
         MantenimientoDialogComponent,
     ],
     providers: [ConfirmationService, MessageService],
-    templateUrl: './mantenimiento.component.html'
+    templateUrl: './mantenimiento.component.html',
 })
 export class MantenimientoComponent implements OnInit {
     private messageService = inject(MessageService);
@@ -65,7 +65,7 @@ export class MantenimientoComponent implements OnInit {
 
     get mantenimientosFiltrados(): Mantenimiento[] {
         if (!this.filtroEstado) return this.mantenimientos();
-        return this.mantenimientos().filter(m => m.estado === this.filtroEstado);
+        return this.mantenimientos().filter((m) => m.estado === this.filtroEstado);
     }
 
     getSeverityTipo(tipo: string) {
@@ -74,11 +74,16 @@ export class MantenimientoComponent implements OnInit {
 
     getSeverityEstado(estado: string) {
         switch (estado) {
-            case 'PROGRAMADO': return 'info';
-            case 'EN_PROCESO': return 'warn';
-            case 'REALIZADO': return 'success';
-            case 'CANCELADO': return 'danger';
-            default: return 'secondary';
+            case 'PROGRAMADO':
+                return 'info';
+            case 'EN_PROCESO':
+                return 'warn';
+            case 'REALIZADO':
+                return 'success';
+            case 'CANCELADO':
+                return 'danger';
+            default:
+                return 'secondary';
         }
     }
 
@@ -96,7 +101,7 @@ export class MantenimientoComponent implements OnInit {
         let listaActual = this.mantenimientos();
 
         if (mCapturado.id) {
-            const index = listaActual.findIndex(m => m.id === mCapturado.id);
+            const index = listaActual.findIndex((m) => m.id === mCapturado.id);
             listaActual[index] = mCapturado;
             this.mantenimientos.set([...listaActual]);
 
@@ -127,8 +132,13 @@ export class MantenimientoComponent implements OnInit {
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
             acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
             accept: () => {
-                this.mantenimientos.set(this.mantenimientos().filter(v => v.id !== m.id));
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Mantenimiento eliminado', life: 3000 });
+                this.mantenimientos.set(this.mantenimientos().filter((v) => v.id !== m.id));
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Completado',
+                    detail: 'Mantenimiento eliminado',
+                    life: 3000,
+                });
             },
         });
     }
@@ -141,10 +151,15 @@ export class MantenimientoComponent implements OnInit {
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
             acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
             accept: () => {
-                const ids = this.mantenimientoSelected().map(m => m.id);
-                this.mantenimientos.set(this.mantenimientos().filter(m => !ids.includes(m.id)));
+                const ids = this.mantenimientoSelected().map((m) => m.id);
+                this.mantenimientos.set(this.mantenimientos().filter((m) => !ids.includes(m.id)));
                 this.mantenimientoSelected.set([]);
-                this.messageService.add({ severity: 'success', summary: 'Completado', detail: 'Registros eliminados', life: 3000 });
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Completado',
+                    detail: 'Registros eliminados',
+                    life: 3000,
+                });
             },
         });
     }

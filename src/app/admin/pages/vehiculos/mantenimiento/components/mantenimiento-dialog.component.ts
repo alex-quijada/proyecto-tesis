@@ -14,7 +14,9 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
 
 import {
-    Mantenimiento, TIPOS_MANTENIMIENTO, ESTADOS_MANTENIMIENTO,
+    Mantenimiento,
+    TIPOS_MANTENIMIENTO,
+    ESTADOS_MANTENIMIENTO,
 } from '../data/mantenimiento-mock';
 import { Vehiculo, VEHICULOS_MOCK } from '../../data/vehiculos-mock';
 
@@ -35,7 +37,7 @@ import { Vehiculo, VEHICULOS_MOCK } from '../../data/vehiculos-mock';
         DatePickerModule,
         DividerModule,
     ],
-    templateUrl: './mantenimiento-dialog.component.html'
+    templateUrl: './mantenimiento-dialog.component.html',
 })
 export class MantenimientoDialogComponent {
     private fb = inject(FormBuilder);
@@ -104,7 +106,7 @@ export class MantenimientoDialogComponent {
     }
 
     get vehiculoSelectList() {
-        return this.vehiculos.map(v => ({
+        return this.vehiculos.map((v) => ({
             label: `${v.placa} — ${v.marca} ${v.modelo} (${v.anio})`,
             value: v.id,
         }));
@@ -112,7 +114,7 @@ export class MantenimientoDialogComponent {
 
     get selectedVehiculo(): Vehiculo | undefined {
         const id = this.form.get('idVehiculo')?.value;
-        return this.vehiculos.find(v => v.id === id);
+        return this.vehiculos.find((v) => v.id === id);
     }
 
     hideDialog() {
@@ -138,7 +140,7 @@ export class MantenimientoDialogComponent {
         }
 
         const raw = this.form.getRawValue();
-        const vehiculo = this.vehiculos.find(v => v.id === raw.idVehiculo);
+        const vehiculo = this.vehiculos.find((v) => v.id === raw.idVehiculo);
 
         const mantenimientoFinal: Mantenimiento = {
             ...this.mantenimientoData(),

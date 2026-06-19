@@ -1,11 +1,11 @@
-import {CommonModule} from '@angular/common';
-import {Component} from '@angular/core';
-import {FormsModule} from '@angular/forms';
-import {MessageService, ToastMessageOptions} from 'primeng/api';
-import {ButtonModule} from 'primeng/button';
-import {InputTextModule} from 'primeng/inputtext';
-import {MessageModule} from 'primeng/message';
-import {ToastModule} from 'primeng/toast';
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MessageService, ToastMessageOptions } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
     selector: 'app-messages-demo',
@@ -17,7 +17,11 @@ import {ToastModule} from 'primeng/toast';
                 <div class="card">
                     <div class="font-semibold text-xl mb-4">Toast</div>
                     <div class="flex flex-wrap gap-2">
-                        <p-button (click)="showSuccessViaToast()" label="Success" severity="success" />
+                        <p-button
+                            (click)="showSuccessViaToast()"
+                            label="Success"
+                            severity="success"
+                        />
                         <p-button (click)="showInfoViaToast()" label="Info" severity="info" />
                         <p-button (click)="showWarnViaToast()" label="Warn" severity="warn" />
                         <p-button (click)="showErrorViaToast()" label="Error" severity="danger" />
@@ -26,12 +30,35 @@ import {ToastModule} from 'primeng/toast';
 
                     <div class="font-semibold text-xl mt-4 mb-4">Inline</div>
                     <div class="flex mb-4 gap-1">
-                        <input pInputText [(ngModel)]="username" placeholder="Username" aria-label="username" class="ng-dirty ng-invalid" />
-                        <p-message severity="error" size="small" styleClass="h-auto w-full " [pt]="pt">Username is required</p-message>
+                        <input
+                            pInputText
+                            [(ngModel)]="username"
+                            placeholder="Username"
+                            aria-label="username"
+                            class="ng-dirty ng-invalid"
+                        />
+                        <p-message
+                            severity="error"
+                            size="small"
+                            styleClass="h-auto w-full "
+                            [pt]="pt"
+                            >Username is required</p-message
+                        >
                     </div>
                     <div class="flex flex-wrap gap-1">
-                        <input pInputText [(ngModel)]="email" placeholder="Email" aria-label="email" class="ng-dirty ng-invalid" />
-                        <p-message severity="error" size="small" styleClass="flex items-center text-center justify-center h-auto w-11" [pt]="pt">
+                        <input
+                            pInputText
+                            [(ngModel)]="email"
+                            placeholder="Email"
+                            aria-label="email"
+                            class="ng-dirty ng-invalid"
+                        />
+                        <p-message
+                            severity="error"
+                            size="small"
+                            styleClass="flex items-center text-center justify-center h-auto w-11"
+                            [pt]="pt"
+                        >
                             <i class="pi pi-times-circle"></i>
                         </p-message>
                     </div>
@@ -52,7 +79,7 @@ import {ToastModule} from 'primeng/toast';
             </div>
         </div>
     `,
-    providers: [MessageService]
+    providers: [MessageService],
 })
 export class MessagesDemo {
     msgs: ToastMessageOptions[] | null = [];
@@ -64,14 +91,14 @@ export class MessagesDemo {
     constructor(private service: MessageService) {}
 
     pt: any = {
-        contentWrapper: 'flex items-center'
+        contentWrapper: 'flex items-center',
     };
 
     showInfoViaToast() {
         this.service.add({
             severity: 'info',
             summary: 'Info Message',
-            detail: 'PrimeNG rocks'
+            detail: 'PrimeNG rocks',
         });
     }
 
@@ -79,7 +106,7 @@ export class MessagesDemo {
         this.service.add({
             severity: 'warn',
             summary: 'Warn Message',
-            detail: 'There are unsaved changes'
+            detail: 'There are unsaved changes',
         });
     }
 
@@ -87,7 +114,7 @@ export class MessagesDemo {
         this.service.add({
             severity: 'error',
             summary: 'Error Message',
-            detail: 'Validation failed'
+            detail: 'Validation failed',
         });
     }
 
@@ -95,7 +122,7 @@ export class MessagesDemo {
         this.service.add({
             severity: 'success',
             summary: 'Success Message',
-            detail: 'Message sent'
+            detail: 'Message sent',
         });
     }
 }

@@ -9,7 +9,7 @@ import { LayoutService } from '@/app/layout/service/layout.service';
     template: `<div class="card mb-8!">
         <div class="font-semibold text-xl mb-4">Revenue Stream</div>
         <p-chart type="bar" [data]="chartData()" [options]="chartOptions()" class="h-100" />
-    </div>`
+    </div>`,
 })
 export class RevenueStreamWidget {
     layoutService = inject(LayoutService);
@@ -47,14 +47,14 @@ export class RevenueStreamWidget {
                     label: 'Subscriptions',
                     backgroundColor: documentStyle.getPropertyValue('--p-primary-400'),
                     data: [4000, 10000, 15000, 4000],
-                    barThickness: 32
+                    barThickness: 32,
                 },
                 {
                     type: 'bar',
                     label: 'Advertising',
                     backgroundColor: documentStyle.getPropertyValue('--p-primary-300'),
                     data: [2100, 8400, 2400, 7500],
-                    barThickness: 32
+                    barThickness: 32,
                 },
                 {
                     type: 'bar',
@@ -65,12 +65,12 @@ export class RevenueStreamWidget {
                         topLeft: 8,
                         topRight: 8,
                         bottomLeft: 0,
-                        bottomRight: 0
+                        bottomRight: 0,
                     },
                     borderSkipped: false,
-                    barThickness: 32
-                }
-            ]
+                    barThickness: 32,
+                },
+            ],
         });
 
         this.chartOptions.set({
@@ -79,33 +79,33 @@ export class RevenueStreamWidget {
             plugins: {
                 legend: {
                     labels: {
-                        color: textColor
-                    }
-                }
+                        color: textColor,
+                    },
+                },
             },
             scales: {
                 x: {
                     stacked: true,
                     ticks: {
-                        color: textMutedColor
+                        color: textMutedColor,
                     },
                     grid: {
                         color: 'transparent',
-                        borderColor: 'transparent'
-                    }
+                        borderColor: 'transparent',
+                    },
                 },
                 y: {
                     stacked: true,
                     ticks: {
-                        color: textMutedColor
+                        color: textMutedColor,
                     },
                     grid: {
                         color: borderColor,
                         borderColor: 'transparent',
-                        drawTicks: false
-                    }
-                }
-            }
+                        drawTicks: false,
+                    },
+                },
+            },
         });
     }
 }

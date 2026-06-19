@@ -40,15 +40,13 @@ export class RutaDialogComponent {
     submitted = false;
     errorMessage = '';
 
-    choferes = CHOFERES_MOCK
-        .filter(ch => ch.rol === 'Chofer')
-        .map(ch => ({
-            label: `${ch.nombreCompleto} (${ch.documentoIdentidad?.prefijo}-${ch.documentoIdentidad?.numero})`,
-            value: ch.id!,
-            nombreChofer: ch.nombreCompleto!,
-        }));
+    choferes = CHOFERES_MOCK.filter((ch) => ch.rol === 'Chofer').map((ch) => ({
+        label: `${ch.nombreCompleto} (${ch.documentoIdentidad?.prefijo}-${ch.documentoIdentidad?.numero})`,
+        value: ch.id!,
+        nombreChofer: ch.nombreCompleto!,
+    }));
 
-    vehiculos = VEHICULOS_MOCK.map(v => ({
+    vehiculos = VEHICULOS_MOCK.map((v) => ({
         label: `${v.placa} — ${v.marca} ${v.modelo} (${v.anio})`,
         value: v.id!,
         placaVehiculo: v.placa!,
@@ -91,8 +89,8 @@ export class RutaDialogComponent {
         }
 
         const raw = this.form.getRawValue();
-        const chofer = this.choferes.find(c => c.value === raw.idChofer);
-        const vehiculo = this.vehiculos.find(v => v.value === raw.idVehiculo);
+        const chofer = this.choferes.find((c) => c.value === raw.idChofer);
+        const vehiculo = this.vehiculos.find((v) => v.value === raw.idVehiculo);
 
         const rutaFinal: Ruta = {
             ...this.rutaData(),
@@ -101,7 +99,9 @@ export class RutaDialogComponent {
             nombreChofer: chofer?.nombreChofer || '',
             idVehiculo: raw.idVehiculo,
             placaVehiculo: vehiculo?.placaVehiculo || '',
-            fechaAsignacion: raw.fechaAsignacion ? new Date(raw.fechaAsignacion).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            fechaAsignacion: raw.fechaAsignacion
+                ? new Date(raw.fechaAsignacion).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0],
             idsGuias: [],
             estado: 'PENDIENTE',
         };
