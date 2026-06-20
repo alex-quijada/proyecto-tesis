@@ -1,0 +1,29 @@
+<div class="container" style="padding: 20px">
+    <h3>Lector Automático de Guías de Despacho</h3>
+
+    <input type="file" (change)="onFileSelected($event)" accept=".pdf" />
+
+    @if (guiaProcesada) {
+        <div style="margin-top: 20px">
+            <h4>Datos del Transporte:</h4>
+            <p><strong>Chofer:</strong> {{ guiaProcesada.chofer }}</p>
+            <p><strong>Placa:</strong> {{ guiaProcesada.placa }}</p>
+            <p><strong>Ruta:</strong> {{ guiaProcesada.ruta }}</p>
+
+            <h4>Facturas Normalizadas ({{ guiaProcesada.facturas.length }}):</h4>
+            <ul>
+                @for (f of guiaProcesada.facturas; track f.numero) {
+                    <li>
+                        Factura Nº: {{ f.numero }} - Cliente: {{ f.cliente }} - Monto: ${{
+                            f.totalUSD
+                        }}
+                    </li>
+                } @empty {
+                    <li>No se encontraron facturas en este documento.</li>
+                }
+            </ul>
+
+            <p><strong>Total Final Acumulado:</strong> ${{ guiaProcesada.totalDolares }}</p>
+        </div>
+    }
+</div>

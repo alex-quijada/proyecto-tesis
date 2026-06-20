@@ -26,6 +26,7 @@ import {
     ESTADOS_GUIA,
     MUNICIPIOS_NUEVA_ESPARTA,
 } from './data/rutas-mock';
+import { LectorGuiaComponent } from './components/lector-guia/lector-guia.component';
 
 @Component({
     selector: 'app-rutas',
@@ -47,6 +48,7 @@ import {
         ChipModule,
         GuiaDialogComponent,
         RutaDialogComponent,
+        LectorGuiaComponent,
     ],
     providers: [ConfirmationService, MessageService],
     templateUrl: './rutas.component.html',

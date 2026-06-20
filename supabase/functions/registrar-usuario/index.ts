@@ -132,6 +132,51 @@ serve(async (req) => {
                 },
             );
         }
+
+        const nuevoId = nuevoUsuario.user?.id;
+        if (!nuevoId) {
+            return new Response(
+                JSON.stringify({ error: 'No se pudo obtener el ID del usuario creado.' }),
+                {
+                    status: 500,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                },
+            );
+        }
+
+        const { certificado_numero, certificado_expedicion, certificado_vencimiento } = datosAdicionales;
+        const { licencia_numero, licencia_grado, licencia_expedicion, licencia_vencimiento } = datosAdicionales;
+
+        if (certificado_numero && certificado_vencimiento) {
+            const { error: e } = await supabaseAdmin.from('certificados_medicos').upsert(
+                {
+                    usuario_id: nuevoId,
+                    certificado_numero,
+                    certificado_expedicion: certificado_expedicion || null,
+                    certificado_vencimiento,
+                },
+                { onConflict: 'usuario_id' },
+            );
+            if (e) {
+                console.error('Error al insertar certificado:', e);
+            }
+        }
+
+        if (licencia_numero && licencia_grado && licencia_vencimiento) {
+            const { error: e } = await supabaseAdmin.from('licencias_conducir').upsert(
+                {
+                    usuario_id: nuevoId,
+                    licencia_numero,
+                    licencia_grado,
+                    licencia_expedicion: licencia_expedicion || null,
+                    licencia_vencimiento,
+                },
+                { onConflict: 'usuario_id' },
+            );
+            if (e) {
+                console.error('Error al insertar licencia:', e);
+            }
+        }
         return new Response(
             JSON.stringify({
                 message: 'Usuario registrado con éxito',

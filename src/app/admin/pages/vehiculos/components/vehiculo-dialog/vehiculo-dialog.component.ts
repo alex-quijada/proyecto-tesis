@@ -34,7 +34,6 @@ import { VehiculoService } from '../../service/vehiculo.service';
         DividerModule,
         ToastModule,
         FileUploadModule,
-        JsonPipe,
     ],
     providers: [MessageService],
     templateUrl: './vehiculo-dialog.component.html',
