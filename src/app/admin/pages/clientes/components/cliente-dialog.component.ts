@@ -1,4 +1,4 @@
-import { Component, input, output, model, effect, inject } from '@angular/core';
+import { Component, input, output, model, effect, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 
@@ -11,15 +11,25 @@ import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { InputMaskModule } from 'primeng/inputmask';
 import { DividerModule } from 'primeng/divider';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { InputNumberModule } from 'primeng/inputnumber';
 
 import {
     Cliente,
-    PRIORIDADES_MOCK,
-    PREFIJOS_DOCUMENTO,
-    MUNICIPIOS_NUEVA_ESPARTA,
     DocumentoIdentidad,
     UbicacionResumen,
-} from '../data/clientes-mock';
+} from '../clientes.types';
+import {
+    DIAS_RECEPCION,
+    OPCIONES_CITA,
+} from '../clientes.constants';
+import {
+    ClienteService,
+    PrefijoItem,
+    MunicipioItem,
+    PrioridadItem,
+} from '../service/cliente.service';
 
 @Component({
     selector: 'app-cliente-dialog',
@@ -36,11 +46,15 @@ import {
         TextareaModule,
         InputMaskModule,
         DividerModule,
+        MultiSelectModule,
+        SelectButtonModule,
+        InputNumberModule,
     ],
     templateUrl: './cliente-dialog.component.html',
 })
-export class ClienteDialogComponent {
+export class ClienteDialogComponent implements OnInit {
     private fb = inject(FormBuilder);
+    private clienteService = inject(ClienteService);
 
     visible = model<boolean>(false);
     clienteData = input<Cliente>({});
@@ -49,28 +63,55 @@ export class ClienteDialogComponent {
     submitted = false;
     errorMessage = '';
 
-    prioridades = PRIORIDADES_MOCK;
-    prefijosDoc = PREFIJOS_DOCUMENTO;
-    municipios = MUNICIPIOS_NUEVA_ESPARTA;
+    prefijos = signal<PrefijoItem[]>([]);
+    municipios = signal<MunicipioItem[]>([]);
+    prioridades = signal<PrioridadItem[]>([]);
+    diasSemana = DIAS_RECEPCION;
+    opcionesCita = OPCIONES_CITA;
 
     form: FormGroup = this.fb.group({
-        documentoIdentidad: this.fb.group({
-            prefijo: ['V', Validators.required],
-            numero: [
-                '',
-                [
-                    Validators.required,
-                    Validators.pattern(/^\d+$/),
-                    Validators.minLength(5),
-                    Validators.maxLength(12),
-                ],
+        idPrefijo: ['', Validators.required],
+        rif: [
+            '',
+            [
+                Validators.required,
+                Validators.pattern(/^\d+$/),
+                Validators.minLength(5),
+                Validators.maxLength(12),
             ],
-        }),
+        ],
         nombreComercial: ['', Validators.required],
         telefono: ['', [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)]],
-        idPrioridad: ['MEDIA', Validators.required],
+        correo: ['', [Validators.email]],
+        personaContacto: [''],
+        idPrioridad: ['', Validators.required],
         ubicaciones: this.fb.array([]),
     });
+
+    async ngOnInit() {
+        try {
+            const [prefijos, municipios, prioridades] = await Promise.all([
+                this.clienteService.obtenerPrefijos(),
+                this.clienteService.obtenerMunicipios(),
+                this.clienteService.obtenerPrioridades(),
+            ]);
+            this.prefijos.set(prefijos);
+            this.municipios.set(municipios);
+            this.prioridades.set(prioridades);
+
+            if (prefijos.length && !this.form.get('idPrefijo')?.value) {
+                this.form.patchValue({ idPrefijo: prefijos[0].id_prefijo });
+            }
+            if (prioridades.length) {
+                const media = prioridades.find((p) => p.nombre_prioridad === 'Media');
+                if (media && !this.form.get('idPrioridad')?.value) {
+                    this.form.patchValue({ idPrioridad: media.id_prioridad });
+                }
+            }
+        } catch (e) {
+            console.error('Error loading catalog data:', e);
+        }
+    }
 
     constructor() {
         effect(() => {
@@ -79,10 +120,13 @@ export class ClienteDialogComponent {
             this.errorMessage = '';
 
             this.form.patchValue({
-                documentoIdentidad: data.documentoIdentidad || { prefijo: 'V', numero: '' },
+                idPrefijo: data.idPrefijo || '',
+                rif: data.documentoIdentidad?.numero || '',
                 nombreComercial: data.nombreComercial || '',
                 telefono: data.telefono || '',
-                idPrioridad: data.idPrioridad || 'MEDIA',
+                correo: data.correo || '',
+                personaContacto: data.personaContacto || '',
+                idPrioridad: data.idPrioridad || '',
             });
 
             this.ubicacionesForm.clear();
@@ -90,11 +134,19 @@ export class ClienteDialogComponent {
                 ? data.ubicaciones
                 : [
                       {
+                          idMunicipio: '',
                           municipio: '',
                           direccion: '',
                           referencia: '',
                           pais: 'Venezuela',
                           estado: 'Nueva Esparta',
+                          reglas: {
+                              horarioDesde: '',
+                              horarioHasta: '',
+                              diasRecepcion: [],
+                              requiereCita: false,
+                              instrucciones: '',
+                          },
                       },
                   ];
 
@@ -110,11 +162,20 @@ export class ClienteDialogComponent {
 
     private crearUbicacionGroup(ub: UbicacionResumen = {}): FormGroup {
         return this.fb.group({
-            municipio: [ub.municipio || '', Validators.required],
+            idMunicipio: [ub.idMunicipio || '', Validators.required],
             direccion: [ub.direccion || '', Validators.required],
             referencia: [ub.referencia || ''],
             pais: [{ value: ub.pais || 'Venezuela', disabled: true }],
             estado: [{ value: ub.estado || 'Nueva Esparta', disabled: true }],
+            reglas: this.fb.group({
+                horarioDesde: [ub.reglas?.horarioDesde || ''],
+                horarioHasta: [ub.reglas?.horarioHasta || ''],
+                diasRecepcion: [ub.reglas?.diasRecepcion || []],
+                requiereCita: [ub.reglas?.requiereCita ?? false],
+                instrucciones: [ub.reglas?.instrucciones || ''],
+            }),
+            nombreContacto: [ub.nombreContacto || ''],
+            telefonoContacto: [ub.telefonoContacto || ''],
         });
     }
 
@@ -132,7 +193,7 @@ export class ClienteDialogComponent {
         this.errorMessage = '';
     }
 
-    save() {
+    async save() {
         this.submitted = true;
         this.errorMessage = '';
 
@@ -143,25 +204,51 @@ export class ClienteDialogComponent {
 
         const raw = this.form.getRawValue();
         const prioridadLabel =
-            this.prioridades.find((p) => p.value === raw.idPrioridad)?.label || '';
+            this.prioridades().find((p) => p.id_prioridad === raw.idPrioridad)?.nombre_prioridad || '';
 
         const clienteFinal: Cliente = {
             ...this.clienteData(),
-            documentoIdentidad: raw.documentoIdentidad as DocumentoIdentidad,
+            idPrefijo: raw.idPrefijo,
+            documentoIdentidad: {
+                prefijo: this.prefijos().find((p) => p.id_prefijo === raw.idPrefijo)?.prefijo || '',
+                numero: raw.rif,
+            },
             nombreComercial: raw.nombreComercial,
             telefono: raw.telefono,
+            correo: raw.correo,
+            personaContacto: raw.personaContacto,
             idPrioridad: raw.idPrioridad,
             prioridad: prioridadLabel,
             ubicaciones: raw.ubicaciones
-                .filter((u: UbicacionResumen) => u.direccion?.trim())
-                .map((u: UbicacionResumen) => ({
-                    ...u,
+                .filter((u: any) => u.direccion?.trim())
+                .map((u: any) => ({
+                    idMunicipio: u.idMunicipio,
+                    municipio: this.municipios().find((m) => m.id_municipio === u.idMunicipio)?.nombre || '',
+                    direccion: u.direccion,
+                    referencia: u.referencia,
                     pais: 'Venezuela',
                     estado: 'Nueva Esparta',
+                    nombreContacto: u.nombreContacto,
+                    telefonoContacto: u.telefonoContacto,
+                    reglas: {
+                        horarioDesde: u.reglas.horarioDesde,
+                        horarioHasta: u.reglas.horarioHasta,
+                        diasRecepcion: u.reglas.diasRecepcion,
+                        requiereCita: u.reglas.requiereCita,
+                        instrucciones: u.reglas.instrucciones,
+                    },
                 })),
         };
 
-        this.onSave.emit(clienteFinal);
-        this.visible.set(false);
+        try {
+            const clienteId = await this.clienteService.crearCliente(clienteFinal);
+            await this.clienteService.guardarUbicaciones(clienteId, clienteFinal.ubicaciones || []);
+            clienteFinal.id = clienteId;
+            clienteFinal.idCliente = clienteId;
+            this.onSave.emit(clienteFinal);
+            this.visible.set(false);
+        } catch (e: any) {
+            this.errorMessage = e.message || 'Error al guardar el cliente';
+        }
     }
 }

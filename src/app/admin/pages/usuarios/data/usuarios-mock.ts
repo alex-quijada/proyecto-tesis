@@ -1,4 +1,4 @@
-import { UbicacionResumen } from '../../clientes/data/clientes-mock';
+import { UbicacionResumen } from '../../clientes/clientes.types';
 export type { UbicacionResumen };
 
 export interface DocumentoIdentidad {

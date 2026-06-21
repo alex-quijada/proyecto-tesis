@@ -18,7 +18,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { GuiaDespacho, ESTADOS_GUIA, MUNICIPIOS_NUEVA_ESPARTA } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
-import { CLIENTES_MOCK } from '../../clientes/data/clientes-mock';
+
 
 @Component({
     selector: 'app-guia-dialog',
@@ -59,12 +59,7 @@ export class GuiaDialogComponent {
         { label: 'PDF', value: 'PDF' },
     ];
 
-    clientes = CLIENTES_MOCK.map((c) => ({
-        label: `${c.nombreComercial} (${c.documentoIdentidad?.prefijo}-${c.documentoIdentidad?.numero})`,
-        value: c.id!,
-        rif: `${c.documentoIdentidad?.prefijo}-${c.documentoIdentidad?.numero}`,
-        nombreCliente: c.nombreComercial!,
-    }));
+    clientes: { label: string; value: string; rif: string; nombreCliente: string }[] = [];
 
     choferes = CHOFERES_MOCK.map((ch) => ({
         label: `${ch.nombreCompleto} (${ch.documentoIdentidad?.prefijo}-${ch.documentoIdentidad?.numero})`,

@@ -1,6 +1,6 @@
 <p-dialog
     [(visible)]="visible"
-    [style]="{ width: '650px' }"
+    [style]="{ width: '750px' }"
     [header]="clienteData().id ? 'Modificar Cliente' : 'Registrar Nuevo Cliente'"
     [modal]="true"
 >
@@ -20,64 +20,52 @@
                     Identificación
                 </div>
 
-                <div formGroupName="documentoIdentidad" class="grid grid-cols-12 gap-3">
+                <div class="grid grid-cols-12 gap-3">
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label for="prefijo" class="font-semibold"
+                        <label for="idPrefijo" class="font-semibold"
                             >Tipo Doc. <span class="text-red-500">*</span></label
                         >
                         <p-select
-                            id="prefijo"
-                            formControlName="prefijo"
-                            [options]="prefijosDoc"
-                            optionLabel="label"
-                            optionValue="value"
+                            id="idPrefijo"
+                            formControlName="idPrefijo"
+                            [options]="prefijos()"
+                            optionLabel="descripcion"
+                            optionValue="id_prefijo"
                             placeholder="Prefijo"
                             appendTo="body"
                         >
                         </p-select>
                     </div>
                     <div class="col-span-8 flex flex-col gap-2">
-                        <label for="numDoc" class="font-semibold"
-                            >Número de Documento <span class="text-red-500">*</span></label
+                        <label for="rif" class="font-semibold"
+                            >RIF / Cédula <span class="text-red-500">*</span></label
                         >
                         <input
                             pInputText
-                            id="numDoc"
-                            formControlName="numero"
+                            id="rif"
+                            formControlName="rif"
                             placeholder="123456789"
                         />
                         <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['required']
-                            "
+                            *ngIf="submitted && form.get('rif')?.errors?.['required']"
                             class="text-red-500"
                         >
                             El número de documento es obligatorio
                         </small>
                         <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['pattern']
-                            "
+                            *ngIf="submitted && form.get('rif')?.errors?.['pattern']"
                             class="text-red-500"
                         >
                             Solo se permiten dígitos numéricos
                         </small>
                         <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['minlength']
-                            "
+                            *ngIf="submitted && form.get('rif')?.errors?.['minlength']"
                             class="text-red-500"
                         >
                             Mínimo 5 dígitos
                         </small>
                         <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['maxlength']
-                            "
+                            *ngIf="submitted && form.get('rif')?.errors?.['maxlength']"
                             class="text-red-500"
                         >
                             Máximo 12 dígitos
@@ -85,25 +73,78 @@
                     </div>
                 </div>
 
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="nombreComercial" class="font-semibold"
+                        >Nombre Comercial <span class="text-red-500">*</span></label
+                    >
+                    <input
+                        pInputText
+                        id="nombreComercial"
+                        formControlName="nombreComercial"
+                        placeholder="Ej: Distribuidora Polar C.A."
+                    />
+                    <small
+                        *ngIf="submitted && form.get('nombreComercial')?.invalid"
+                        class="text-red-500"
+                    >
+                        El nombre comercial es obligatorio
+                    </small>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="prioridad" class="font-semibold"
+                        >Prioridad <span class="text-red-500">*</span></label
+                    >
+                    <p-select
+                        id="prioridad"
+                        formControlName="idPrioridad"
+                        [options]="prioridades()"
+                        optionLabel="nombre_prioridad"
+                        optionValue="id_prioridad"
+                        placeholder="Seleccionar prioridad"
+                        appendTo="body"
+                    >
+                    </p-select>
+                </div>
+            </p-fluid>
+
+            <p-divider />
+
+            <p-fluid>
+                <div
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
+                    Información de Contacto
+                </div>
+
                 <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-7 flex flex-col gap-2">
-                        <label for="nombreComercial" class="font-semibold"
-                            >Nombre Comercial <span class="text-red-500">*</span></label
+                    <div class="col-span-4 flex flex-col gap-2">
+                        <label for="correo" class="font-semibold">Correo Electrónico</label>
+                        <input
+                            pInputText
+                            id="correo"
+                            formControlName="correo"
+                            placeholder="cliente@ejemplo.com"
+                        />
+                        <small
+                            *ngIf="submitted && form.get('correo')?.errors?.['email']"
+                            class="text-red-500"
+                        >
+                            Ingrese un correo electrónico válido
+                        </small>
+                    </div>
+                    <div class="col-span-4 flex flex-col gap-2">
+                        <label for="personaContacto" class="font-semibold"
+                            >Persona de Contacto</label
                         >
                         <input
                             pInputText
-                            id="nombreComercial"
-                            formControlName="nombreComercial"
-                            placeholder="Ej: Distribuidora Polar C.A."
+                            id="personaContacto"
+                            formControlName="personaContacto"
+                            placeholder="Ej: María Fernández"
                         />
-                        <small
-                            *ngIf="submitted && form.get('nombreComercial')?.invalid"
-                            class="text-red-500"
-                        >
-                            El nombre comercial es obligatorio
-                        </small>
                     </div>
-                    <div class="col-span-5 flex flex-col gap-2">
+                    <div class="col-span-4 flex flex-col gap-2">
                         <label for="telefono" class="font-semibold">Teléfono</label>
                         <input
                             pInputText
@@ -119,22 +160,6 @@
                         </small>
                     </div>
                 </div>
-
-                <div class="flex flex-col gap-2 mt-2">
-                    <label for="prioridad" class="font-semibold"
-                        >Prioridad <span class="text-red-500">*</span></label
-                    >
-                    <p-select
-                        id="prioridad"
-                        formControlName="idPrioridad"
-                        [options]="prioridades"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Seleccionar prioridad"
-                        appendTo="body"
-                    >
-                    </p-select>
-                </div>
             </p-fluid>
 
             <p-divider />
@@ -143,7 +168,7 @@
                 <div
                     class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1 flex items-center gap-2"
                 >
-                    <span>Ubicaciones de Entrega</span>
+                    <span>Ubicaciones y Sucursales</span>
                     <p-button
                         icon="pi pi-plus"
                         severity="info"
@@ -204,16 +229,16 @@
                                 >
                                 <p-select
                                     [id]="'municipio-' + i"
-                                    formControlName="municipio"
-                                    [options]="municipios"
-                                    optionLabel="label"
-                                    optionValue="value"
+                                    formControlName="idMunicipio"
+                                    [options]="municipios()"
+                                    optionLabel="nombre"
+                                    optionValue="id_municipio"
                                     placeholder="Seleccionar municipio"
                                     appendTo="body"
                                 >
                                 </p-select>
                                 <small
-                                    *ngIf="submitted && ubGroup.get('municipio')?.invalid"
+                                    *ngIf="submitted && ubGroup.get('idMunicipio')?.invalid"
                                     class="text-red-500"
                                 >
                                     Seleccione un municipio
@@ -249,6 +274,110 @@
                                     formControlName="referencia"
                                     placeholder="Ej: Frente a la plaza, al lado del banco"
                                 />
+                            </div>
+
+                            <p-divider class="my-1" />
+
+                            <div class="text-sm font-semibold text-surface-600 dark:text-surface-300">
+                                <i class="pi pi-clock mr-1"></i> Reglas de Recepción
+                            </div>
+
+                            <div formGroupName="reglas">
+                                <div class="grid grid-cols-12 gap-3 mt-2">
+                                    <div class="col-span-3 flex flex-col gap-2">
+                                        <label [for]="'horaDesde-' + i" class="font-semibold text-sm"
+                                            >Hora Desde</label
+                                        >
+                                        <input
+                                            pInputText
+                                            [id]="'horaDesde-' + i"
+                                            formControlName="horarioDesde"
+                                            placeholder="08:00"
+                                        />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-2">
+                                        <label [for]="'horaHasta-' + i" class="font-semibold text-sm"
+                                            >Hora Hasta</label
+                                        >
+                                        <input
+                                            pInputText
+                                            [id]="'horaHasta-' + i"
+                                            formControlName="horarioHasta"
+                                            placeholder="17:00"
+                                        />
+                                    </div>
+                                    <div class="col-span-6 flex flex-col gap-2">
+                                        <label [for]="'diasRecepcion-' + i" class="font-semibold text-sm"
+                                            >Días de Recepción</label
+                                        >
+                                        <p-multiselect
+                                            [id]="'diasRecepcion-' + i"
+                                            formControlName="diasRecepcion"
+                                            [options]="diasSemana"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            placeholder="Seleccionar días"
+                                            [maxSelectedLabels]="3"
+                                            appendTo="body"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-2 mt-2">
+                                    <label class="font-semibold text-sm">Requiere Cita Previa</label>
+                                    <p-selectbutton
+                                        formControlName="requiereCita"
+                                        [options]="opcionesCita"
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        [allowEmpty]="false"
+                                    />
+                                </div>
+
+                                <div class="flex flex-col gap-2 mt-2">
+                                    <label [for]="'instrucciones-' + i" class="font-semibold text-sm"
+                                        >Instrucciones / Reglas Adicionales</label
+                                    >
+                                    <textarea
+                                        pTextarea
+                                        [id]="'instrucciones-' + i"
+                                        formControlName="instrucciones"
+                                        rows="2"
+                                        placeholder="Ej: Recepción por el muelle trasero. Peso máximo 5 ton."
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            <p-divider class="my-1" />
+
+                            <div class="text-sm font-semibold text-surface-600 dark:text-surface-300">
+                                <i class="pi pi-user mr-1"></i> Datos de Contacto
+                            </div>
+
+                            <div class="grid grid-cols-12 gap-3">
+                                <div class="col-span-6 flex flex-col gap-2">
+                                    <label [for]="'nombreContacto-' + i" class="font-semibold text-sm"
+                                        >Nombre de Contacto</label
+                                    >
+                                    <input
+                                        pInputText
+                                        [id]="'nombreContacto-' + i"
+                                        formControlName="nombreContacto"
+                                        placeholder="Ej: Juan Pérez"
+                                    />
+                                </div>
+
+                                <div class="col-span-6 flex flex-col gap-2">
+                                    <label [for]="'telContacto-' + i" class="font-semibold text-sm"
+                                        >Teléfono de Contacto</label
+                                    >
+                                    <input
+                                        pInputText
+                                        [id]="'telContacto-' + i"
+                                        formControlName="telefonoContacto"
+                                        placeholder="Ej: 0295-1234567"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
