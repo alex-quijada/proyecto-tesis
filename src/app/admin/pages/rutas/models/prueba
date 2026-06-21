@@ -1,0 +1,268 @@
+<div class="o-overlay-item" bis_skin_checked="1">
+    <div
+        class="o_popover popover mw-100 bs-popover-auto o-dropdown--menu dropdown-menu mx-0 o_switch_company_menu_dropdown"
+        style="--animation-time: 200ms; width: 320px; position: fixed; top: 36px; left: 578.6px"
+        role="menu"
+        bis_skin_checked="1"
+    >
+        <div class="d-flex flex-row pe-2 mb-2 visually-hidden" bis_skin_checked="1">
+            <div
+                role="menuitemcheckbox"
+                aria-checked="false"
+                aria-label="Select all"
+                title="Select all"
+                bis_skin_checked="1"
+            >
+                <span class="btn border-0 pt-2 px-2 btn-link text-secondary"
+                    ><i class="fa fa-fw fa-square-o"></i
+                ></span>
+            </div>
+            <div
+                class="form-control d-flex align-items-center py-1"
+                role="search"
+                bis_skin_checked="1"
+            >
+                <i class="oi oi-search me-2" role="img" aria-label="Buscar…" title="Buscar…"></i>
+                <div class="d-flex flex-grow-1 flex-wrap gap-1" bis_skin_checked="1">
+                    <input
+                        type="text"
+                        class="o_input flex-grow-1 border-0 o-navigable"
+                        placeholder="Buscar…"
+                        role="searchbox"
+                        aria-selected="false"
+                        data-listener-added_02b899d3="true"
+                    />
+                </div>
+            </div>
+        </div>
+        <div class="o_switch_company_menu_items" bis_skin_checked="1">
+            <span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="7"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="DISTRIBUIDORA METROPOL C.A."
+                    title="Show DISTRIBUIDORA METROPOL C.A. content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 bg-primary-subtle"
+                    aria-pressed="true"
+                    aria-label="Switch to DISTRIBUIDORA METROPOL C.A."
+                    title="Switch to DISTRIBUIDORA METROPOL C.A."
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >DISTRIBUIDORA METROPOL C.A.</span
+                    >
+                </div></span
+            ><span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="8"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="INVERSIONES ANGELO, C.A."
+                    title="Show INVERSIONES ANGELO, C.A. content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 btn fw-normal border-0 btn-link text-primary"
+                    aria-pressed="false"
+                    aria-label="Switch to INVERSIONES ANGELO, C.A."
+                    title="Switch to INVERSIONES ANGELO, C.A."
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >INVERSIONES ANGELO, C.A.</span
+                    >
+                </div></span
+            ><span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="9"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="INVERSIONES MALESI, C.A."
+                    title="Show INVERSIONES MALESI, C.A. content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 btn fw-normal border-0 btn-link text-primary"
+                    aria-pressed="false"
+                    aria-label="Switch to INVERSIONES MALESI, C.A."
+                    title="Switch to INVERSIONES MALESI, C.A."
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >INVERSIONES MALESI, C.A.</span
+                    >
+                </div></span
+            ><span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="11"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="INVERSIONES METROPOLITANA C.A."
+                    title="Show INVERSIONES METROPOLITANA C.A. content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 btn fw-normal border-0 btn-link text-primary"
+                    aria-pressed="false"
+                    aria-label="Switch to INVERSIONES METROPOLITANA C.A."
+                    title="Switch to INVERSIONES METROPOLITANA C.A."
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >INVERSIONES METROPOLITANA C.A.</span
+                    >
+                </div></span
+            ><span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="13"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="INVERSIONES MALEPA, C.A."
+                    title="Show INVERSIONES MALEPA, C.A. content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 btn fw-normal border-0 btn-link text-primary"
+                    aria-pressed="false"
+                    aria-label="Switch to INVERSIONES MALEPA, C.A."
+                    title="Switch to INVERSIONES MALEPA, C.A."
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >INVERSIONES MALEPA, C.A.</span
+                    >
+                </div></span
+            ><span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="15"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="GUUAO C.A."
+                    title="Show GUUAO C.A. content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 btn fw-normal border-0 btn-link text-primary"
+                    aria-pressed="false"
+                    aria-label="Switch to GUUAO C.A."
+                    title="Switch to GUUAO C.A."
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >GUUAO C.A.</span
+                    >
+                </div></span
+            ><span
+                class="d-flex o_switch_company_item dropdown-item p-0 w-100 o-navigable"
+                tabindex="0"
+                data-menu="company"
+                data-company-id="5"
+                aria-selected="false"
+                ><div
+                    role="menuitemcheckbox"
+                    class="border-end"
+                    aria-checked="false"
+                    aria-label="LEIROS"
+                    title="Show LEIROS content."
+                    bis_skin_checked="1"
+                >
+                    <span class="btn border-0 px-2 btn-link text-primary"
+                        ><i class="fa fa-fw py-1 fa-square-o"></i
+                    ></span>
+                </div>
+                <div
+                    role="button"
+                    class="d-flex flex-grow-1 align-items-center py-0 log_into ps-2 btn fw-normal border-0 btn-link text-primary"
+                    aria-pressed="false"
+                    aria-label="Switch to LEIROS"
+                    title="Switch to LEIROS"
+                    bis_skin_checked="1"
+                >
+                    <span class="company_label text-body text-truncate" style="padding-left: 0px"
+                        >LEIROS</span
+                    >
+                </div></span
+            >
+        </div>
+        <div
+            class="o_switch_company_menu_buttons d-flex justify-content-end gap-2 px-2 pt-2"
+            bis_skin_checked="1"
+        >
+            <button
+                class="btn btn-primary o-navigable flex-grow-1 text-center"
+                aria-selected="false"
+            >
+                Confirmar</button
+            ><button
+                class="btn btn-secondary o-navigable flex-grow-1 text-center focus"
+                aria-selected="true"
+            >
+                Restablecer
+            </button>
+        </div>
+    </div>
+</div>

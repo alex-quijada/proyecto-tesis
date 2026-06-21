@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { DatosGuia, FacturaAsociada } from '../models/pdf-data.model';
+import { DatosGuia, Empresa, FacturaAsociada } from '../models/pdf-data.model';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -24,12 +24,13 @@ export class PdfNormalizerService {
 
     normalizarDocumento(paginas: string[]): DatosGuia {
         const texto = paginas.join(' ');
+        const { empresa, codigoGuia } = this.parsearEncabezado(texto);
         const { camion, placa, pesoLimite } = this.parsearVehiculo(texto);
         const chofer = this.parsearChofer(texto);
         const facturas = this.parsearFacturas(texto);
         const totales = this.parsearTotales(texto);
 
-        return { camion, placa, pesoLimite, chofer, ruta: this.parsearRuta(texto), facturas, ...totales };
+        return { empresa, codigoGuia, camion, placa, pesoLimite, chofer, ruta: this.parsearRuta(texto), facturas, ...totales };
     }
 
     private parsearVehiculo(texto: string): { camion: string; placa: string; pesoLimite: number } {
@@ -45,12 +46,16 @@ export class PdfNormalizerService {
     private parsearChofer(texto: string): string {
         const m = texto.match(/\[(\d+)\]\s+([A-ZÁÉÍÓÚÑ]+)\s+([A-ZÁÉÍÓÚÑ]+)(?=\s|$)/i);
         if (m) return `[${m[1]}] ${m[2]} ${m[3]}`;
+        const m2 = texto.match(/\[-\]\s+([A-ZÁÉÍÓÚÑ]+)\s+([A-ZÁÉÍÓÚÑ]+)(?=\s|$)/i);
+        if (m2) return `${m2[1]} ${m2[2]}`;
         return '';
     }
 
     private parsearRuta(texto: string): string {
         const m = texto.match(/\[\d+\]\s+[A-ZÁÉÍÓÚÑ]+\s+[A-ZÁÉÍÓÚÑ]+\s+([A-ZÁÉÍÓÚÑ]+)\b/i);
-        return m ? m[1] : '';
+        if (m) return m[1];
+        const m2 = texto.match(/\[-\]\s+[A-ZÁÉÍÓÚÑ]+\s+[A-ZÁÉÍÓÚÑ]+\s+([A-ZÁÉÍÓÚÑ]+)\b/i);
+        return m2 ? m2[1] : '';
     }
 
     private parsearFacturas(texto: string): FacturaAsociada[] {
@@ -140,5 +145,14 @@ export class PdfNormalizerService {
             totalBolivares: parseFloat(m[2].replace(/\./g, '').replace(',', '.')),
         };
         return { totalDolares: 0, totalBolivares: 0 };
+    }
+
+    private parsearEncabezado(texto: string): { empresa: Empresa | ''; codigoGuia: string } {
+        const m = texto.match(/^(.+?)\s+(batch\/out\/\d+)\s/i);
+        if (m && !m[1].startsWith('CAMIÓN')) {
+            return { empresa: m[1].trim() as Empresa, codigoGuia: m[2].toLowerCase() };
+        }
+        const m2 = texto.match(/(batch\/out\/\d+)/i);
+        return { empresa: '', codigoGuia: m2 ? m2[1].toLowerCase() : '' };
     }
 }
