@@ -144,8 +144,10 @@ serve(async (req) => {
             );
         }
 
-        const { certificado_numero, certificado_expedicion, certificado_vencimiento } = datosAdicionales;
-        const { licencia_numero, licencia_grado, licencia_expedicion, licencia_vencimiento } = datosAdicionales;
+        const { certificado_numero, certificado_expedicion, certificado_vencimiento } =
+            datosAdicionales;
+        const { licencia_numero, licencia_grado, licencia_expedicion, licencia_vencimiento } =
+            datosAdicionales;
 
         if (certificado_numero && certificado_vencimiento) {
             const { error: e } = await supabaseAdmin.from('certificados_medicos').upsert(

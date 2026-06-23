@@ -30,16 +30,27 @@ export class PdfNormalizerService {
         const facturas = this.parsearFacturas(texto);
         const totales = this.parsearTotales(texto);
 
-        return { empresa, codigoGuia, camion, placa, pesoLimite, chofer, ruta: this.parsearRuta(texto), facturas, ...totales };
+        return {
+            empresa,
+            codigoGuia,
+            camion,
+            placa,
+            pesoLimite,
+            chofer,
+            ruta: this.parsearRuta(texto),
+            facturas,
+            ...totales,
+        };
     }
 
     private parsearVehiculo(texto: string): { camion: string; placa: string; pesoLimite: number } {
         const m = texto.match(/\[([A-Z0-9]+)\]\s*(.+?)\s*-\s*(\d+[\.,]?\d*)\s*kg/i);
-        if (m) return {
-            camion: `[${m[1].toUpperCase()}] ${m[2].trim()}`,
-            placa: m[1].toUpperCase(),
-            pesoLimite: parseFloat(m[3].replace(',', '.')),
-        };
+        if (m)
+            return {
+                camion: `[${m[1].toUpperCase()}] ${m[2].trim()}`,
+                placa: m[1].toUpperCase(),
+                pesoLimite: parseFloat(m[3].replace(',', '.')),
+            };
         return { camion: '', placa: '', pesoLimite: 0 };
     }
 
@@ -73,7 +84,8 @@ export class PdfNormalizerService {
             }
         }
 
-        const addrKeywords = /\b(CALLE|AV|AVENIDA|URB|URBANIZACION|SECTOR|EDIF|EDIFICIO|VIA|CARRETERA|CARRERA|TRANSVERSAL|PISO|PB)\b/i;
+        const addrKeywords =
+            /\b(CALLE|AV|AVENIDA|URB|URBANIZACION|SECTOR|EDIF|EDIFICIO|VIA|CARRETERA|CARRERA|TRANSVERSAL|PISO|PB)\b/i;
 
         const finTotal = seccion.search(/\bTotal\s*:\s*\d/);
         const tope = finTotal !== -1 ? finTotal : seccion.length;
@@ -86,7 +98,8 @@ export class PdfNormalizerService {
 
             const amtRe = /(\d{1,3}(?:,\d{2})?)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/;
             const amtMatch = bloque.match(amtRe);
-            let totalUSD = 0, totalVES = 0;
+            let totalUSD = 0,
+                totalVES = 0;
             let cuerpo = bloque;
             let extra = '';
             if (amtMatch) {
@@ -107,13 +120,19 @@ export class PdfNormalizerService {
             const tlfMatch = cuerpo.match(/\+58[\s-]*\d{3}[\s-]*\d{7}/);
             if (tlfMatch) {
                 tlf = tlfMatch[0];
-                cliente = cuerpo.slice(0, tlfMatch.index).replace(/[,\s]+$/, '').trim();
+                cliente = cuerpo
+                    .slice(0, tlfMatch.index)
+                    .replace(/[,\s]+$/, '')
+                    .trim();
                 const addrBody = cuerpo.slice(tlfMatch.index! + tlfMatch[0].length).trim();
                 direccion = addrBody || direccion;
             } else {
                 const addrKMatch = cuerpo.match(addrKeywords);
                 if (addrKMatch && addrKMatch.index! > 0) {
-                    cliente = cuerpo.slice(0, addrKMatch.index).replace(/[,\s]+$/, '').trim();
+                    cliente = cuerpo
+                        .slice(0, addrKMatch.index)
+                        .replace(/[,\s]+$/, '')
+                        .trim();
                     direccion = cuerpo.slice(addrKMatch.index).trim();
                 }
             }
@@ -140,10 +159,11 @@ export class PdfNormalizerService {
 
     private parsearTotales(texto: string): { totalDolares: number; totalBolivares: number } {
         const m = texto.match(/total:?\s*([\d.,]+)\s*([\d.,]+)/i);
-        if (m) return {
-            totalDolares: parseFloat(m[1].replace(',', '.')),
-            totalBolivares: parseFloat(m[2].replace(/\./g, '').replace(',', '.')),
-        };
+        if (m)
+            return {
+                totalDolares: parseFloat(m[1].replace(',', '.')),
+                totalBolivares: parseFloat(m[2].replace(/\./g, '').replace(',', '.')),
+            };
         return { totalDolares: 0, totalBolivares: 0 };
     }
 

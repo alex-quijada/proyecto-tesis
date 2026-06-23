@@ -4,7 +4,9 @@
 <div class="card">
     <div class="flex flex-col gap-1 mb-4">
         <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">Gestión de Clientes</h1>
-        <p class="text-surface-500">Registra nuevos clientes con sus ubicaciones y reglas de recepción.</p>
+        <p class="text-surface-500">
+            Registra nuevos clientes con sus ubicaciones y reglas de recepción.
+        </p>
     </div>
 
     <p-toolbar styleClass="mb-6">
@@ -42,7 +44,14 @@
         [rows]="10"
         [paginator]="true"
         [rowHover]="true"
-        [globalFilterFields]="['nombreComercial', 'documentoIdentidad.numero', 'telefono', 'correo', 'personaContacto', 'prioridad']"
+        [globalFilterFields]="[
+            'nombreComercial',
+            'documentoIdentidad.numero',
+            'telefono',
+            'correo',
+            'personaContacto',
+            'prioridad',
+        ]"
         [tableStyle]="{ 'min-width': '75rem' }"
         [loading]="loading()"
         [expandedRowKeys]="expandedRows()"
@@ -113,16 +122,22 @@
                         [plain]="true"
                         size="small"
                         [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                        style="width: 1.5rem; height: 1.5rem;"
+                        style="width: 1.5rem; height: 1.5rem"
                     ></button>
                 </td>
                 <td class="font-medium">{{ cliente.nombreComercial }}</td>
                 <td class="text-surface-600 dark:text-surface-300">
-                    {{ (cliente.documentoIdentidad?.prefijo || '') + '-' + (cliente.documentoIdentidad?.numero || '') }}
+                    {{
+                        (cliente.documentoIdentidad?.prefijo || '') +
+                            '-' +
+                            (cliente.documentoIdentidad?.numero || '')
+                    }}
                 </td>
                 <td class="text-surface-600 dark:text-surface-300">{{ cliente.telefono }}</td>
                 <td class="text-surface-600 dark:text-surface-300">{{ cliente.correo }}</td>
-                <td class="text-surface-600 dark:text-surface-300">{{ cliente.personaContacto }}</td>
+                <td class="text-surface-600 dark:text-surface-300">
+                    {{ cliente.personaContacto }}
+                </td>
                 <td>
                     <p-tag
                         [value]="cliente.prioridad"
@@ -161,11 +176,17 @@
             <tr>
                 <td colspan="9">
                     <div class="p-4">
-                        <div class="flex items-center gap-2 mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium">
+                        <div
+                            class="flex items-center gap-2 mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium"
+                        >
                             <i class="pi pi-map-marker text-primary"></i>
                             Sucursales de
-                            <span class="font-semibold text-surface-800 dark:text-surface-100">{{ cliente.nombreComercial }}</span>
-                            <span class="inline-flex items-center justify-center bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-100 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            <span class="font-semibold text-surface-800 dark:text-surface-100">{{
+                                cliente.nombreComercial
+                            }}</span>
+                            <span
+                                class="inline-flex items-center justify-center bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-100 text-xs font-semibold px-2 py-0.5 rounded-full"
+                            >
                                 {{ cliente.sucursales?.length || 0 }}
                             </span>
                         </div>
@@ -176,7 +197,11 @@
                                 <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
                             </div>
                         } @else if (cliente.sucursales?.length) {
-                            <p-table [value]="cliente.sucursales!" dataKey="id" [tableStyle]="{ 'min-width': '50rem' }">
+                            <p-table
+                                [value]="cliente.sucursales!"
+                                dataKey="id"
+                                [tableStyle]="{ 'min-width': '50rem' }"
+                            >
                                 <ng-template #header>
                                     <tr>
                                         <th style="min-width: 12rem">Dirección</th>
@@ -191,23 +216,44 @@
                                 <ng-template #body let-sucursal>
                                     <tr>
                                         <td class="font-medium">{{ sucursal.direccion }}</td>
-                                        <td class="text-surface-500 text-sm">{{ sucursal.puntoDeReferencia || '—' }}</td>
-                                        <td>{{ municipiosMap()[sucursal.idMunicipio!] || sucursal.idMunicipio }}</td>
+                                        <td class="text-surface-500 text-sm">
+                                            {{ sucursal.puntoDeReferencia || '—' }}
+                                        </td>
+                                        <td>
+                                            {{
+                                                municipiosMap()[sucursal.idMunicipio!] ||
+                                                    sucursal.idMunicipio
+                                            }}
+                                        </td>
                                         <td>
                                             @if (sucursal.nombreContacto) {
-                                                <span class="block">{{ sucursal.nombreContacto }}</span>
-                                                <span class="text-surface-400 text-sm">{{ sucursal.telefonoContacto }}</span>
+                                                <span class="block">{{
+                                                    sucursal.nombreContacto
+                                                }}</span>
+                                                <span class="text-surface-400 text-sm">{{
+                                                    sucursal.telefonoContacto
+                                                }}</span>
                                             } @else {
                                                 <span class="text-surface-400">—</span>
                                             }
                                         </td>
                                         <td>{{ sucursal.reglas?.horaEntrega || '—' }}</td>
-                                        <td class="text-sm">{{ sucursal.reglas?.diasRecepcion?.join(', ') || '—' }}</td>
+                                        <td class="text-sm">
+                                            {{ sucursal.reglas?.diasRecepcion?.join(', ') || '—' }}
+                                        </td>
                                         <td>
                                             @if (sucursal.reglas?.requiereCita) {
-                                                <p-tag value="Requiere cita" severity="warn" [styleClass]="'text-xs'" />
+                                                <p-tag
+                                                    value="Requiere cita"
+                                                    severity="warn"
+                                                    [styleClass]="'text-xs'"
+                                                />
                                             } @else {
-                                                <p-tag value="Sin cita" severity="success" [styleClass]="'text-xs'" />
+                                                <p-tag
+                                                    value="Sin cita"
+                                                    severity="success"
+                                                    [styleClass]="'text-xs'"
+                                                />
                                             }
                                         </td>
                                     </tr>
@@ -221,9 +267,13 @@
                                 </ng-template>
                             </p-table>
                         } @else {
-                            <div class="flex flex-col items-center justify-center py-8 text-surface-400">
+                            <div
+                                class="flex flex-col items-center justify-center py-8 text-surface-400"
+                            >
                                 <i class="pi pi-map-marker text-3xl mb-2"></i>
-                                <p class="text-sm">No hay sucursales registradas para este cliente.</p>
+                                <p class="text-sm">
+                                    No hay sucursales registradas para este cliente.
+                                </p>
                             </div>
                         }
                     </div>

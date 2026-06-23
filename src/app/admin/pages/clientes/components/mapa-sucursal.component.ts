@@ -1,11 +1,4 @@
-import {
-    Component,
-    ElementRef,
-    input,
-    viewChild,
-    afterNextRender,
-    OnDestroy,
-} from '@angular/core';
+import { Component, ElementRef, input, viewChild, afterNextRender, OnDestroy } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { environment } from '@/environments/environment';
 import mapboxgl from 'mapbox-gl';
@@ -66,11 +59,7 @@ export class MapaSucursalComponent implements OnDestroy {
         });
     }
 
-    onUbicacionSeleccionada(event: {
-        lat: number;
-        lng: number;
-        direccion: string;
-    }) {
+    onUbicacionSeleccionada(event: { lat: number; lng: number; direccion: string }) {
         const group = this.sucursalGroup();
         if (!group) return;
         group.patchValue({

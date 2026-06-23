@@ -19,7 +19,6 @@ import { GuiaDespacho, ESTADOS_GUIA, MUNICIPIOS_NUEVA_ESPARTA } from '../data/ru
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
 
-
 @Component({
     selector: 'app-guia-dialog',
     standalone: true,

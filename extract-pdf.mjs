@@ -7,6 +7,6 @@ for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const items = (await page.getTextContent()).items;
     console.log(`=== PAGE ${i} ===`);
-    console.log(items.map(i => i.str).join(' '));
+    console.log(items.map((i) => i.str).join(' '));
     console.log();
 }

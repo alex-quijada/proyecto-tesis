@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { MapboxSearchService, SuggestionResult } from '../service/mapbox-search.service';
+import { GoogleSearchService, SuggestionResult } from '../service/google-search.service';
 
 export interface UbicacionSeleccionada {
     lat: number;
@@ -41,13 +41,15 @@ export interface UbicacionSeleccionada {
                 <ul
                     class="absolute z-50 left-0 right-0 mt-1 bg-surface-0 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded shadow-lg max-h-48 overflow-y-auto text-sm"
                 >
-                    @for (sug of sugerencias(); track sug.mapboxId) {
+                    @for (sug of sugerencias(); track sug.placeId) {
                         <li
                             class="px-3 py-2 cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700 text-surface-800 dark:text-surface-100"
                             (mousedown)="seleccionar(sug)"
                         >
                             <span class="block font-medium">{{ sug.name }}</span>
-                            <span class="block text-xs text-surface-500 truncate">{{ sug.placeFormatted }}</span>
+                            <span class="block text-xs text-surface-500 truncate">{{
+                                sug.fullAddress
+                            }}</span>
                         </li>
                     }
                 </ul>
@@ -61,7 +63,7 @@ export interface UbicacionSeleccionada {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BusquedaUbicacionComponent implements OnDestroy {
-    private searchService = inject(MapboxSearchService);
+    private searchService = inject(GoogleSearchService);
 
     readonly municipioNombre = input<string>('');
 
@@ -93,9 +95,7 @@ export class BusquedaUbicacionComponent implements OnDestroy {
         const subscription = this.searchParams$
             .pipe(
                 debounceTime(400),
-                distinctUntilChanged(
-                    (a, b) => a.query === b.query && a.municipio === b.municipio,
-                ),
+                distinctUntilChanged((a, b) => a.query === b.query && a.municipio === b.municipio),
                 switchMap(async ({ query, municipio }) => {
                     if (!query.trim()) {
                         this.sugerencias.set([]);
@@ -133,17 +133,24 @@ export class BusquedaUbicacionComponent implements OnDestroy {
         this.blurTimer = setTimeout(() => this.abierto.set(false), 200);
     }
 
-    seleccionar(sug: SuggestionResult) {
+    async seleccionar(sug: SuggestionResult) {
         this.abierto.set(false);
-        this.currentQuery = sug.fullAddress || sug.name;
-        this.inputEl().nativeElement.value = this.currentQuery;
+        this.cargando.set(true);
         this.sugerencias.set([]);
 
-        this.ubicacionSeleccionada.emit({
-            lat: sug.lat,
-            lng: sug.lng,
-            direccion: sug.fullAddress,
-        });
+        const detalle = await this.searchService.obtenerCoordenadas(sug.placeId);
+        this.cargando.set(false);
+
+        if (detalle) {
+            this.currentQuery = detalle.direccion || sug.fullAddress;
+            this.inputEl().nativeElement.value = this.currentQuery;
+
+            this.ubicacionSeleccionada.emit({
+                lat: detalle.lat,
+                lng: detalle.lng,
+                direccion: detalle.direccion,
+            });
+        }
     }
 
     ngOnDestroy() {

@@ -100,6 +100,8 @@ export class UsuarioDialogComponent {
             const data = this.usuarioData();
             this.submitted = false;
             this.errorMessage = '';
+            this.form.markAsPristine();
+            this.form.markAsUntouched();
 
             if (data.id) {
                 this.form.patchValue({
@@ -133,6 +135,8 @@ export class UsuarioDialogComponent {
         this.visible.set(false);
         this.submitted = false;
         this.errorMessage = '';
+        this.form.markAsPristine();
+        this.form.markAsUntouched();
     }
 
     private formatDate(d: Date | null | undefined): string {
@@ -358,5 +362,7 @@ export class UsuarioDialogComponent {
         this.onSave.emit(usuarioFinal);
         this.visible.set(false);
         this.loading.set(false);
+        this.form.markAsPristine();
+        this.form.markAsUntouched();
     }
 }

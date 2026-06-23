@@ -86,6 +86,8 @@ export class VehiculoDialogComponent {
             this.submitted = false;
             this.errorMessage = '';
             this.uploadedImageUrl = data.imagen_url || undefined;
+            this.form.markAsPristine();
+            this.form.markAsUntouched();
 
             if (data && (data.id_vehiculo || data.id)) {
                 this.form.patchValue({
@@ -165,6 +167,8 @@ export class VehiculoDialogComponent {
         this.submitted = false;
         this.errorMessage = '';
         this.uploadedImageUrl = undefined;
+        this.form.markAsPristine();
+        this.form.markAsUntouched();
     }
 
     validarPlaca(): boolean {

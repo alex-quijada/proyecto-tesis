@@ -53,7 +53,11 @@ export class ClienteService {
         { id_municipio: 'MANEIRO', nombre: 'Maneiro', capital: 'Pampatar' },
         { id_municipio: 'MARCANO', nombre: 'Marcano', capital: 'Juan Griego' },
         { id_municipio: 'MARINO', nombre: 'Mariño', capital: 'Porlamar' },
-        { id_municipio: 'PENINSULA_DE_MACANAO', nombre: 'Península de Macanao', capital: 'Boca de Río' },
+        {
+            id_municipio: 'PENINSULA_DE_MACANAO',
+            nombre: 'Península de Macanao',
+            capital: 'Boca de Río',
+        },
         { id_municipio: 'TUBORES', nombre: 'Tubores', capital: 'Punta de Piedras' },
         { id_municipio: 'VILLALBA', nombre: 'Villalba', capital: 'San Pedro de Coche' },
     ];

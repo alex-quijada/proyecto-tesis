@@ -1,9 +1,7 @@
 <p-dialog
     [(visible)]="visible"
     [style]="{ width: '750px' }"
-    [header]="
-        clienteData().id ? 'Modificar Cliente' : 'Registrar Nuevo Cliente'
-    "
+    [header]="clienteData().id ? 'Modificar Cliente' : 'Registrar Nuevo Cliente'"
     [modal]="true"
 >
     <ng-template #content>
@@ -42,16 +40,9 @@
                         <label for="rif" class="font-semibold"
                             >RIF / Cédula <span class="text-red-500">*</span></label
                         >
-                        <input
-                            pInputText
-                            id="rif"
-                            formControlName="rif"
-                            placeholder="123456789"
-                        />
+                        <input pInputText id="rif" formControlName="rif" placeholder="123456789" />
                         <small
-                            *ngIf="
-                                submitted && form.get('rif')?.errors?.['required']
-                            "
+                            *ngIf="submitted && form.get('rif')?.errors?.['required']"
                             class="text-red-500"
                         >
                             El RIF / Cédula es obligatorio
@@ -86,10 +77,7 @@
                             placeholder="Ej: Comercializadora XYZ, C.A."
                         />
                         <small
-                            *ngIf="
-                                submitted &&
-                                form.get('nombreComercial')?.errors?.['required']
-                            "
+                            *ngIf="submitted && form.get('nombreComercial')?.errors?.['required']"
                             class="text-red-500"
                         >
                             El nombre comercial es obligatorio
@@ -99,9 +87,7 @@
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label for="correo" class="font-semibold"
-                            >Correo Electrónico</label
-                        >
+                        <label for="correo" class="font-semibold">Correo Electrónico</label>
                         <input
                             pInputText
                             id="correo"
@@ -117,9 +103,7 @@
                     </div>
 
                     <div class="col-span-4 flex flex-col gap-2">
-                        <label for="telefono" class="font-semibold"
-                            >Teléfono Principal</label
-                        >
+                        <label for="telefono" class="font-semibold">Teléfono Principal</label>
                         <input
                             pInputText
                             id="telefono"
@@ -127,9 +111,7 @@
                             placeholder="0414-1234567"
                         />
                         <small
-                            *ngIf="
-                                submitted && form.get('telefono')?.errors?.['pattern']
-                            "
+                            *ngIf="submitted && form.get('telefono')?.errors?.['pattern']"
                             class="text-red-500"
                         >
                             Formato inválido (ej: 0414-1234567)
@@ -188,10 +170,7 @@
 
                 <div formArrayName="sucursales">
                     <div
-                        *ngFor="
-                            let sGroup of sucursalesForm.controls;
-                            let i = index
-                        "
+                        *ngFor="let sGroup of sucursalesForm.controls; let i = index"
                         [formGroupName]="i"
                         class="border border-surface-200 dark:border-surface-700 rounded p-3 mt-3"
                     >
@@ -215,9 +194,7 @@
 
                         <div class="flex flex-col gap-3">
                             <div class="flex flex-col gap-2">
-                                <label
-                                    [for]="'municipio-' + i"
-                                    class="font-semibold text-sm"
+                                <label [for]="'municipio-' + i" class="font-semibold text-sm"
                                     >Municipio <span class="text-red-500">*</span></label
                                 >
                                 <p-select
@@ -231,10 +208,7 @@
                                 >
                                 </p-select>
                                 <small
-                                    *ngIf="
-                                        submitted &&
-                                        sGroup.get('idMunicipio')?.invalid
-                                    "
+                                    *ngIf="submitted && sGroup.get('idMunicipio')?.invalid"
                                     class="text-red-500"
                                 >
                                     Seleccione un municipio
@@ -242,11 +216,8 @@
                             </div>
 
                             <div class="flex flex-col gap-2">
-                                <label
-                                    [for]="'direccion-' + i"
-                                    class="font-semibold text-sm"
-                                    >Dirección Completa
-                                    <span class="text-red-500">*</span></label
+                                <label [for]="'direccion-' + i" class="font-semibold text-sm"
+                                    >Dirección Completa <span class="text-red-500">*</span></label
                                 >
                                 <textarea
                                     pTextarea
@@ -254,13 +225,9 @@
                                     formControlName="direccion"
                                     rows="2"
                                     placeholder="Av. Principal, Edif. Centro, Piso 1, Local 2"
-
                                 ></textarea>
                                 <small
-                                    *ngIf="
-                                        submitted &&
-                                        sGroup.get('direccion')?.invalid
-                                    "
+                                    *ngIf="submitted && sGroup.get('direccion')?.invalid"
                                     class="text-red-500"
                                 >
                                     La dirección es obligatoria
@@ -295,8 +262,7 @@
                             <div
                                 class="text-sm font-semibold text-surface-600 dark:text-surface-300"
                             >
-                                <i class="pi pi-clock mr-1"></i> Reglas de
-                                Recepción
+                                <i class="pi pi-clock mr-1"></i> Reglas de Recepción
                             </div>
 
                             <div formGroupName="reglas">
@@ -307,11 +273,15 @@
                                             class="font-semibold text-sm"
                                             >Hora de Entrega</label
                                         >
-                                        <input
-                                            pInputText
+                                        <p-datepicker
                                             [id]="'horaEntrega-' + i"
                                             formControlName="horaEntrega"
-                                            placeholder="08:00"
+                                            timeOnly
+                                            hourFormat="24"
+                                            [showIcon]="true"
+                                            iconDisplay="input"
+                                            [icon]="'pi pi-clock'"
+                                            appendTo="body"
                                         />
                                     </div>
                                     <div class="col-span-9 flex flex-col gap-2">
@@ -350,8 +320,7 @@
                                     <label
                                         [for]="'instrucciones-' + i"
                                         class="font-semibold text-sm"
-                                        >Instrucciones / Reglas
-                                        Adicionales</label
+                                        >Instrucciones / Reglas Adicionales</label
                                     >
                                     <textarea
                                         pTextarea
@@ -368,8 +337,7 @@
                             <div
                                 class="text-sm font-semibold text-surface-600 dark:text-surface-300"
                             >
-                                <i class="pi pi-user mr-1"></i> Datos de
-                                Contacto
+                                <i class="pi pi-user mr-1"></i> Datos de Contacto
                             </div>
 
                             <div class="grid grid-cols-12 gap-3">
@@ -388,9 +356,7 @@
                                 </div>
 
                                 <div class="col-span-6 flex flex-col gap-2">
-                                    <label
-                                        [for]="'telContacto-' + i"
-                                        class="font-semibold text-sm"
+                                    <label [for]="'telContacto-' + i" class="font-semibold text-sm"
                                         >Teléfono de Contacto</label
                                     >
                                     <input
@@ -409,16 +375,9 @@
     </ng-template>
 
     <ng-template #footer>
+        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
         <p-button
-            label="Cancelar"
-            icon="pi pi-times"
-            text
-            (onClick)="hideDialog()"
-        />
-        <p-button
-            [label]="
-                clienteData().id ? 'Guardar Cambios' : 'Registrar Cliente'
-            "
+            [label]="clienteData().id ? 'Guardar Cambios' : 'Registrar Cliente'"
             icon="pi pi-check"
             [loading]="saving"
             [disabled]="saving"
