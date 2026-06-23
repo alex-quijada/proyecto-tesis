@@ -177,18 +177,28 @@
                 <td colspan="9">
                     <div class="p-4">
                         <div
-                            class="flex items-center gap-2 mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium"
+                            class="flex items-center justify-between mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium"
                         >
-                            <i class="pi pi-map-marker text-primary"></i>
-                            Sucursales de
-                            <span class="font-semibold text-surface-800 dark:text-surface-100">{{
-                                cliente.nombreComercial
-                            }}</span>
-                            <span
-                                class="inline-flex items-center justify-center bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-100 text-xs font-semibold px-2 py-0.5 rounded-full"
-                            >
-                                {{ cliente.sucursales?.length || 0 }}
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <i class="pi pi-map-marker text-primary"></i>
+                                {{
+                                    cliente.sucursales?.length || 0
+                                        | i18nPlural: pluralSucursalMapping
+                                }}
+                                de
+                                <span class="font-semibold text-surface-800 dark:text-surface-100">
+                                    {{ cliente.nombreComercial }}
+                                </span>
+                            </div>
+                            <p-button
+                                icon="pi pi-plus"
+                                label="Agregar"
+                                severity="info"
+                                outlined
+                                rounded
+                                size="small"
+                                (onClick)="agregarSucursal(cliente)"
+                            />
                         </div>
 
                         @let loading = loadingSucursales()[cliente.id!];
@@ -211,6 +221,7 @@
                                         <th style="min-width: 6rem">Horario</th>
                                         <th style="min-width: 8rem">Días</th>
                                         <th style="min-width: 7rem">Cita</th>
+                                        <th style="width: 4rem"></th>
                                     </tr>
                                 </ng-template>
                                 <ng-template #body let-sucursal>
@@ -256,11 +267,23 @@
                                                 />
                                             }
                                         </td>
+                                        <td>
+                                            <p-button
+                                                icon="pi pi-pencil"
+                                                [rounded]="true"
+                                                [text]="true"
+                                                severity="info"
+                                                size="small"
+                                                pTooltip="Editar sucursal"
+                                                tooltipPosition="top"
+                                                (click)="editarSucursal(sucursal, cliente)"
+                                            />
+                                        </td>
                                     </tr>
                                 </ng-template>
                                 <ng-template #emptymessage>
                                     <tr>
-                                        <td colspan="7" class="text-center py-4 text-surface-400">
+                                        <td colspan="8" class="text-center py-4 text-surface-400">
                                             No hay sucursales registradas.
                                         </td>
                                     </tr>
@@ -299,3 +322,11 @@
     (onSave)="handleSaveCliente($event)"
 >
 </app-cliente-dialog>
+
+<app-sucursal-dialog
+    [(visible)]="sucursalDialogVisible"
+    [clienteId]="sucursalClienteId()"
+    [sucursalData]="sucursalParaEditar()"
+    (onSave)="handleSaveSucursal()"
+>
+</app-sucursal-dialog>

@@ -1,4 +1,14 @@
-import { Component, input, output, model, effect, inject, signal, OnInit } from '@angular/core';
+import {
+    Component,
+    input,
+    output,
+    model,
+    effect,
+    inject,
+    signal,
+    OnInit,
+    untracked,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 
@@ -118,8 +128,12 @@ export class ClienteDialogComponent implements OnInit {
             this.form.markAsPristine();
             this.form.markAsUntouched();
 
+            const letra = data.documentoIdentidad?.prefijo || '';
+            const uuid =
+                untracked(() => this.prefijos().find((p) => p.prefijo === letra))?.id_prefijo || '';
+
             this.form.patchValue({
-                idPrefijo: data.idPrefijo || '',
+                idPrefijo: uuid,
                 rif: data.documentoIdentidad?.numero || '',
                 nombreComercial: data.nombreComercial || '',
                 telefono: data.telefono || '',
@@ -163,9 +177,7 @@ export class ClienteDialogComponent implements OnInit {
             longitud: [s.longitud ?? null],
             reglas: this.fb.group({
                 horaEntrega: [
-                    s.reglas?.horaEntrega
-                        ? this.horaStringToDate(s.reglas.horaEntrega)
-                        : null,
+                    s.reglas?.horaEntrega ? this.horaStringToDate(s.reglas.horaEntrega) : null,
                 ],
                 diasRecepcion: [s.reglas?.diasRecepcion || []],
                 requiereCita: [s.reglas?.requiereCita ?? false],
@@ -259,8 +271,18 @@ export class ClienteDialogComponent implements OnInit {
                 })),
         };
 
+        const esEdicion = !!(this.clienteData().id || this.clienteData().idCliente);
         try {
-            const clienteId = await this.clienteService.crearCliente(clienteFinal);
+            let clienteId: string;
+            if (esEdicion) {
+                clienteId = this.clienteData().id || this.clienteData().idCliente!;
+                await this.clienteService.actualizarCliente({
+                    ...clienteFinal,
+                    id: clienteId,
+                });
+            } else {
+                clienteId = await this.clienteService.crearCliente(clienteFinal);
+            }
             await this.clienteService.guardarSucursales(clienteId, clienteFinal.sucursales || []);
             clienteFinal.id = clienteId;
             clienteFinal.idCliente = clienteId;

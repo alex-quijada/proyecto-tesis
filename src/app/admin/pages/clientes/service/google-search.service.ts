@@ -24,7 +24,7 @@ export class GoogleSearchService {
         this.sessionToken = new google.maps.places.AutocompleteSessionToken();
         this.margaritaBounds = new google.maps.LatLngBounds(
             { lat: 10.88, lng: -64.32 },
-            { lat: 11.20, lng: -63.74 },
+            { lat: 11.2, lng: -63.74 },
         );
         this.ready = true;
     }

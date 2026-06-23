@@ -16,6 +16,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RouterModule } from '@angular/router';
 
 import { ClienteDialogComponent } from './components/cliente-dialog.component';
+import { SucursalDialogComponent } from './components/sucursal-dialog.component';
 import { Cliente, SucursalCliente } from './clientes.types';
 import { ClienteService } from './service/cliente.service';
 
@@ -38,6 +39,7 @@ import { ClienteService } from './service/cliente.service';
         ConfirmDialogModule,
         RouterModule,
         ClienteDialogComponent,
+        SucursalDialogComponent,
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './clientes.component.html',
@@ -58,6 +60,10 @@ export class ClientesComponent implements OnInit {
     expandedRows = signal<{ [key: string]: boolean }>({});
     loadingSucursales = signal<{ [key: string]: boolean }>({});
     municipiosMap = signal<Record<string, string>>({});
+
+    sucursalDialogVisible = signal(false);
+    sucursalClienteId = signal('');
+    sucursalParaEditar = signal<SucursalCliente | null>(null);
 
     isExpanded = computed(() => {
         const rows = this.expandedRows();
@@ -153,25 +159,19 @@ export class ClientesComponent implements OnInit {
             telefono: '',
             correo: '',
             personaContacto: '',
-            sucursales: [
-                {
-                    idMunicipio: '',
-                    direccion: '',
-                    puntoDeReferencia: '',
-                    reglas: {
-                        horaEntrega: '',
-                        diasRecepcion: [],
-                        requiereCita: false,
-                        instrucciones: '',
-                    },
-                },
-            ],
+            sucursales: [this.sucursalVacia()],
         });
         this.isDialogOpen.set(true);
     }
 
-    editCliente(cliente: Cliente) {
-        this.clienteParaModificar.set({ ...cliente });
+    async editCliente(cliente: Cliente) {
+        if (!cliente.sucursales?.length) {
+            await this.cargarSucursales(cliente);
+        }
+        const actualizado = this.clientes().find(
+            (c) => c.id === cliente.id || c.idCliente === cliente.id,
+        );
+        this.clienteParaModificar.set({ ...(actualizado || cliente) });
         this.isDialogOpen.set(true);
     }
 
@@ -211,11 +211,59 @@ export class ClientesComponent implements OnInit {
         });
     }
 
-    handleSaveCliente(clienteCapturado: Cliente) {
+    readonly pluralSucursalMapping: Record<string, string> = {
+        '=0': 'No tiene sucursales',
+        '=1': '1 sucursal',
+        other: '# sucursales',
+    };
+
+    private sucursalVacia(): SucursalCliente {
+        return {
+            direccion: '',
+            puntoDeReferencia: '',
+            idMunicipio: '',
+            reglas: {
+                diasRecepcion: [],
+                requiereCita: false,
+                instrucciones: '',
+            },
+        };
+    }
+
+    async agregarSucursal(cliente: Cliente) {
+        const id = cliente.id || cliente.idCliente;
+        if (!id) return;
+        this.sucursalClienteId.set(id);
+        this.sucursalParaEditar.set(null);
+        this.sucursalDialogVisible.set(true);
+    }
+
+    async editarSucursal(sucursal: SucursalCliente, cliente: Cliente) {
+        const id = cliente.id || cliente.idCliente;
+        if (!id) return;
+        this.sucursalClienteId.set(id);
+        this.sucursalParaEditar.set({ ...sucursal });
+        this.sucursalDialogVisible.set(true);
+    }
+
+    handleSaveSucursal() {
         this.messageService.add({
             severity: 'success',
-            summary: 'Registrado',
-            detail: `Cliente "${clienteCapturado.nombreComercial}" registrado correctamente`,
+            summary: 'Sucursal guardada',
+            detail: 'La sucursal se ha guardado correctamente',
+            life: 3000,
+        });
+        this.cargarClientes();
+    }
+
+    handleSaveCliente(clienteCapturado: Cliente) {
+        const esEdicion = !!clienteCapturado.id;
+        this.messageService.add({
+            severity: 'success',
+            summary: esEdicion ? 'Actualizado' : 'Registrado',
+            detail: `Cliente "${clienteCapturado.nombreComercial}" ${
+                esEdicion ? 'modificado' : 'registrado'
+            } correctamente`,
             life: 3000,
         });
         this.cargarClientes();

@@ -122,6 +122,22 @@ export class ClienteService {
         return data;
     }
 
+    async actualizarCliente(cliente: Cliente): Promise<void> {
+        const params = {
+            p_cliente_id: cliente.id,
+            p_id_prefijo: cliente.idPrefijo,
+            p_numero_doc: cliente.documentoIdentidad?.numero || '',
+            p_nombre_comercial: cliente.nombreComercial || '',
+            p_telefono: cliente.telefono || '',
+            p_correo: cliente.correo || '',
+            p_persona_contacto: cliente.personaContacto || '',
+            p_id_prioridad: cliente.idPrioridad,
+            p_reglas: cliente.reglas ?? null,
+        };
+        const { error } = await this.supabase.rpc('actualizar_cliente', params);
+        if (error) throw this.formatearError('Error al actualizar cliente', error);
+    }
+
     async guardarSucursales(clienteId: string, sucursales: SucursalCliente[]): Promise<void> {
         const sucursalesJson = sucursales
             .filter((s) => s.direccion?.trim())
