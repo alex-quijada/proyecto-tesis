@@ -10,7 +10,7 @@
 -- 1. CATÁLOGO: prefijos de documento (RIF)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.prefijos_documento (
-    id_prefijo uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id_prefijo uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     prefijo character varying(1) NOT NULL UNIQUE,
     descripcion character varying(50) NOT NULL
 );
@@ -30,7 +30,8 @@ ALTER TABLE public.clientes
     ADD COLUMN IF NOT EXISTS id_prefijo uuid REFERENCES public.prefijos_documento(id_prefijo) ON DELETE RESTRICT,
     ADD COLUMN IF NOT EXISTS telefono character varying(20),
     ADD COLUMN IF NOT EXISTS persona_contacto character varying(150),
-    ADD COLUMN IF NOT EXISTS reglas jsonb;
+    ADD COLUMN IF NOT EXISTS reglas jsonb,
+    ADD COLUMN IF NOT EXISTS rif text;
 
 ALTER TABLE public.clientes
     ALTER COLUMN correo DROP NOT NULL;
@@ -56,30 +57,9 @@ ALTER TABLE public.ubicaciones
     DROP COLUMN IF EXISTS codigo_postal;
 
 -- ==========================================
--- 4. MIGRAR sucursales_cliente a ubicaciones
+-- 4. (saltado) MIGRAR sucursales_cliente
+--    No existe en producción
 -- ==========================================
-INSERT INTO public.ubicaciones (
-    id_cliente,
-    direccion_completa,
-    municipio,
-    estado_provincia,
-    pais,
-    nombre_sucursal,
-    telefono_contacto
-)
-SELECT
-    sc.cliente_id,
-    sc.direccion,
-    ''::character varying(100),
-    'Nueva Esparta'::character varying(100),
-    'Venezuela'::character varying(100),
-    sc.nombre_sucursal,
-    sc.telefono_contacto
-FROM public.sucursales_cliente sc
-WHERE sc.cliente_id IS NOT NULL
-ON CONFLICT DO NOTHING;
-
-DROP TABLE IF EXISTS public.sucursales_cliente CASCADE;
 
 -- ==========================================
 -- 5. RLS POLICIES
@@ -88,32 +68,35 @@ ALTER TABLE public.clientes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ubicaciones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prefijos_documento ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "clientes_select_policy" ON public.clientes
-    FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY IF NOT EXISTS "clientes_insert_policy" ON public.clientes
-    FOR INSERT TO authenticated WITH CHECK (true);
-
-CREATE POLICY IF NOT EXISTS "clientes_update_policy" ON public.clientes
-    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-
-CREATE POLICY IF NOT EXISTS "clientes_delete_policy" ON public.clientes
-    FOR DELETE TO authenticated USING (true);
-
-CREATE POLICY IF NOT EXISTS "ubicaciones_select_policy" ON public.ubicaciones
-    FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY IF NOT EXISTS "ubicaciones_insert_policy" ON public.ubicaciones
-    FOR INSERT TO authenticated WITH CHECK (true);
-
-CREATE POLICY IF NOT EXISTS "ubicaciones_update_policy" ON public.ubicaciones
-    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-
-CREATE POLICY IF NOT EXISTS "ubicaciones_delete_policy" ON public.ubicaciones
-    FOR DELETE TO authenticated USING (true);
-
-CREATE POLICY IF NOT EXISTS "prefijos_documento_select_policy" ON public.prefijos_documento
-    FOR SELECT TO authenticated USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'clientes_select_policy' AND tablename = 'clientes') THEN
+        CREATE POLICY "clientes_select_policy" ON public.clientes FOR SELECT TO authenticated USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'clientes_insert_policy' AND tablename = 'clientes') THEN
+        CREATE POLICY "clientes_insert_policy" ON public.clientes FOR INSERT TO authenticated WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'clientes_update_policy' AND tablename = 'clientes') THEN
+        CREATE POLICY "clientes_update_policy" ON public.clientes FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'clientes_delete_policy' AND tablename = 'clientes') THEN
+        CREATE POLICY "clientes_delete_policy" ON public.clientes FOR DELETE TO authenticated USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'ubicaciones_select_policy' AND tablename = 'ubicaciones') THEN
+        CREATE POLICY "ubicaciones_select_policy" ON public.ubicaciones FOR SELECT TO authenticated USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'ubicaciones_insert_policy' AND tablename = 'ubicaciones') THEN
+        CREATE POLICY "ubicaciones_insert_policy" ON public.ubicaciones FOR INSERT TO authenticated WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'ubicaciones_update_policy' AND tablename = 'ubicaciones') THEN
+        CREATE POLICY "ubicaciones_update_policy" ON public.ubicaciones FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'ubicaciones_delete_policy' AND tablename = 'ubicaciones') THEN
+        CREATE POLICY "ubicaciones_delete_policy" ON public.ubicaciones FOR DELETE TO authenticated USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'prefijos_documento_select_policy' AND tablename = 'prefijos_documento') THEN
+        CREATE POLICY "prefijos_documento_select_policy" ON public.prefijos_documento FOR SELECT TO authenticated USING (true);
+    END IF;
+END $$;
 
 -- ==========================================
 -- 6. RPC: Obtener todos los clientes

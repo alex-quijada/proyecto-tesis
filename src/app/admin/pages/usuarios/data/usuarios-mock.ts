@@ -1,5 +1,5 @@
-import { UbicacionResumen } from '../../clientes/clientes.types';
-export type { UbicacionResumen };
+import { SucursalCliente } from '../../clientes/clientes.types';
+export type { SucursalCliente };
 
 export interface DocumentoIdentidad {
     prefijo: 'V' | 'E' | 'J' | 'P' | 'G';
@@ -35,7 +35,7 @@ export interface Usuario {
     nombreComercial?: string;
     idPrioridad?: string;
     prioridad?: string;
-    ubicaciones?: UbicacionResumen[];
+    sucursales?: SucursalCliente[];
 }
 
 export const ROLES = [

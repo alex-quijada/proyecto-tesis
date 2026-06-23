@@ -1,6 +1,21 @@
-import { Component, input, output, model, effect, inject, signal, OnInit } from '@angular/core';
+import {
+    Component,
+    input,
+    output,
+    model,
+    effect,
+    inject,
+    signal,
+    OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import {
+    ReactiveFormsModule,
+    FormBuilder,
+    FormGroup,
+    FormArray,
+    Validators,
+} from '@angular/forms';
 
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -13,23 +28,16 @@ import { InputMaskModule } from 'primeng/inputmask';
 import { DividerModule } from 'primeng/divider';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { InputNumberModule } from 'primeng/inputnumber';
 
-import {
-    Cliente,
-    DocumentoIdentidad,
-    UbicacionResumen,
-} from '../clientes.types';
-import {
-    DIAS_RECEPCION,
-    OPCIONES_CITA,
-} from '../clientes.constants';
+import { Cliente, SucursalCliente } from '../clientes.types';
+import { DIAS_RECEPCION, OPCIONES_CITA } from '../clientes.constants';
 import {
     ClienteService,
     PrefijoItem,
     MunicipioItem,
     PrioridadItem,
 } from '../service/cliente.service';
+import { MapaSucursalComponent } from './mapa-sucursal.component';
 
 @Component({
     selector: 'app-cliente-dialog',
@@ -48,7 +56,7 @@ import {
         DividerModule,
         MultiSelectModule,
         SelectButtonModule,
-        InputNumberModule,
+        MapaSucursalComponent,
     ],
     templateUrl: './cliente-dialog.component.html',
 })
@@ -61,6 +69,7 @@ export class ClienteDialogComponent implements OnInit {
     onSave = output<Cliente>();
 
     submitted = false;
+    saving = false;
     errorMessage = '';
 
     prefijos = signal<PrefijoItem[]>([]);
@@ -72,7 +81,7 @@ export class ClienteDialogComponent implements OnInit {
     form: FormGroup = this.fb.group({
         idPrefijo: ['', Validators.required],
         rif: [
-            '',
+            '12345678',
             [
                 Validators.required,
                 Validators.pattern(/^\d+$/),
@@ -80,12 +89,15 @@ export class ClienteDialogComponent implements OnInit {
                 Validators.maxLength(12),
             ],
         ],
-        nombreComercial: ['', Validators.required],
-        telefono: ['', [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)]],
-        correo: ['', [Validators.email]],
-        personaContacto: [''],
+        nombreComercial: ['Cliente de Prueba, C.A.', Validators.required],
+        telefono: [
+            '0414-1234567',
+            [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)],
+        ],
+        correo: ['test@correo.com', [Validators.email]],
+        personaContacto: ['Juan Pérez'],
         idPrioridad: ['', Validators.required],
-        ubicaciones: this.fb.array([]),
+        sucursales: this.fb.array([]),
     });
 
     async ngOnInit() {
@@ -103,7 +115,9 @@ export class ClienteDialogComponent implements OnInit {
                 this.form.patchValue({ idPrefijo: prefijos[0].id_prefijo });
             }
             if (prioridades.length) {
-                const media = prioridades.find((p) => p.nombre_prioridad === 'Media');
+                const media = prioridades.find(
+                    (p) => p.nombre_prioridad === 'media',
+                );
                 if (media && !this.form.get('idPrioridad')?.value) {
                     this.form.patchValue({ idPrioridad: media.id_prioridad });
                 }
@@ -129,20 +143,16 @@ export class ClienteDialogComponent implements OnInit {
                 idPrioridad: data.idPrioridad || '',
             });
 
-            this.ubicacionesForm.clear();
-            const ubs: UbicacionResumen[] = data.ubicaciones?.length
-                ? data.ubicaciones
+            this.sucursalesForm.clear();
+            const sucs: SucursalCliente[] = data.sucursales?.length
+                ? data.sucursales
                 : [
                       {
-                          idMunicipio: '',
-                          municipio: '',
                           direccion: '',
-                          referencia: '',
-                          pais: 'Venezuela',
-                          estado: 'Nueva Esparta',
+                          puntoDeReferencia: '',
+                          idMunicipio: '',
                           reglas: {
-                              horarioDesde: '',
-                              horarioHasta: '',
+                              horaEntrega: '',
                               diasRecepcion: [],
                               requiereCita: false,
                               instrucciones: '',
@@ -150,41 +160,40 @@ export class ClienteDialogComponent implements OnInit {
                       },
                   ];
 
-            for (const ub of ubs) {
-                this.ubicacionesForm.push(this.crearUbicacionGroup(ub));
+            for (const s of sucs) {
+                this.sucursalesForm.push(this.crearSucursalGroup(s));
             }
         });
     }
 
-    get ubicacionesForm(): FormArray {
-        return this.form.get('ubicaciones') as FormArray;
+    get sucursalesForm(): FormArray {
+        return this.form.get('sucursales') as FormArray;
     }
 
-    private crearUbicacionGroup(ub: UbicacionResumen = {}): FormGroup {
+    private crearSucursalGroup(s: SucursalCliente = {}): FormGroup {
         return this.fb.group({
-            idMunicipio: [ub.idMunicipio || '', Validators.required],
-            direccion: [ub.direccion || '', Validators.required],
-            referencia: [ub.referencia || ''],
-            pais: [{ value: ub.pais || 'Venezuela', disabled: true }],
-            estado: [{ value: ub.estado || 'Nueva Esparta', disabled: true }],
+            idMunicipio: [s.idMunicipio || '', Validators.required],
+            direccion: [s.direccion || '', Validators.required],
+            puntoDeReferencia: [s.puntoDeReferencia || ''],
+            latitud: [s.latitud ?? null],
+            longitud: [s.longitud ?? null],
             reglas: this.fb.group({
-                horarioDesde: [ub.reglas?.horarioDesde || ''],
-                horarioHasta: [ub.reglas?.horarioHasta || ''],
-                diasRecepcion: [ub.reglas?.diasRecepcion || []],
-                requiereCita: [ub.reglas?.requiereCita ?? false],
-                instrucciones: [ub.reglas?.instrucciones || ''],
+                horaEntrega: [s.reglas?.horaEntrega || ''],
+                diasRecepcion: [s.reglas?.diasRecepcion || []],
+                requiereCita: [s.reglas?.requiereCita ?? false],
+                instrucciones: [s.reglas?.instrucciones || ''],
             }),
-            nombreContacto: [ub.nombreContacto || ''],
-            telefonoContacto: [ub.telefonoContacto || ''],
+            nombreContacto: [s.nombreContacto || ''],
+            telefonoContacto: [s.telefonoContacto || ''],
         });
     }
 
-    agregarUbicacion() {
-        this.ubicacionesForm.push(this.crearUbicacionGroup());
+    agregarSucursal() {
+        this.sucursalesForm.push(this.crearSucursalGroup());
     }
 
-    eliminarUbicacion(index: number) {
-        this.ubicacionesForm.removeAt(index);
+    eliminarSucursal(index: number) {
+        this.sucursalesForm.removeAt(index);
     }
 
     hideDialog() {
@@ -193,24 +202,39 @@ export class ClienteDialogComponent implements OnInit {
         this.errorMessage = '';
     }
 
+    obtenerNombreMunicipio(idMunicipio: string): string {
+        return (
+            this.municipios().find((m) => m.id_municipio === idMunicipio)
+                ?.nombre || ''
+        );
+    }
+
     async save() {
         this.submitted = true;
         this.errorMessage = '';
 
+        if (this.saving) return;
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            this.errorMessage =
+                'Complete todos los campos obligatorios marcados con *.';
             return;
         }
+        this.saving = true;
 
         const raw = this.form.getRawValue();
         const prioridadLabel =
-            this.prioridades().find((p) => p.id_prioridad === raw.idPrioridad)?.nombre_prioridad || '';
+            this.prioridades().find(
+                (p) => p.id_prioridad === raw.idPrioridad,
+            )?.nombre_prioridad || '';
 
         const clienteFinal: Cliente = {
             ...this.clienteData(),
             idPrefijo: raw.idPrefijo,
             documentoIdentidad: {
-                prefijo: this.prefijos().find((p) => p.id_prefijo === raw.idPrefijo)?.prefijo || '',
+                prefijo:
+                    this.prefijos().find(
+                        (p) => p.id_prefijo === raw.idPrefijo,
+                    )?.prefijo || 'V',
                 numero: raw.rif,
             },
             nombreComercial: raw.nombreComercial,
@@ -219,36 +243,40 @@ export class ClienteDialogComponent implements OnInit {
             personaContacto: raw.personaContacto,
             idPrioridad: raw.idPrioridad,
             prioridad: prioridadLabel,
-            ubicaciones: raw.ubicaciones
-                .filter((u: any) => u.direccion?.trim())
-                .map((u: any) => ({
-                    idMunicipio: u.idMunicipio,
-                    municipio: this.municipios().find((m) => m.id_municipio === u.idMunicipio)?.nombre || '',
-                    direccion: u.direccion,
-                    referencia: u.referencia,
-                    pais: 'Venezuela',
-                    estado: 'Nueva Esparta',
-                    nombreContacto: u.nombreContacto,
-                    telefonoContacto: u.telefonoContacto,
+            sucursales: raw.sucursales
+                .filter((s: any) => s.direccion?.trim())
+                .map((s: any) => ({
+                    idMunicipio: s.idMunicipio,
+                    direccion: s.direccion,
+                    puntoDeReferencia: s.puntoDeReferencia,
+                    latitud: s.latitud ? Number(s.latitud) : undefined,
+                    longitud: s.longitud ? Number(s.longitud) : undefined,
+                    nombreContacto: s.nombreContacto,
+                    telefonoContacto: s.telefonoContacto,
                     reglas: {
-                        horarioDesde: u.reglas.horarioDesde,
-                        horarioHasta: u.reglas.horarioHasta,
-                        diasRecepcion: u.reglas.diasRecepcion,
-                        requiereCita: u.reglas.requiereCita,
-                        instrucciones: u.reglas.instrucciones,
+                        horaEntrega: s.reglas.horaEntrega,
+                        diasRecepcion: s.reglas.diasRecepcion,
+                        requiereCita: s.reglas.requiereCita,
+                        instrucciones: s.reglas.instrucciones,
                     },
                 })),
         };
 
         try {
-            const clienteId = await this.clienteService.crearCliente(clienteFinal);
-            await this.clienteService.guardarUbicaciones(clienteId, clienteFinal.ubicaciones || []);
+            const clienteId =
+                await this.clienteService.crearCliente(clienteFinal);
+            await this.clienteService.guardarSucursales(
+                clienteId,
+                clienteFinal.sucursales || [],
+            );
             clienteFinal.id = clienteId;
             clienteFinal.idCliente = clienteId;
             this.onSave.emit(clienteFinal);
             this.visible.set(false);
+            this.saving = false;
         } catch (e: any) {
             this.errorMessage = e.message || 'Error al guardar el cliente';
+            this.saving = false;
         }
     }
 }

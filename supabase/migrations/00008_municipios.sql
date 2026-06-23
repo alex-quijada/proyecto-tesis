@@ -2,8 +2,10 @@
 -- Catálogo de municipios de Nueva Esparta
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS public.municipios (
-    id_municipio uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+DROP TABLE IF EXISTS public.municipios CASCADE;
+
+CREATE TABLE public.municipios (
+    id_municipio uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre character varying(100) NOT NULL UNIQUE,
     capital character varying(100) NOT NULL
 );
@@ -39,8 +41,11 @@ WHERE u.municipio = m.nombre
 -- ==========================================
 ALTER TABLE public.municipios ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "municipios_select_policy" ON public.municipios
-    FOR SELECT TO authenticated USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'municipios_select_policy' AND tablename = 'municipios') THEN
+        CREATE POLICY "municipios_select_policy" ON public.municipios FOR SELECT TO authenticated USING (true);
+    END IF;
+END $$;
 
 -- ==========================================
 -- RPC: Obtener municipios
@@ -96,7 +101,7 @@ BEGIN
         COALESCE(u.estado, 'Nueva Esparta'),
         COALESCE(u.pais, 'Venezuela'),
         u.referencia,
-        u.nombre_contacto,
+        u.nombre_sucursal,
         u.telefono_contacto
     FROM jsonb_to_recordset(p_ubicaciones) AS u(
         direccion text,
@@ -105,7 +110,7 @@ BEGIN
         estado character varying(100),
         pais character varying(100),
         referencia text,
-        nombre_contacto character varying(100),
+        nombre_sucursal character varying(100),
         telefono_contacto character varying(20)
     )
     LEFT JOIN public.municipios m ON m.id_municipio = u.id_municipio::uuid;
@@ -114,9 +119,10 @@ $$;
 
 -- ==========================================
 -- Actualizar RPC obtener_ubicaciones_cliente
--- para incluir id_municipio y nombre_contacto
+-- para incluir id_municipio y nombre_sucursal
 -- ==========================================
-CREATE OR REPLACE FUNCTION public.obtener_ubicaciones_cliente(p_id_cliente uuid)
+DROP FUNCTION IF EXISTS public.obtener_ubicaciones_cliente(uuid);
+CREATE FUNCTION public.obtener_ubicaciones_cliente(p_id_cliente uuid)
 RETURNS TABLE(
     id_ubicacion uuid,
     direccion_completa text,
@@ -125,7 +131,7 @@ RETURNS TABLE(
     referencia text,
     pais character varying(100),
     estado_provincia character varying(100),
-    nombre_contacto character varying(100),
+    nombre_sucursal character varying(100),
     telefono_contacto character varying(20)
 )
 LANGUAGE sql

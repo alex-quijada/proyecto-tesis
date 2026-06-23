@@ -1,3 +1,5 @@
+export type PrefijoDoc = 'V' | 'E' | 'J' | 'P' | 'G';
+
 export type Empresa =
     | 'INVERSIONES ANGELO, C.A.'
     | 'DISTRIBUIDORA METROPOL C.A.'

@@ -1,14 +1,27 @@
+import { PrefijoDoc } from '../rutas/models/pdf-data.model';
+
 export interface DocumentoIdentidad {
-    prefijo: string;
+    prefijo: PrefijoDoc;
     numero: string;
 }
 
-export interface ReglasCliente {
-    horarioDesde?: string;
-    horarioHasta?: string;
+export interface ReglasSucursal {
+    horaEntrega?: string;
     diasRecepcion?: string[];
     requiereCita?: boolean;
     instrucciones?: string;
+}
+
+export interface SucursalCliente {
+    id?: string;
+    direccion?: string;
+    puntoDeReferencia?: string;
+    idMunicipio?: string;
+    telefonoContacto?: string;
+    nombreContacto?: string;
+    reglas?: ReglasSucursal;
+    latitud?: number;
+    longitud?: number;
 }
 
 export interface Cliente {
@@ -20,22 +33,8 @@ export interface Cliente {
     telefono?: string;
     correo?: string;
     personaContacto?: string;
-    reglas?: ReglasCliente;
+    reglas?: ReglasSucursal;
     idPrioridad?: string;
     prioridad?: string;
-    ubicaciones?: UbicacionResumen[];
-}
-
-export interface UbicacionResumen {
-    id?: string;
-    idUbicacion?: string;
-    direccion?: string;
-    municipio?: string;
-    idMunicipio?: string;
-    referencia?: string;
-    pais?: string;
-    estado?: string;
-    nombreContacto?: string;
-    telefonoContacto?: string;
-    reglas?: ReglasCliente;
+    sucursales?: SucursalCliente[];
 }
