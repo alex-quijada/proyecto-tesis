@@ -1,288 +1,263 @@
 <p-dialog
     [(visible)]="visible"
-    [style]="{ width: '800px' }"
-    [header]="guiaData().id ? 'Modificar Guía de Despacho' : 'Agregar Guía de Despacho'"
+    [style]="{ width: '1100px' }"
+    header="Crear Guía de Despacho"
     [modal]="true"
+    [maximizable]="true"
+    (onShow)="cargarEmpresas()"
 >
     <ng-template #content>
-        <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-            <p-message
-                *ngIf="errorMessage"
-                severity="error"
-                [text]="errorMessage"
-                class="mb-2"
-            ></p-message>
+        <input #pdfInput type="file" accept=".pdf" (change)="onPDFSelected($event)" class="hidden" />
 
-            <p-fluid>
-                <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
-                >
-                    <i class="pi pi-file mr-1"></i>
-                    Información de la Guía
+        @if (cargandoPDF()) {
+            <div class="flex flex-col items-center justify-center py-8">
+                <p-progressSpinner />
+                <span class="mt-3 text-surface-500">Procesando PDF, por favor espere...</span>
+            </div>
+        } @else {
+            <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
+                <p-message
+                    *ngIf="errorMessage"
+                    severity="error"
+                    [text]="errorMessage"
+                    class="mb-2"
+                ></p-message>
+
+                <div class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-1">
+                    <div class="font-semibold text-md flex items-center gap-2">
+                        <i class="pi pi-truck"></i>
+                        <span>Información de la Guía</span>
+                    </div>
+                    <p-button
+                        label="Escanear PDF"
+                        icon="pi pi-file-pdf"
+                        severity="danger"
+                        size="small"
+                        (onClick)="scanPDF()"
+                    />
                 </div>
 
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >N° de Guía <span class="text-red-500">*</span></label
-                        >
-                        <input pInputText formControlName="numeroGuia" placeholder="G-2026-XXXX" />
-                        <small
-                            *ngIf="submitted && form.get('numeroGuia')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Cliente <span class="text-red-500">*</span></label
-                        >
-                        <p-select
-                            formControlName="idCliente"
-                            [options]="clientes"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar cliente"
-                            appendTo="body"
-                        />
-                        <small
-                            *ngIf="submitted && form.get('idCliente')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Chofer <span class="text-red-500">*</span></label
-                        >
-                        <p-select
-                            formControlName="idChofer"
-                            [options]="choferes"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar chofer"
-                            appendTo="body"
-                        />
-                        <small
-                            *ngIf="submitted && form.get('idChofer')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Vehículo <span class="text-red-500">*</span></label
-                        >
-                        <p-select
-                            formControlName="idVehiculo"
-                            [options]="vehiculos"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar vehículo"
-                            appendTo="body"
-                        />
-                        <small
-                            *ngIf="submitted && form.get('idVehiculo')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Municipio <span class="text-red-500">*</span></label
-                        >
-                        <p-select
-                            formControlName="municipio"
-                            [options]="municipios"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Seleccionar municipio"
-                            appendTo="body"
-                        />
-                        <small
-                            *ngIf="submitted && form.get('municipio')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Estado <span class="text-red-500">*</span></label
-                        >
-                        <p-select
-                            formControlName="estado"
-                            [options]="estados"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Estado"
-                            appendTo="body"
-                        />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-12 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Dirección de Entrega <span class="text-red-500">*</span></label
-                        >
-                        <textarea
-                            pTextarea
-                            formControlName="direccionEntrega"
-                            rows="2"
-                            placeholder="Dirección completa"
-                        ></textarea>
-                        <small
-                            *ngIf="submitted && form.get('direccionEntrega')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                </div>
-            </p-fluid>
-
-            <p-divider />
-
-            <p-fluid>
-                <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
-                >
-                    <i class="pi pi-box mr-1"></i>
-                    Datos de la Carga
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Peso (Kg) <span class="text-red-500">*</span></label
-                        >
-                        <p-inputnumber
-                            formControlName="pesoKg"
-                            [min]="0"
-                            [suffix]="' Kg'"
-                            placeholder="0"
-                        />
-                        <small *ngIf="submitted && form.get('pesoKg')?.invalid" class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold"
-                            >Precio de Carga ($) <span class="text-red-500">*</span></label
-                        >
-                        <p-inputnumber
-                            formControlName="precioCarga"
-                            [min]="0"
-                            mode="currency"
-                            currency="USD"
-                            placeholder="0.00"
-                        />
-                        <small
-                            *ngIf="submitted && form.get('precioCarga')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2 pt-5">
-                        <p-selectbutton
-                            formControlName="pdfFuente"
-                            [options]="fuentes"
-                            optionLabel="label"
-                            optionValue="value"
-                        />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-12 flex flex-col gap-2">
-                        <label class="font-semibold">Observaciones</label>
-                        <textarea
-                            pTextarea
-                            formControlName="observaciones"
-                            rows="2"
-                            placeholder="Notas adicionales..."
-                        ></textarea>
-                    </div>
-                </div>
-            </p-fluid>
-
-            <p-divider />
-
-            <p-fluid>
-                <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
-                >
-                    <i class="pi pi-calendar mr-1"></i>
-                    Registro de Tiempos
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Fecha de Carga</label>
-                        <p-datepicker
-                            formControlName="fechaCarga"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body"
-                            [showTime]="true"
-                            hourFormat="24"
-                        />
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Salida</label>
-                        <p-datepicker
-                            formControlName="fechaSalida"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body"
-                            [showTime]="true"
-                            hourFormat="24"
-                        />
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Llegada a Cliente</label>
-                        <p-datepicker
-                            formControlName="fechaLlegadaCliente"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body"
-                            [showTime]="true"
-                            hourFormat="24"
-                        />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-4 flex flex-col gap-2">
-                        <label class="font-semibold">Regreso a Base</label>
-                        <p-datepicker
-                            formControlName="fechaRegreso"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body"
-                            [showTime]="true"
-                            hourFormat="24"
-                        />
-                    </div>
-                    <div class="col-span-4 flex flex-col gap-2 pt-5">
-                        <div class="flex items-center gap-2">
-                            <p-checkbox
-                                formControlName="tuvoDevolucion"
-                                [binary]="true"
-                                inputId="devolucion"
+                <p-fluid>
+                    <div class="grid grid-cols-12 gap-3 mt-2">
+                        <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Empresa <span class="text-red-500">*</span></label>
+                            <p-select
+                                formControlName="empresa"
+                                [options]="empresasOptions()"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar empresa"
+                                appendTo="body"
                             />
-                            <label for="devolucion" class="font-semibold">Tuvo Devolución</label>
+                            <small *ngIf="submitted && form.get('empresa')?.invalid" class="text-red-500">Requerido</small>
+                        </div>
+                        <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Código de Guía</label>
+                            <input pInputText formControlName="codigoGuia" placeholder="batch/out/XXX" />
+                        </div>
+                        <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Estado</label>
+                            <p-select
+                                formControlName="estado"
+                                [options]="estadosDisponibles()"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Estado"
+                                appendTo="body"
+                            />
                         </div>
                     </div>
-                </div>
-            </p-fluid>
-        </form>
+
+                    <div class="grid grid-cols-12 gap-3 mt-2">
+                        <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Chofer <span class="text-red-500">*</span></label>
+                            <p-select
+                                formControlName="idChofer"
+                                [options]="choferes"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar chofer"
+                                appendTo="body"
+                            />
+                            <small *ngIf="submitted && form.get('idChofer')?.invalid" class="text-red-500">Requerido</small>
+                        </div>
+                        <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Vehículo <span class="text-red-500">*</span></label>
+                            <p-select
+                                formControlName="idVehiculo"
+                                [options]="vehiculos"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar vehículo"
+                                appendTo="body"
+                            />
+                            <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500">Requerido</small>
+                        </div>
+                        <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Municipio / Ruta <span class="text-red-500">*</span></label>
+                            <p-select
+                                formControlName="municipio"
+                                [options]="municipios"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar municipio"
+                                appendTo="body"
+                            />
+                            <small *ngIf="submitted && form.get('municipio')?.invalid" class="text-red-500">Requerido</small>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-3 mt-2">
+                        <div class="col-span-12 flex flex-col gap-2">
+                            <label class="font-semibold">Observaciones</label>
+                            <textarea
+                                pTextarea
+                                formControlName="observaciones"
+                                rows="2"
+                                placeholder="Notas adicionales..."
+                            ></textarea>
+                        </div>
+                    </div>
+                </p-fluid>
+
+                <p-divider />
+
+                <p-fluid>
+                    <div class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-1">
+                        <div class="font-semibold text-md flex items-center gap-2">
+                            <i class="pi pi-file"></i>
+                            <span>Facturas de la Guía</span>
+                            <span class="text-sm text-surface-400 font-normal">({{ facturas.length }})</span>
+                        </div>
+                        <p-button
+                            label="Agregar Factura"
+                            icon="pi pi-plus"
+                            size="small"
+                            severity="info"
+                            (onClick)="addFactura()"
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-4 mt-3">
+                        @for (factura of facturas.controls; track $index) {
+                            <div
+                                [formGroup]="$any(factura)"
+                                class="border border-surface-300 dark:border-surface-600 rounded p-3"
+                            >
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-semibold text-sm text-primary">
+                                        <i class="pi pi-receipt mr-1"></i>
+                                        Factura #{{ $index + 1 }}
+                                    </span>
+                                    @if (facturas.controls.length > 1) {
+                                        <p-button
+                                            icon="pi pi-trash"
+                                            severity="danger"
+                                            text
+                                            size="small"
+                                            pTooltip="Eliminar factura"
+                                            (onClick)="removeFactura($index)"
+                                        />
+                                    }
+                                </div>
+
+                                <div class="grid grid-cols-12 gap-3">
+                                    <div class="col-span-4 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Cliente <span class="text-red-500">*</span></label>
+                                        <p-select
+                                            formControlName="idCliente"
+                                            [options]="clientesOptions"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            placeholder="Seleccionar cliente"
+                                            appendTo="body"
+                                            (onChange)="onClienteChange($index)"
+                                        />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Sucursal</label>
+                                        <p-select
+                                            formControlName="idSucursal"
+                                            [options]="getSucursales(factura.get('idCliente')?.value)"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            placeholder="Seleccionar sucursal"
+                                            appendTo="body"
+                                            (onChange)="onSucursalChange($index)"
+                                        />
+                                    </div>
+                                    <div class="col-span-2 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">N° Factura <span class="text-red-500">*</span></label>
+                                        <input pInputText formControlName="numeroFactura" placeholder="FAC-XXX" />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Prioridad</label>
+                                        <input pInputText formControlName="prioridad" readonly />
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-12 gap-3 mt-2">
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">RIF / Cédula</label>
+                                        <input pInputText formControlName="rifCliente" readonly />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Nombre del Cliente</label>
+                                        <input pInputText formControlName="nombreCliente" readonly />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Teléfono</label>
+                                        <input pInputText formControlName="telefono" readonly />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Dirección</label>
+                                        <input pInputText formControlName="direccion" readonly />
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-12 gap-3 mt-2">
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Total USD <span class="text-red-500">*</span></label>
+                                        <p-inputnumber
+                                            formControlName="totalUSD"
+                                            [min]="0"
+                                            mode="currency"
+                                            currency="USD"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div class="col-span-3 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Total Bs. <span class="text-red-500">*</span></label>
+                                        <p-inputnumber
+                                            formControlName="totalVES"
+                                            [min]="0"
+                                            mode="currency"
+                                            currency="VES"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div class="col-span-6 flex flex-col gap-1">
+                                        <label class="text-xs font-semibold">Reglas de Recepción</label>
+                                        <input pInputText [value]="getReglasDisplay(factura.get('reglasRecepcion')?.value || '')" readonly />
+                                    </div>
+                                </div>
+                            </div>
+                        } @empty {
+                            <div class="text-center py-4 text-surface-400 text-sm border border-dashed border-surface-300 dark:border-surface-600 rounded">
+                                <i class="pi pi-inbox text-xl block mb-1"></i>
+                                No hay facturas registradas. Agregue una factura para continuar.
+                            </div>
+                        }
+                    </div>
+                </p-fluid>
+            </form>
+        }
     </ng-template>
 
     <ng-template #footer>
-        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
-        <p-button label="Guardar Guía" icon="pi pi-check" (onClick)="save()" />
+        @if (!cargandoPDF()) {
+            <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+            <p-button label="Guardar Guía" icon="pi pi-check" (onClick)="save()" />
+        }
     </ng-template>
 </p-dialog>

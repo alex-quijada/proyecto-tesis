@@ -1,16 +1,25 @@
-export const MUNICIPIOS_NUEVA_ESPARTA = [
-    { label: 'Antolín del Campo', value: 'ANTOLIN_DEL_CAMPO' },
-    { label: 'Arismendi', value: 'ARISMENDI' },
-    { label: 'Díaz', value: 'DIAZ' },
-    { label: 'García', value: 'GARCIA' },
-    { label: 'Gómez', value: 'GOMEZ' },
-    { label: 'Maneiro', value: 'MANEIRO' },
-    { label: 'Marcano', value: 'MARCANO' },
-    { label: 'Mariño', value: 'MARINO' },
-    { label: 'Península de Macanao', value: 'PENINSULA_DE_MACANAO' },
-    { label: 'Tubores', value: 'TUBORES' },
-    { label: 'Villalba', value: 'VILLALBA' },
-];
+export interface ReglasRecepcion {
+    horaEntrega?: string;
+    diasRecepcion?: string[];
+    requiereCita?: boolean;
+    instrucciones?: string;
+}
+
+export interface FacturaGuia {
+    id: string;
+    numeroFactura: string;
+    idCliente: string;
+    nombreCliente: string;
+    rifCliente: string;
+    telefono: string;
+    direccion: string;
+    idSucursal?: string;
+    direccionSucursal?: string;
+    totalUSD: number;
+    totalVES: number;
+    prioridad: string;
+    reglasRecepcion?: ReglasRecepcion;
+}
 
 export interface EventoGuia {
     id: string;
@@ -23,29 +32,22 @@ export interface EventoGuia {
 
 export interface GuiaDespacho {
     id: string;
+    empresa: string;
     numeroGuia: string;
-    idRuta?: string;
-    idCliente: string;
-    nombreCliente: string;
-    rifCliente: string;
+    codigoGuia?: string;
     idChofer: string;
     nombreChofer: string;
+    cedulaChofer: string;
     idVehiculo: string;
     placaVehiculo: string;
-    fechaCreacion: string;
-    fechaCarga?: string;
-    fechaSalida?: string;
-    fechaLlegadaCliente?: string;
-    fechaRegreso?: string;
+    camion?: string;
     municipio: string;
-    direccionEntrega: string;
-    precioCarga: number;
-    pesoKg: number;
-    estado: 'EN_PROCESO' | 'CARGADO' | 'EN_ESPERA' | 'FINALIZADO';
-    tuvoDevolucion: boolean;
-    observaciones?: string;
+    estado: string;
     pdfFuente: 'MANUAL' | 'PDF';
+    fechaCreacion: string;
+    observaciones?: string;
     eventos: EventoGuia[];
+    facturas: FacturaGuia[];
 }
 
 export interface Ruta {
@@ -60,190 +62,167 @@ export interface Ruta {
     estado: 'ACTIVA' | 'FINALIZADA' | 'PENDIENTE';
 }
 
+export const MUNICIPIOS_NUEVA_ESPARTA = [
+    { label: 'Antolín del Campo', value: 'ANTOLIN_DEL_CAMPO' },
+    { label: 'Arismendi', value: 'ARISMENDI' },
+    { label: 'Díaz', value: 'DIAZ' },
+    { label: 'García', value: 'GARCIA' },
+    { label: 'Gómez', value: 'GOMEZ' },
+    { label: 'Maneiro', value: 'MANEIRO' },
+    { label: 'Marcano', value: 'MARCANO' },
+    { label: 'Mariño', value: 'MARINO' },
+    { label: 'Península de Macanao', value: 'PENINSULA_DE_MACANAO' },
+    { label: 'Tubores', value: 'TUBORES' },
+    { label: 'Villalba', value: 'VILLALBA' },
+];
+
+export const EMPRESAS = [
+    { label: 'Inversiones Angelo, C.A.', value: 'INVERSIONES ANGELO, C.A.' },
+    { label: 'Distribuidora Metropol C.A.', value: 'DISTRIBUIDORA METROPOL C.A.' },
+    { label: 'Inversiones Malesi, C.A.', value: 'INVERSIONES MALESI, C.A.' },
+];
+
 export const ESTADOS_GUIA = [
+    { label: 'Nuevo', value: 'NUEVO', severity: 'info' },
+    { label: 'En Carga de Mercancía', value: 'EN_CARGA_MERCANCIA', severity: 'warn' },
     { label: 'En Proceso', value: 'EN_PROCESO', severity: 'info' },
-    { label: 'Cargado', value: 'CARGADO', severity: 'warn' },
     { label: 'En Espera', value: 'EN_ESPERA', severity: 'warn' },
     { label: 'Finalizado', value: 'FINALIZADO', severity: 'success' },
+    { label: 'Incidencias', value: 'INCIDENCIAS', severity: 'danger' },
 ];
+
+export const ESTADOS_POR_ROL: Record<string, string[]> = {
+    ANALISTA: ['NUEVO', 'EN_CARGA_MERCANCIA'],
+    CHOFER: ['EN_PROCESO', 'EN_ESPERA', 'FINALIZADO', 'INCIDENCIAS'],
+    ADMIN: ['NUEVO', 'EN_CARGA_MERCANCIA', 'EN_PROCESO', 'EN_ESPERA', 'FINALIZADO', 'INCIDENCIAS'],
+};
 
 export const GUIAS_MOCK: GuiaDespacho[] = [
     {
         id: 'g-1',
+        empresa: 'INVERSIONES ANGELO, C.A.',
         numeroGuia: 'G-2026-0001',
-        idCliente: 'cli-1',
-        nombreCliente: 'Distribuidora Polar C.A.',
-        rifCliente: 'J-123456789',
+        codigoGuia: 'batch/out/001',
         idChofer: 'ch-1',
         nombreChofer: 'Carlos José Martínez',
+        cedulaChofer: 'V-12345678',
         idVehiculo: '1',
         placaVehiculo: 'AB123CD',
-        fechaCreacion: '2026-06-01',
-        fechaCarga: '2026-06-02',
-        fechaSalida: '2026-06-02 08:30',
-        fechaLlegadaCliente: '2026-06-02 10:45',
-        fechaRegreso: '2026-06-02 12:00',
-        municipio: 'Mariño',
-        direccionEntrega: 'Av. Principal, CC Sambil, Piso 2',
-        precioCarga: 1250.0,
-        pesoKg: 850,
+        camion: '[AB123CD] Toyota Hilux',
+        municipio: 'MARINO',
         estado: 'FINALIZADO',
-        tuvoDevolucion: false,
         pdfFuente: 'MANUAL',
-        eventos: [
+        fechaCreacion: '2026-06-01',
+        eventos: [],
+        facturas: [
             {
-                id: 'ev-1',
-                idGuia: 'g-1',
-                tipo: 'SALIDA',
-                fecha: '2026-06-02 08:30',
-                descripcion: 'Salida desde base',
-                ubicacion: 'Porlamar',
-            },
-            {
-                id: 'ev-2',
-                idGuia: 'g-1',
-                tipo: 'LLEGADA_CLIENTE',
-                fecha: '2026-06-02 10:45',
-                descripcion: 'Llegada a cliente',
-                ubicacion: 'CC Sambil',
-            },
-            {
-                id: 'ev-3',
-                idGuia: 'g-1',
-                tipo: 'REGRESO_BASE',
-                fecha: '2026-06-02 12:00',
-                descripcion: 'Regreso a base',
-                ubicacion: 'Porlamar',
+                id: 'fact-1',
+                numeroFactura: 'FAC-001',
+                idCliente: 'cli-1',
+                nombreCliente: 'Distribuidora Los Andes C.A.',
+                rifCliente: 'J-123456789',
+                telefono: '0295-1234567',
+                direccion: 'Av. Principal, Edif. Los Andes, Piso 1',
+                totalUSD: 1250.0,
+                totalVES: 45000.0,
+                prioridad: 'Alta',
             },
         ],
     },
     {
         id: 'g-2',
+        empresa: 'DISTRIBUIDORA METROPOL C.A.',
         numeroGuia: 'G-2026-0002',
-        idCliente: 'cli-2',
-        nombreCliente: 'Cervecería Regional C.A.',
-        rifCliente: 'J-987654321',
         idChofer: 'ch-2',
         nombreChofer: 'Luis Alberto Rodríguez',
+        cedulaChofer: 'V-23456789',
         idVehiculo: '2',
         placaVehiculo: 'EF456GH',
-        fechaCreacion: '2026-06-03',
-        fechaCarga: '2026-06-03',
-        fechaSalida: '2026-06-03 09:00',
-        municipio: 'Maneiro',
-        direccionEntrega: 'Zona Industrial, Calle 5',
-        precioCarga: 2340.0,
-        pesoKg: 1500,
-        estado: 'CARGADO',
-        tuvoDevolucion: false,
+        municipio: 'MANEIRO',
+        estado: 'EN_CARGA_MERCANCIA',
         pdfFuente: 'MANUAL',
-        eventos: [
+        fechaCreacion: '2026-06-03',
+        eventos: [],
+        facturas: [
             {
-                id: 'ev-4',
-                idGuia: 'g-2',
-                tipo: 'SALIDA',
-                fecha: '2026-06-03 09:00',
-                descripcion: 'Salida hacia cliente',
-                ubicacion: 'Porlamar',
+                id: 'fact-2',
+                numeroFactura: 'FAC-002',
+                idCliente: 'cli-2',
+                nombreCliente: 'Comercial El Ávila S.R.L.',
+                rifCliente: 'V-987654321',
+                telefono: '0295-7654321',
+                direccion: 'Calle Sucre, Local 3-A',
+                totalUSD: 2340.0,
+                totalVES: 85000.0,
+                prioridad: 'Media',
             },
         ],
     },
     {
         id: 'g-3',
+        empresa: 'INVERSIONES MALESI, C.A.',
         numeroGuia: 'G-2026-0003',
-        idCliente: 'cli-3',
-        nombreCliente: 'Supermercado Central Madeirense',
-        rifCliente: 'V-12345678',
         idChofer: 'ch-1',
         nombreChofer: 'Carlos José Martínez',
+        cedulaChofer: 'V-12345678',
         idVehiculo: '1',
         placaVehiculo: 'AB123CD',
-        fechaCreacion: '2026-06-04',
-        municipio: 'Maneiro',
-        direccionEntrega: 'CC Costa Azul, Nivel PB',
-        precioCarga: 980.0,
-        pesoKg: 600,
-        estado: 'EN_ESPERA',
-        tuvoDevolucion: false,
+        municipio: 'MANEIRO',
+        estado: 'NUEVO',
         pdfFuente: 'MANUAL',
+        fechaCreacion: '2026-06-04',
         eventos: [],
+        facturas: [],
     },
     {
         id: 'g-4',
+        empresa: 'INVERSIONES ANGELO, C.A.',
         numeroGuia: 'G-2026-0004',
-        idCliente: 'cli-4',
-        nombreCliente: 'Farmatodo S.A.',
-        rifCliente: 'J-456789123',
         idChofer: 'ch-3',
         nombreChofer: 'Pedro Antonio Gómez',
+        cedulaChofer: 'V-34567890',
         idVehiculo: '4',
         placaVehiculo: 'XY012ZZ',
-        fechaCreacion: '2026-05-28',
-        fechaCarga: '2026-05-29',
-        fechaSalida: '2026-05-29 07:00',
-        fechaLlegadaCliente: '2026-05-29 08:15',
-        fechaRegreso: '2026-05-29 09:30',
-        municipio: 'Mariño',
-        direccionEntrega: 'Av. Las Américas, CC Sigo',
-        precioCarga: 3200.0,
-        pesoKg: 2200,
-        estado: 'FINALIZADO',
-        tuvoDevolucion: true,
+        municipio: 'MARINO',
+        estado: 'INCIDENCIAS',
         pdfFuente: 'PDF',
-        eventos: [
+        fechaCreacion: '2026-05-28',
+        eventos: [],
+        facturas: [
             {
-                id: 'ev-5',
-                idGuia: 'g-4',
-                tipo: 'SALIDA',
-                fecha: '2026-05-29 07:00',
-                descripcion: 'Salida desde base',
-                ubicacion: 'Porlamar',
-            },
-            {
-                id: 'ev-6',
-                idGuia: 'g-4',
-                tipo: 'LLEGADA_CLIENTE',
-                fecha: '2026-05-29 08:15',
-                descripcion: 'Llegada a cliente',
-                ubicacion: 'CC Sigo',
-            },
-            {
-                id: 'ev-7',
-                idGuia: 'g-4',
-                tipo: 'DEVOLUCION',
-                fecha: '2026-05-29 08:45',
-                descripcion: 'Devolución parcial: 3 cajas dañadas',
-                ubicacion: 'CC Sigo',
-            },
-            {
-                id: 'ev-8',
-                idGuia: 'g-4',
-                tipo: 'REGRESO_BASE',
-                fecha: '2026-05-29 09:30',
-                descripcion: 'Regreso con devolución',
-                ubicacion: 'Porlamar',
+                id: 'fact-4',
+                numeroFactura: 'FAC-004',
+                idCliente: 'cli-4',
+                nombreCliente: 'Ferretería El Martillo',
+                rifCliente: 'V-112233445',
+                telefono: '0295-3322114',
+                direccion: 'Av. Principal de Pampatar, Local 2',
+                totalUSD: 3200.0,
+                totalVES: 115000.0,
+                prioridad: 'Baja',
+                reglasRecepcion: {
+                    diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
+                    requiereCita: false,
+                    instrucciones: '',
+                },
             },
         ],
     },
     {
         id: 'g-5',
+        empresa: 'DISTRIBUIDORA METROPOL C.A.',
         numeroGuia: 'G-2026-0005',
-        idCliente: 'cli-5',
-        nombreCliente: "Automercado Plaza's",
-        rifCliente: 'V-87654321',
         idChofer: 'ch-4',
         nombreChofer: 'José Gregorio Blanco',
+        cedulaChofer: 'V-45678901',
         idVehiculo: '3',
         placaVehiculo: 'JK789LM',
-        fechaCreacion: '2026-06-05',
-        municipio: 'Arismendi',
-        direccionEntrega: 'Calle 4, Sector Bella Vista',
-        precioCarga: 560.0,
-        pesoKg: 200,
+        municipio: 'ARISMENDI',
         estado: 'EN_PROCESO',
-        tuvoDevolucion: false,
         pdfFuente: 'MANUAL',
+        fechaCreacion: '2026-06-05',
         eventos: [],
+        facturas: [],
     },
 ];
 

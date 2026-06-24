@@ -17,7 +17,6 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ChipModule } from 'primeng/chip';
 
 import { GuiaDialogComponent } from './components/guia-dialog.component';
-import { RutaDialogComponent } from './components/ruta-dialog.component';
 import {
     GuiaDespacho,
     Ruta,
@@ -26,7 +25,7 @@ import {
     ESTADOS_GUIA,
     MUNICIPIOS_NUEVA_ESPARTA,
 } from './data/rutas-mock';
-import { LectorGuiaComponent } from './components/lector-guia/lector-guia.component';
+import { AuthService } from '../../../auth/service/auth.service';
 
 @Component({
     selector: 'app-rutas',
@@ -47,8 +46,6 @@ import { LectorGuiaComponent } from './components/lector-guia/lector-guia.compon
         TooltipModule,
         ChipModule,
         GuiaDialogComponent,
-        RutaDialogComponent,
-        LectorGuiaComponent,
     ],
     providers: [ConfirmationService, MessageService],
     templateUrl: './rutas.component.html',
@@ -56,13 +53,14 @@ import { LectorGuiaComponent } from './components/lector-guia/lector-guia.compon
 export class RutasComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
+    private authService = inject(AuthService);
 
     guias = signal<GuiaDespacho[]>([]);
     rutas = signal<Ruta[]>([]);
 
     guiaDialogVisible = false;
-    rutaDialogVisible = false;
     editingGuia: GuiaDespacho = {} as GuiaDespacho;
+    userRole: string = 'ADMIN';
 
     filtroEstado: string | null = null;
     filtroMunicipio: string | null = null;
@@ -81,14 +79,21 @@ export class RutasComponent implements OnInit {
     estadoSeverities: Record<
         string,
         'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
-    > = {
-        EN_PROCESO: 'info',
-        CARGADO: 'warn',
-        EN_ESPERA: 'warn',
-        FINALIZADO: 'success',
-    };
+    > = {};
 
     constructor() {
+        const rawRole = this.authService.getUserRole();
+        const role = rawRole ? String(rawRole).toLowerCase() : '';
+        if (role === 'administrador' || role === 'coordinador') {
+            this.userRole = 'ADMIN';
+        } else if (role === 'analista') {
+            this.userRole = 'ANALISTA';
+        } else if (role === 'chofer' || role === 'ayudante') {
+            this.userRole = 'CHOFER';
+        } else {
+            this.userRole = 'ADMIN';
+        }
+
         for (const e of ESTADOS_GUIA) {
             this.estadoLabels[e.value] = e.label;
             this.estadoSeverities[e.value] = e.severity as any;
@@ -125,13 +130,9 @@ export class RutasComponent implements OnInit {
 
     onRowCollapse(event: any) {}
 
-    openNuevaGuia() {
+    openCrearGuia() {
         this.editingGuia = {} as GuiaDespacho;
         this.guiaDialogVisible = true;
-    }
-
-    openNuevaRuta() {
-        this.rutaDialogVisible = true;
     }
 
     editGuia(guia: GuiaDespacho) {
@@ -161,20 +162,9 @@ export class RutasComponent implements OnInit {
         }
     }
 
-    onSaveRuta(ruta: Ruta) {
-        ruta.id = `r-${Date.now()}`;
-        ruta.estado = 'PENDIENTE';
-        this.rutas.set([ruta, ...this.rutas()]);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Ruta creada',
-            detail: `Ruta ${ruta.codigo} asignada exitosamente.`,
-        });
-    }
-
     deleteGuia(guia: GuiaDespacho) {
         this.confirmationService.confirm({
-            message: `¿Eliminar la guía <strong>${guia.numeroGuia}</strong> de ${guia.nombreCliente}?`,
+            message: `¿Eliminar la guía <strong>${guia.numeroGuia}</strong>?`,
             header: 'Confirmar Eliminación',
             icon: 'pi pi-exclamation-triangle',
             accept: () => {

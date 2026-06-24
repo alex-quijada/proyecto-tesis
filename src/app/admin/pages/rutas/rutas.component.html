@@ -7,21 +7,14 @@
         <p class="text-sm text-surface-500">Gestión de guías de despacho y rutas de entrega</p>
     </div>
 
-    <app-lector-guia></app-lector-guia>
     <p-toolbar styleClass="mb-6">
         <ng-template #start>
             <div class="flex gap-2 items-center">
                 <p-button
-                    label="Nueva Ruta"
-                    icon="pi pi-sitemap"
-                    severity="info"
-                    (onClick)="openNuevaRuta()"
-                />
-                <p-button
-                    label="Agregar Guía"
+                    label="Crear Guía"
                     icon="pi pi-plus"
                     severity="success"
-                    (onClick)="openNuevaGuia()"
+                    (onClick)="openCrearGuia()"
                 />
 
                 <p-select
@@ -58,7 +51,7 @@
         [rowsPerPageOptions]="[5, 10, 20, 50]"
         [globalFilterFields]="[
             'numeroGuia',
-            'nombreCliente',
+            'empresa',
             'nombreChofer',
             'municipio',
             'placaVehiculo',
@@ -95,21 +88,19 @@
                 <th pSortableColumn="numeroGuia" style="min-width: 10rem">
                     N° Guía <p-sortIcon field="numeroGuia" />
                 </th>
-                <th pSortableColumn="nombreCliente" style="min-width: 14rem">
-                    Cliente <p-sortIcon field="nombreCliente" />
+                <th pSortableColumn="empresa" style="min-width: 12rem">
+                    Empresa <p-sortIcon field="empresa" />
                 </th>
                 <th pSortableColumn="nombreChofer" style="min-width: 12rem">
                     Chofer <p-sortIcon field="nombreChofer" />
                 </th>
                 <th style="min-width: 8rem">Vehículo</th>
                 <th pSortableColumn="municipio" style="min-width: 8rem">
-                    Municipio <p-sortIcon field="municipio" />
+                    Ruta <p-sortIcon field="municipio" />
                 </th>
+                <th style="min-width: 6rem">Facturas</th>
                 <th pSortableColumn="estado" style="min-width: 8rem">
                     Estado <p-sortIcon field="estado" />
-                </th>
-                <th pSortableColumn="precioCarga" style="min-width: 7rem">
-                    Precio <p-sortIcon field="precioCarga" />
                 </th>
                 <th style="min-width: 8rem">Fecha</th>
                 <th style="width: 90px">Acciones</th>
@@ -124,33 +115,39 @@
                         text
                         size="small"
                         (onClick)="dt.toggleRow(guia, $event)"
-                        pTooltip="Ver vida de la guía"
+                        pTooltip="Ver detalle"
                     />
                 </td>
                 <td>
                     <span class="font-semibold text-primary">{{ guia.numeroGuia }}</span>
                 </td>
-                <td class="font-bold text-surface-900 dark:text-surface-0">
-                    {{ guia.nombreCliente }}
+                <td>
+                    <span class="text-sm">{{ guia.empresa }}</span>
                 </td>
                 <td>
                     <div class="flex flex-col">
                         <span>{{ guia.nombreChofer }}</span>
-                        <span class="text-xs text-surface-400">{{ guia.placaVehiculo }}</span>
+                        <span class="text-xs text-surface-400">{{ guia.cedulaChofer }}</span>
                     </div>
                 </td>
                 <td>
-                    <span class="font-semibold">{{ guia.placaVehiculo }}</span>
+                    <div class="flex flex-col">
+                        <span class="font-semibold">{{ guia.placaVehiculo }}</span>
+                        <span class="text-xs text-surface-400">{{ guia.camion }}</span>
+                    </div>
                 </td>
                 <td>{{ guia.municipio }}</td>
+                <td>
+                    <p-chip
+                        [label]="guia.facturas.length + ' factura(s)'"
+                        styleClass="text-xs"
+                    />
+                </td>
                 <td>
                     <p-tag
                         [value]="getEstadoLabel(guia.estado)"
                         [severity]="getEstadoSeverity(guia.estado)"
                     />
-                </td>
-                <td class="text-right font-semibold">
-                    {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.2-2' }}
                 </td>
                 <td>
                     <span class="text-xs">{{ guia.fechaCreacion | date: 'dd/MM/yy' }}</span>
@@ -185,19 +182,18 @@
                 <td colspan="10">
                     <div class="p-4">
                         <div class="flex items-center gap-2 mb-4">
-                            <i class="pi pi-history text-primary text-xl"></i>
+                            <i class="pi pi-file text-primary text-xl"></i>
                             <span class="font-semibold text-lg"
-                                >Vida de la Guía — {{ guia.numeroGuia }}</span
+                                >Guía {{ guia.numeroGuia }}</span
                             >
-                            <p-chip
-                                *ngIf="guia.tuvoDevolucion"
-                                label="Con devolución"
-                                severity="danger"
-                                styleClass="text-xs"
-                            />
                             <p-chip
                                 *ngIf="guia.pdfFuente === 'PDF'"
                                 label="PDF"
+                                severity="info"
+                                styleClass="text-xs"
+                            />
+                            <p-chip
+                                [label]="guia.empresa"
                                 severity="info"
                                 styleClass="text-xs"
                             />
@@ -214,33 +210,24 @@
                                         class="border border-surface-200 dark:border-surface-700 rounded p-3"
                                     >
                                         <div class="flex justify-between text-sm">
-                                            <span class="text-surface-400">Cliente:</span>
-                                            <span class="font-semibold">{{
-                                                guia.nombreCliente
-                                            }}</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm mt-1">
-                                            <span class="text-surface-400">RIF:</span>
-                                            <span>{{ guia.rifCliente }}</span>
+                                            <span class="text-surface-400">Empresa:</span>
+                                            <span class="font-semibold">{{ guia.empresa }}</span>
                                         </div>
                                         <div class="flex justify-between text-sm mt-1">
                                             <span class="text-surface-400">Chofer:</span>
                                             <span>{{ guia.nombreChofer }}</span>
                                         </div>
                                         <div class="flex justify-between text-sm mt-1">
+                                            <span class="text-surface-400">Cédula:</span>
+                                            <span>{{ guia.cedulaChofer }}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm mt-1">
                                             <span class="text-surface-400">Vehículo:</span>
                                             <span>{{ guia.placaVehiculo }}</span>
                                         </div>
                                         <div class="flex justify-between text-sm mt-1">
-                                            <span class="text-surface-400">Peso:</span>
-                                            <span>{{ guia.pesoKg | number }} Kg</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm mt-1">
-                                            <span class="text-surface-400">Monto:</span>
-                                            <span class="font-semibold text-primary">{{
-                                                guia.precioCarga
-                                                    | currency: 'USD' : 'symbol' : '1.2-2'
-                                            }}</span>
+                                            <span class="text-surface-400">Ruta:</span>
+                                            <span>{{ guia.municipio }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -248,67 +235,86 @@
 
                             <div class="col-span-9">
                                 <div class="text-sm font-semibold text-surface-400 uppercase mb-3">
-                                    Línea de Tiempo
+                                    Facturas ({{ guia.facturas.length }})
                                 </div>
 
-                                <div
-                                    *ngIf="guia.eventos.length === 0"
-                                    class="text-center py-4 text-surface-400"
-                                >
-                                    <i class="pi pi-inbox text-3xl block mb-2"></i>
-                                    Sin eventos registrados
-                                </div>
+                                @if (guia.facturas.length === 0) {
+                                    <div class="text-center py-4 text-surface-400">
+                                        <i class="pi pi-inbox text-3xl block mb-2"></i>
+                                        Sin facturas registradas
+                                    </div>
+                                }
 
-                                <div
-                                    *ngFor="let ev of guia.eventos; let i = index; let last = last"
-                                    class="flex gap-4"
-                                >
-                                    <div class="flex flex-col items-center">
+                                <div class="flex flex-col gap-3">
+                                    @for (fact of guia.facturas; track fact.id) {
                                         <div
-                                            class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
-                                            [ngClass]="{
-                                                'bg-blue-500': ev.tipo === 'SALIDA',
-                                                'bg-green-500': ev.tipo === 'LLEGADA_CLIENTE',
-                                                'bg-purple-500': ev.tipo === 'REGRESO_BASE',
-                                                'bg-red-500': ev.tipo === 'DEVOLUCION',
-                                                'bg-yellow-500': ev.tipo === 'OBSERVACION',
-                                            }"
+                                            class="border border-surface-200 dark:border-surface-700 rounded p-3"
                                         >
-                                            <i
-                                                class="text-xs"
-                                                [ngClass]="{
-                                                    'pi pi-send': ev.tipo === 'SALIDA',
-                                                    'pi pi-map-marker':
-                                                        ev.tipo === 'LLEGADA_CLIENTE',
-                                                    'pi pi-home': ev.tipo === 'REGRESO_BASE',
-                                                    'pi pi-undo': ev.tipo === 'DEVOLUCION',
-                                                    'pi pi-comment': ev.tipo === 'OBSERVACION',
-                                                }"
-                                            ></i>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="font-semibold text-sm text-primary">
+                                                    <i class="pi pi-receipt mr-1"></i>
+                                                    {{ fact.numeroFactura }} —
+                                                    {{ fact.nombreCliente }}
+                                                </span>
+                                                <span class="text-xs text-surface-400">{{
+                                                    fact.prioridad
+                                                }}</span>
+                                            </div>
+                                            <div class="grid grid-cols-12 gap-2 text-sm">
+                                                <div class="col-span-4">
+                                                    <span class="text-surface-400">RIF:</span>
+                                                    <span class="ml-1">{{ fact.rifCliente }}</span>
+                                                </div>
+                                                <div class="col-span-4">
+                                                    <span class="text-surface-400"
+                                                        >Teléfono:</span
+                                                    >
+                                                    <span class="ml-1">{{ fact.telefono }}</span>
+                                                </div>
+                                                <div class="col-span-4">
+                                                    <span class="text-surface-400"
+                                                        >Dirección:</span
+                                                    >
+                                                    <span class="ml-1">{{ fact.direccion }}</span>
+                                                </div>
+                                                <div class="col-span-4 mt-1">
+                                                    <span class="text-surface-400"
+                                                        >Total USD:</span
+                                                    >
+                                                    <span class="ml-1 font-semibold text-primary">
+                                                        {{
+                                                            fact.totalUSD
+                                                                | currency: 'USD' : 'symbol' : '1.2-2'
+                                                        }}
+                                                    </span>
+                                                </div>
+                                                <div class="col-span-4 mt-1">
+                                                    <span class="text-surface-400"
+                                                        >Total Bs.:</span
+                                                    >
+                                                    <span class="ml-1 font-semibold">
+                                                        {{
+                                                            fact.totalVES
+                                                                | currency: 'VES' : 'symbol' : '1.2-2'
+                                                        }}
+                                                    </span>
+                                                </div>
+                                                <div class="col-span-4 mt-1">
+                                                    @if (fact.reglasRecepcion) {
+                                                        <span class="text-surface-400"
+                                                            >Reglas:</span
+                                                        >
+                                                        <span class="ml-1 text-xs">
+                                                            {{
+                                                                fact.reglasRecepcion
+                                                                    .instrucciones || 'Estándar'
+                                                            }}
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div
-                                            *ngIf="!last"
-                                            class="w-px h-8 bg-surface-300 dark:bg-surface-600"
-                                        ></div>
-                                    </div>
-                                    <div class="pb-6">
-                                        <div class="font-semibold text-sm">
-                                            {{ ev.descripcion }}
-                                        </div>
-                                        <div
-                                            class="text-xs text-surface-400 flex items-center gap-2 mt-1"
-                                        >
-                                            <i class="pi pi-clock"></i>
-                                            {{ ev.fecha }}
-                                            <span
-                                                *ngIf="ev.ubicacion"
-                                                class="flex items-center gap-1 ml-2"
-                                            >
-                                                <i class="pi pi-map-marker"></i>
-                                                {{ ev.ubicacion }}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    }
                                 </div>
 
                                 <div
@@ -339,7 +345,6 @@
 <app-guia-dialog
     [(visible)]="guiaDialogVisible"
     [guiaData]="editingGuia"
+    [userRole]="userRole"
     (onSave)="onSaveGuia($event)"
 />
-
-<app-ruta-dialog [(visible)]="rutaDialogVisible" (onSave)="onSaveRuta($event)" />
