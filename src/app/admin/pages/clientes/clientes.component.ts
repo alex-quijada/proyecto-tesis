@@ -19,6 +19,7 @@ import { ClienteDialogComponent } from './components/cliente-dialog.component';
 import { SucursalDialogComponent } from './components/sucursal-dialog.component';
 import { Cliente, SucursalCliente } from './clientes.types';
 import { ClienteService } from './service/cliente.service';
+import { CapitalizePipe } from './pipes/capitalize.pipe';
 
 @Component({
     selector: 'app-clientes',
@@ -40,6 +41,7 @@ import { ClienteService } from './service/cliente.service';
         RouterModule,
         ClienteDialogComponent,
         SucursalDialogComponent,
+        CapitalizePipe,
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './clientes.component.html',

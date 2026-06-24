@@ -51,7 +51,19 @@
                             *ngIf="submitted && form.get('rif')?.errors?.['pattern']"
                             class="text-red-500"
                         >
-                            Solo números (5-12 dígitos)
+                            Solo números (5-9 dígitos)
+                        </small>
+                        <small
+                            *ngIf="submitted && form.get('rif')?.errors?.['minlength']"
+                            class="text-red-500"
+                        >
+                            Mínimo 5 dígitos
+                        </small>
+                        <small
+                            *ngIf="submitted && form.get('rif')?.errors?.['maxlength']"
+                            class="text-red-500"
+                        >
+                            Máximo 9 dígitos (cédula venezolana)
                         </small>
                     </div>
                 </div>
@@ -98,7 +110,7 @@
                             *ngIf="submitted && form.get('correo')?.errors?.['email']"
                             class="text-red-500"
                         >
-                            Correo inválido
+                            Ingrese un correo válido (ej: usuario@dominio.com)
                         </small>
                     </div>
 
@@ -108,13 +120,13 @@
                             pInputText
                             id="telefono"
                             formControlName="telefono"
-                            placeholder="0414-1234567"
+                            placeholder="04141234567"
                         />
                         <small
                             *ngIf="submitted && form.get('telefono')?.errors?.['pattern']"
                             class="text-red-500"
                         >
-                            Formato inválido (ej: 0414-1234567)
+                            Solo números (7-15 dígitos, incluye código de área)
                         </small>
                     </div>
 
@@ -145,6 +157,9 @@
                             placeholder="Seleccionar prioridad"
                             appendTo="body"
                         >
+                            <ng-template let-item pTemplate="item">
+                                <div>{{ item.nombre_prioridad | capitalize }}</div>
+                            </ng-template>
                         </p-select>
                     </div>
                 </div>
@@ -215,7 +230,36 @@
                                 </small>
                             </div>
 
-                            <div class="flex flex-col gap-2">
+                            <input type="hidden" formControlName="latitud" />
+                            <input type="hidden" formControlName="longitud" />
+
+                            @let municipioId = sGroup.get('idMunicipio')?.value;
+                            <app-mapa-sucursal
+                                [sucursalGroup]="sGroup"
+                                [municipioNombre]="obtenerNombreMunicipio(municipioId)"
+                                (marcadorMovido)="onMarcadorMovido(i)"
+                            />
+
+                            @if (marcadorMovidoPorSucursal()[i]) {
+                                <p-message
+                                    severity="warn"
+                                    variant="outlined"
+                                    styleClass="text-sm"
+                                >
+                                    <span class="text-sm">
+                                        <i class="pi pi-exclamation-triangle mr-1"></i>
+                                        Moviste el marcador del mapa. Verifica que la dirección
+                                        escrita abajo sea la correcta.
+                                    </span>
+                                </p-message>
+                            }
+
+                            <div
+                                class="flex flex-col gap-2"
+                                [ngClass]="{
+                                    'p-invalid': submitted && sGroup.get('direccion')?.invalid,
+                                }"
+                            >
                                 <label [for]="'direccion-' + i" class="font-semibold text-sm"
                                     >Dirección Completa <span class="text-red-500">*</span></label
                                 >
@@ -224,6 +268,10 @@
                                     [id]="'direccion-' + i"
                                     formControlName="direccion"
                                     rows="2"
+                                    [ngClass]="{
+                                        'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600':
+                                            marcadorMovidoPorSucursal()[i],
+                                    }"
                                     placeholder="Av. Principal, Edif. Centro, Piso 1, Local 2"
                                 ></textarea>
                                 <small
@@ -247,15 +295,6 @@
                                     placeholder="Ej: Frente a la plaza, al lado del banco"
                                 />
                             </div>
-
-                            <input type="hidden" formControlName="latitud" />
-                            <input type="hidden" formControlName="longitud" />
-
-                            @let municipioId = sGroup.get('idMunicipio')?.value;
-                            <app-mapa-sucursal
-                                [sucursalGroup]="sGroup"
-                                [municipioNombre]="obtenerNombreMunicipio(municipioId)"
-                            />
 
                             <p-divider class="my-1" />
 
@@ -363,7 +402,7 @@
                                         pInputText
                                         [id]="'telContacto-' + i"
                                         formControlName="telefonoContacto"
-                                        placeholder="Ej: 0295-1234567"
+                                        placeholder="Ej: 02951234567"
                                     />
                                 </div>
                             </div>

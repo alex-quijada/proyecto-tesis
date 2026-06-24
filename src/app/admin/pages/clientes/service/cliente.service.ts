@@ -63,9 +63,9 @@ export class ClienteService {
     ];
 
     private readonly PRIORIDADES_FALLBACK: PrioridadItem[] = [
-        { id_prioridad: 'ALTA', nombre_prioridad: 'Alta' },
-        { id_prioridad: 'MEDIA', nombre_prioridad: 'Media' },
-        { id_prioridad: 'BAJA', nombre_prioridad: 'Baja' },
+        { id_prioridad: 'ALTA', nombre_prioridad: 'alta' },
+        { id_prioridad: 'MEDIA', nombre_prioridad: 'media' },
+        { id_prioridad: 'BAJA', nombre_prioridad: 'baja' },
     ];
 
     async obtenerMunicipios(): Promise<MunicipioItem[]> {

@@ -34,6 +34,7 @@ import {
     PrioridadItem,
 } from '../service/cliente.service';
 import { MapaSucursalComponent } from './mapa-sucursal.component';
+import { CapitalizePipe } from '../pipes/capitalize.pipe';
 
 @Component({
     selector: 'app-cliente-dialog',
@@ -53,6 +54,7 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
         DividerModule,
         MultiSelectModule,
         SelectButtonModule,
+        CapitalizePipe,
         MapaSucursalComponent,
     ],
     templateUrl: './cliente-dialog.component.html',
@@ -78,18 +80,18 @@ export class ClienteDialogComponent implements OnInit {
     form: FormGroup = this.fb.group({
         idPrefijo: ['', Validators.required],
         rif: [
-            '12345678',
+            '',
             [
                 Validators.required,
                 Validators.pattern(/^\d+$/),
                 Validators.minLength(5),
-                Validators.maxLength(12),
+                Validators.maxLength(9),
             ],
         ],
-        nombreComercial: ['Cliente de Prueba, C.A.', Validators.required],
-        telefono: ['0414-1234567', [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)]],
-        correo: ['test@correo.com', [Validators.email]],
-        personaContacto: ['Juan Pérez'],
+        nombreComercial: ['', Validators.required],
+        telefono: ['', [Validators.pattern(/^\d{7,15}$/)]],
+        correo: ['', [Validators.email]],
+        personaContacto: [''],
         idPrioridad: ['', Validators.required],
         sucursales: this.fb.array([]),
     });
@@ -109,7 +111,7 @@ export class ClienteDialogComponent implements OnInit {
                 this.form.patchValue({ idPrefijo: prefijos[0].id_prefijo });
             }
             if (prioridades.length) {
-                const media = prioridades.find((p) => p.nombre_prioridad === 'media');
+                const media = prioridades.find((p) => p.nombre_prioridad.toLowerCase() === 'media');
                 if (media && !this.form.get('idPrioridad')?.value) {
                     this.form.patchValue({ idPrioridad: media.id_prioridad });
                 }
@@ -166,6 +168,12 @@ export class ClienteDialogComponent implements OnInit {
 
     get sucursalesForm(): FormArray {
         return this.form.get('sucursales') as FormArray;
+    }
+
+    marcadorMovidoPorSucursal = signal<Record<number, boolean>>({});
+
+    onMarcadorMovido(index: number) {
+        this.marcadorMovidoPorSucursal.update((map) => ({ ...map, [index]: true }));
     }
 
     private crearSucursalGroup(s: SucursalCliente = {}): FormGroup {
@@ -231,12 +239,22 @@ export class ClienteDialogComponent implements OnInit {
             this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
             return;
         }
+
+        const sucursalesValidas = this.form
+            .getRawValue()
+            .sucursales.filter((s: any) => s.direccion?.trim());
+        if (!sucursalesValidas.length) {
+            this.errorMessage =
+                'Debe agregar al menos una sucursal con dirección para registrar el cliente.';
+            return;
+        }
         this.saving = true;
 
         const raw = this.form.getRawValue();
         const prioridadLabel =
-            this.prioridades().find((p) => p.id_prioridad === raw.idPrioridad)?.nombre_prioridad ||
-            '';
+            this.prioridades()
+                .find((p) => p.id_prioridad === raw.idPrioridad)
+                ?.nombre_prioridad.toLowerCase() || '';
 
         const clienteFinal: Cliente = {
             ...this.clienteData(),

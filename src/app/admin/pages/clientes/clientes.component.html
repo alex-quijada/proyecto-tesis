@@ -140,7 +140,7 @@
                 </td>
                 <td>
                     <p-tag
-                        [value]="cliente.prioridad"
+                        [value]="cliente.prioridad | capitalize"
                         [severity]="getPrioridadSeverity(cliente.prioridad)"
                         [styleClass]="'text-xs px-2 py-0.5'"
                     />

@@ -1,4 +1,4 @@
-import { Component, ElementRef, input, viewChild, afterNextRender, OnDestroy } from '@angular/core';
+import { Component, ElementRef, input, output, viewChild, afterNextRender, OnDestroy } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { environment } from '@/environments/environment';
 import mapboxgl from 'mapbox-gl';
@@ -11,20 +11,27 @@ const MB_TOKEN = environment.mapboxKey;
     standalone: true,
     imports: [ReactiveFormsModule, BusquedaUbicacionComponent],
     template: `
-        <app-busqueda-ubicacion
-            [municipioNombre]="municipioNombre()"
-            (ubicacionSeleccionada)="onUbicacionSeleccionada($event)"
-        />
-        <div
-            #mapEl
-            class="w-full rounded border border-surface-300 dark:border-surface-600 mt-2"
-            style="height:250px"
-        ></div>
+        <div class="flex flex-col gap-2 mt-2">
+            <label class="font-semibold text-sm text-surface-700 dark:text-surface-200">
+                <i class="pi pi-map mr-1 text-primary"></i>
+                Ubicación en el mapa
+            </label>
+            <app-busqueda-ubicacion
+                [municipioNombre]="municipioNombre()"
+                (ubicacionSeleccionada)="onUbicacionSeleccionada($event)"
+            />
+            <div
+                #mapEl
+                class="w-full rounded-lg border border-surface-300 dark:border-surface-600 shadow-sm overflow-hidden"
+                style="height:260px"
+            ></div>
+        </div>
     `,
 })
 export class MapaSucursalComponent implements OnDestroy {
     readonly sucursalGroup = input.required<AbstractControl>();
     readonly municipioNombre = input<string>('');
+    readonly marcadorMovido = output<void>();
 
     private mapEl = viewChild.required<ElementRef<HTMLDivElement>>('mapEl');
     private map: mapboxgl.Map | null = null;
@@ -80,8 +87,14 @@ export class MapaSucursalComponent implements OnDestroy {
         } else {
             const markerEl = document.createElement('div');
             markerEl.className = 'mapbox-marker-custom';
-            markerEl.innerHTML =
-                '<i class="pi pi-map-marker" style="font-size:2rem;color:#ef4444;text-shadow:0 1px 3px rgba(0,0,0,0.3)"></i>';
+            markerEl.style.cssText =
+                'width:32px;height:32px;display:flex;align-items:center;justify-content:center;';
+            markerEl.innerHTML = `
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="#ef4444" stroke="white" stroke-width="1.5">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    <circle cx="12" cy="9" r="2" fill="white"/>
+                </svg>
+            `;
 
             this.marker = new mapboxgl.Marker({
                 element: markerEl,
@@ -96,6 +109,7 @@ export class MapaSucursalComponent implements OnDestroy {
                     latitud: pos.lat,
                     longitud: pos.lng,
                 });
+                this.marcadorMovido.emit();
             });
         }
 
