@@ -7,7 +7,13 @@
     (onShow)="cargarEmpresas()"
 >
     <ng-template #content>
-        <input #pdfInput type="file" accept=".pdf" (change)="onPDFSelected($event)" class="hidden" />
+        <input
+            #pdfInput
+            type="file"
+            accept=".pdf"
+            (change)="onPDFSelected($event)"
+            class="hidden"
+        />
 
         @if (cargandoPDF()) {
             <div class="flex flex-col items-center justify-center py-8">
@@ -23,7 +29,9 @@
                     class="mb-2"
                 ></p-message>
 
-                <div class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-1">
+                <div
+                    class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-1"
+                >
                     <div class="font-semibold text-md flex items-center gap-2">
                         <i class="pi pi-truck"></i>
                         <span>Información de la Guía</span>
@@ -40,7 +48,9 @@
                 <p-fluid>
                     <div class="grid grid-cols-12 gap-3 mt-2">
                         <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold">Empresa <span class="text-red-500">*</span></label>
+                            <label class="font-semibold"
+                                >Empresa <span class="text-red-500">*</span></label
+                            >
                             <p-select
                                 formControlName="empresa"
                                 [options]="empresasOptions()"
@@ -49,11 +59,19 @@
                                 placeholder="Seleccionar empresa"
                                 appendTo="body"
                             />
-                            <small *ngIf="submitted && form.get('empresa')?.invalid" class="text-red-500">Requerido</small>
+                            <small
+                                *ngIf="submitted && form.get('empresa')?.invalid"
+                                class="text-red-500"
+                                >Requerido</small
+                            >
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
                             <label class="font-semibold">Código de Guía</label>
-                            <input pInputText formControlName="codigoGuia" placeholder="batch/out/XXX" />
+                            <input
+                                pInputText
+                                formControlName="codigoGuia"
+                                placeholder="batch/out/XXX"
+                            />
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
                             <label class="font-semibold">Estado</label>
@@ -70,7 +88,9 @@
 
                     <div class="grid grid-cols-12 gap-3 mt-2">
                         <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold">Chofer <span class="text-red-500">*</span></label>
+                            <label class="font-semibold"
+                                >Chofer <span class="text-red-500">*</span></label
+                            >
                             <p-select
                                 formControlName="idChofer"
                                 [options]="choferes"
@@ -79,10 +99,16 @@
                                 placeholder="Seleccionar chofer"
                                 appendTo="body"
                             />
-                            <small *ngIf="submitted && form.get('idChofer')?.invalid" class="text-red-500">Requerido</small>
+                            <small
+                                *ngIf="submitted && form.get('idChofer')?.invalid"
+                                class="text-red-500"
+                                >Requerido</small
+                            >
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold">Vehículo <span class="text-red-500">*</span></label>
+                            <label class="font-semibold"
+                                >Vehículo <span class="text-red-500">*</span></label
+                            >
                             <p-select
                                 formControlName="idVehiculo"
                                 [options]="vehiculos"
@@ -91,10 +117,16 @@
                                 placeholder="Seleccionar vehículo"
                                 appendTo="body"
                             />
-                            <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500">Requerido</small>
+                            <small
+                                *ngIf="submitted && form.get('idVehiculo')?.invalid"
+                                class="text-red-500"
+                                >Requerido</small
+                            >
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold">Municipio / Ruta <span class="text-red-500">*</span></label>
+                            <label class="font-semibold"
+                                >Municipio / Ruta <span class="text-red-500">*</span></label
+                            >
                             <p-select
                                 formControlName="municipio"
                                 [options]="municipios"
@@ -103,7 +135,11 @@
                                 placeholder="Seleccionar municipio"
                                 appendTo="body"
                             />
-                            <small *ngIf="submitted && form.get('municipio')?.invalid" class="text-red-500">Requerido</small>
+                            <small
+                                *ngIf="submitted && form.get('municipio')?.invalid"
+                                class="text-red-500"
+                                >Requerido</small
+                            >
                         </div>
                     </div>
 
@@ -123,11 +159,15 @@
                 <p-divider />
 
                 <p-fluid>
-                    <div class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-1">
+                    <div
+                        class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-1"
+                    >
                         <div class="font-semibold text-md flex items-center gap-2">
                             <i class="pi pi-file"></i>
                             <span>Facturas de la Guía</span>
-                            <span class="text-sm text-surface-400 font-normal">({{ facturas.length }})</span>
+                            <span class="text-sm text-surface-400 font-normal"
+                                >({{ facturas.length }})</span
+                            >
                         </div>
                         <p-button
                             label="Agregar Factura"
@@ -163,7 +203,9 @@
 
                                 <div class="grid grid-cols-12 gap-3">
                                     <div class="col-span-4 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Cliente <span class="text-red-500">*</span></label>
+                                        <label class="text-xs font-semibold"
+                                            >Cliente <span class="text-red-500">*</span></label
+                                        >
                                         <p-select
                                             formControlName="idCliente"
                                             [options]="clientesOptions"
@@ -178,7 +220,9 @@
                                         <label class="text-xs font-semibold">Sucursal</label>
                                         <p-select
                                             formControlName="idSucursal"
-                                            [options]="getSucursales(factura.get('idCliente')?.value)"
+                                            [options]="
+                                                getSucursales(factura.get('idCliente')?.value)
+                                            "
                                             optionLabel="label"
                                             optionValue="value"
                                             placeholder="Seleccionar sucursal"
@@ -187,8 +231,14 @@
                                         />
                                     </div>
                                     <div class="col-span-2 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">N° Factura <span class="text-red-500">*</span></label>
-                                        <input pInputText formControlName="numeroFactura" placeholder="FAC-XXX" />
+                                        <label class="text-xs font-semibold"
+                                            >N° Factura <span class="text-red-500">*</span></label
+                                        >
+                                        <input
+                                            pInputText
+                                            formControlName="numeroFactura"
+                                            placeholder="FAC-XXX"
+                                        />
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
                                         <label class="text-xs font-semibold">Prioridad</label>
@@ -202,8 +252,14 @@
                                         <input pInputText formControlName="rifCliente" readonly />
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Nombre del Cliente</label>
-                                        <input pInputText formControlName="nombreCliente" readonly />
+                                        <label class="text-xs font-semibold"
+                                            >Nombre del Cliente</label
+                                        >
+                                        <input
+                                            pInputText
+                                            formControlName="nombreCliente"
+                                            readonly
+                                        />
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
                                         <label class="text-xs font-semibold">Teléfono</label>
@@ -217,7 +273,9 @@
 
                                 <div class="grid grid-cols-12 gap-3 mt-2">
                                     <div class="col-span-3 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Total USD <span class="text-red-500">*</span></label>
+                                        <label class="text-xs font-semibold"
+                                            >Total USD <span class="text-red-500">*</span></label
+                                        >
                                         <p-inputnumber
                                             formControlName="totalUSD"
                                             [min]="0"
@@ -227,7 +285,9 @@
                                         />
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Total Bs. <span class="text-red-500">*</span></label>
+                                        <label class="text-xs font-semibold"
+                                            >Total Bs. <span class="text-red-500">*</span></label
+                                        >
                                         <p-inputnumber
                                             formControlName="totalVES"
                                             [min]="0"
@@ -237,13 +297,25 @@
                                         />
                                     </div>
                                     <div class="col-span-6 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Reglas de Recepción</label>
-                                        <input pInputText [value]="getReglasDisplay(factura.get('reglasRecepcion')?.value || '')" readonly />
+                                        <label class="text-xs font-semibold"
+                                            >Reglas de Recepción</label
+                                        >
+                                        <input
+                                            pInputText
+                                            [value]="
+                                                getReglasDisplay(
+                                                    factura.get('reglasRecepcion')?.value || ''
+                                                )
+                                            "
+                                            readonly
+                                        />
                                     </div>
                                 </div>
                             </div>
                         } @empty {
-                            <div class="text-center py-4 text-surface-400 text-sm border border-dashed border-surface-300 dark:border-surface-600 rounded">
+                            <div
+                                class="text-center py-4 text-surface-400 text-sm border border-dashed border-surface-300 dark:border-surface-600 rounded"
+                            >
                                 <i class="pi pi-inbox text-xl block mb-1"></i>
                                 No hay facturas registradas. Agregue una factura para continuar.
                             </div>

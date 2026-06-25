@@ -1,6 +1,7 @@
-import { Component, input, output, model, effect, inject, signal, OnInit } from '@angular/core';
+import { Component, input, output, model, effect, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -228,7 +229,7 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
         </p-dialog>
     `,
 })
-export class SucursalDialogComponent implements OnInit {
+export class SucursalDialogComponent implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private clienteService = inject(ClienteService);
 
@@ -236,6 +237,8 @@ export class SucursalDialogComponent implements OnInit {
     clienteId = input.required<string>();
     sucursalData = input<SucursalCliente | null>(null);
     onSave = output<void>();
+
+    private destroy$ = new Subject<void>();
 
     submitted = false;
     saving = false;
@@ -276,6 +279,15 @@ export class SucursalDialogComponent implements OnInit {
 
     ngOnInit() {
         this.cargarMunicipios();
+
+        this.form
+            .get('idMunicipio')
+            ?.valueChanges.pipe(takeUntil(this.destroy$))
+            .subscribe((id) => {
+                const nombre =
+                    this.municipios().find((m) => m.id_municipio === id)?.nombre || '';
+                this.municipioNombre.set(nombre);
+            });
     }
 
     private async cargarMunicipios() {
@@ -404,5 +416,10 @@ export class SucursalDialogComponent implements OnInit {
             this.errorMessage = e.message || 'Error al guardar la sucursal';
             this.saving = false;
         }
+    }
+
+    ngOnDestroy() {
+        this.destroy$.next();
+        this.destroy$.complete();
     }
 }

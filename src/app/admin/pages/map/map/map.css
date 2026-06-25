@@ -1,14 +1,38 @@
 :host {
     display: block;
     width: 100%;
-    height: 100%;
-    min-height: 500px; /* Forzamos una altura mínima inicial para romper el 0px */
+}
+
+.maps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.map-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.map-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--p-surface-500);
+    margin-bottom: 4px;
+    padding-left: 2px;
+}
+
+:host-context(.app-dark) .map-label {
+    color: var(--p-surface-400);
 }
 
 .map-container {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: 450px;
 }
 
 .mapbox-map {
@@ -17,4 +41,74 @@
     bottom: 0;
     width: 100%;
     height: 100%;
+}
+
+.google-map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.result-info {
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--p-green-50);
+    border: 1px solid var(--p-green-200);
+    font-size: 12px;
+    color: var(--p-green-800);
+}
+
+:host-context(.app-dark) .result-info {
+    background: var(--p-green-900);
+    border-color: var(--p-green-700);
+    color: var(--p-green-200);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--p-surface-400);
+    font-size: 13px;
+}
+
+.btn-optimize {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    background: var(--p-primary-color);
+    color: #fff;
+}
+
+.btn-optimize:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-clear {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    background: var(--p-surface-200);
+    color: var(--p-surface-700);
+}
+
+.btn-clear:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+:host-context(.app-dark) .btn-clear {
+    background: var(--p-surface-700);
+    color: var(--p-surface-200);
 }

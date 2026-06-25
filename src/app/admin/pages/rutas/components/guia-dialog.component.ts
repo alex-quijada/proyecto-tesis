@@ -11,13 +11,7 @@ import {
     ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-    ReactiveFormsModule,
-    FormBuilder,
-    FormGroup,
-    FormArray,
-    Validators,
-} from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 import { DialogModule } from 'primeng/dialog';
@@ -54,9 +48,21 @@ interface EmpresaItem {
 }
 
 const EMPRESAS_FALLBACK: EmpresaItem[] = [
-    { id_empresa: 'ANGELO', nombre_empresa: 'Inversiones Angelo, C.A.', prefijo: 'INVERSIONES ANGELO, C.A.' },
-    { id_empresa: 'METROPOL', nombre_empresa: 'Distribuidora Metropol C.A.', prefijo: 'DISTRIBUIDORA METROPOL C.A.' },
-    { id_empresa: 'MALESI', nombre_empresa: 'Inversiones Malesi, C.A.', prefijo: 'INVERSIONES MALESI, C.A.' },
+    {
+        id_empresa: 'ANGELO',
+        nombre_empresa: 'Inversiones Angelo, C.A.',
+        prefijo: 'INVERSIONES ANGELO, C.A.',
+    },
+    {
+        id_empresa: 'METROPOL',
+        nombre_empresa: 'Distribuidora Metropol C.A.',
+        prefijo: 'DISTRIBUIDORA METROPOL C.A.',
+    },
+    {
+        id_empresa: 'MALESI',
+        nombre_empresa: 'Inversiones Malesi, C.A.',
+        prefijo: 'INVERSIONES MALESI, C.A.',
+    },
 ];
 
 @Component({
@@ -128,8 +134,31 @@ export class GuiaDialogComponent {
             personaContacto: 'María Fernanda López',
             prioridad: 'Alta',
             sucursales: [
-                { id: 'ub-1-1', direccion: 'Av. Principal, Edif. Los Andes, Piso 1', idMunicipio: 'MARINO', telefonoContacto: '0414-1112233', nombreContacto: 'Pedro Rojas', reglas: { horaEntrega: '08:00-17:00', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'], requiereCita: true, instrucciones: 'Solicitar identificación en recepción' } },
-                { id: 'ub-1-2', direccion: 'Calle Los Mangos, Local 5', idMunicipio: 'DIAZ', telefonoContacto: '0416-2223344', nombreContacto: 'Ana Castillo', reglas: { horaEntrega: '09:00-15:00', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'], requiereCita: false } },
+                {
+                    id: 'ub-1-1',
+                    direccion: 'Av. Principal, Edif. Los Andes, Piso 1',
+                    idMunicipio: 'MARINO',
+                    telefonoContacto: '0414-1112233',
+                    nombreContacto: 'Pedro Rojas',
+                    reglas: {
+                        horaEntrega: '08:00-17:00',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
+                        requiereCita: true,
+                        instrucciones: 'Solicitar identificación en recepción',
+                    },
+                },
+                {
+                    id: 'ub-1-2',
+                    direccion: 'Calle Los Mangos, Local 5',
+                    idMunicipio: 'DIAZ',
+                    telefonoContacto: '0416-2223344',
+                    nombreContacto: 'Ana Castillo',
+                    reglas: {
+                        horaEntrega: '09:00-15:00',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'],
+                        requiereCita: false,
+                    },
+                },
             ],
         },
         {
@@ -141,7 +170,19 @@ export class GuiaDialogComponent {
             personaContacto: 'José Antonio Pérez',
             prioridad: 'Media',
             sucursales: [
-                { id: 'ub-2-1', direccion: 'Calle Sucre, Local 3-A', idMunicipio: 'MARINO', telefonoContacto: '0414-5544332', nombreContacto: 'Rosa Hernández', reglas: { horaEntrega: '08:30-17:30', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'], requiereCita: false, instrucciones: 'Llamar al llegar' } },
+                {
+                    id: 'ub-2-1',
+                    direccion: 'Calle Sucre, Local 3-A',
+                    idMunicipio: 'MARINO',
+                    telefonoContacto: '0414-5544332',
+                    nombreContacto: 'Rosa Hernández',
+                    reglas: {
+                        horaEntrega: '08:30-17:30',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
+                        requiereCita: false,
+                        instrucciones: 'Llamar al llegar',
+                    },
+                },
             ],
         },
         {
@@ -153,8 +194,32 @@ export class GuiaDialogComponent {
             personaContacto: 'Carmen Elena Salazar',
             prioridad: 'Alta',
             sucursales: [
-                { id: 'ub-3-1', direccion: 'Av. 4 de Mayo, CC Costa Azul', idMunicipio: 'MANEIRO', telefonoContacto: '0412-6655778', nombreContacto: 'Luisana Gil', reglas: { horaEntrega: '06:00-14:00', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'], requiereCita: false, instrucciones: 'Recepción por el área de carga' } },
-                { id: 'ub-3-2', direccion: 'Calle Bolívar, Local 8', idMunicipio: 'DIAZ', telefonoContacto: '0426-9988776', nombreContacto: 'José Gregorio Rivas', reglas: { horaEntrega: '08:00-12:00', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'], requiereCita: true, instrucciones: 'Solo recepción en horario de mañana' } },
+                {
+                    id: 'ub-3-1',
+                    direccion: 'Av. 4 de Mayo, CC Costa Azul',
+                    idMunicipio: 'MANEIRO',
+                    telefonoContacto: '0412-6655778',
+                    nombreContacto: 'Luisana Gil',
+                    reglas: {
+                        horaEntrega: '06:00-14:00',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'],
+                        requiereCita: false,
+                        instrucciones: 'Recepción por el área de carga',
+                    },
+                },
+                {
+                    id: 'ub-3-2',
+                    direccion: 'Calle Bolívar, Local 8',
+                    idMunicipio: 'DIAZ',
+                    telefonoContacto: '0426-9988776',
+                    nombreContacto: 'José Gregorio Rivas',
+                    reglas: {
+                        horaEntrega: '08:00-12:00',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'],
+                        requiereCita: true,
+                        instrucciones: 'Solo recepción en horario de mañana',
+                    },
+                },
             ],
         },
         {
@@ -166,7 +231,18 @@ export class GuiaDialogComponent {
             personaContacto: 'Alberto José Guzmán',
             prioridad: 'Baja',
             sucursales: [
-                { id: 'ub-4-1', direccion: 'Av. Principal de Pampatar, Local 2', idMunicipio: 'MANEIRO', telefonoContacto: '0414-4433221', nombreContacto: 'Marlene Rojas', reglas: { horaEntrega: '09:00-18:00', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'], requiereCita: false } },
+                {
+                    id: 'ub-4-1',
+                    direccion: 'Av. Principal de Pampatar, Local 2',
+                    idMunicipio: 'MANEIRO',
+                    telefonoContacto: '0414-4433221',
+                    nombreContacto: 'Marlene Rojas',
+                    reglas: {
+                        horaEntrega: '09:00-18:00',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
+                        requiereCita: false,
+                    },
+                },
             ],
         },
         {
@@ -178,8 +254,32 @@ export class GuiaDialogComponent {
             personaContacto: 'Eduardo Schwarz',
             prioridad: 'Alta',
             sucursales: [
-                { id: 'ub-5-1', direccion: 'Zona Franca, Módulo 7', idMunicipio: 'GARCIA', telefonoContacto: '0424-7766554', nombreContacto: 'Francisco Díaz', reglas: { horaEntrega: '08:00-16:00', diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'], requiereCita: true, instrucciones: 'Presentar documentación aduanera' } },
-                { id: 'ub-5-2', direccion: 'Av. Circunvalación, Edif. Caribe', idMunicipio: 'MARINO', telefonoContacto: '0412-1122334', nombreContacto: 'Gabriela Rivas', reglas: { horaEntrega: '09:00-13:00', diasRecepcion: ['LUN', 'MIE', 'VIE'], requiereCita: true, instrucciones: 'Oficina administrativa, solo recepción de documentos' } },
+                {
+                    id: 'ub-5-1',
+                    direccion: 'Zona Franca, Módulo 7',
+                    idMunicipio: 'GARCIA',
+                    telefonoContacto: '0424-7766554',
+                    nombreContacto: 'Francisco Díaz',
+                    reglas: {
+                        horaEntrega: '08:00-16:00',
+                        diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
+                        requiereCita: true,
+                        instrucciones: 'Presentar documentación aduanera',
+                    },
+                },
+                {
+                    id: 'ub-5-2',
+                    direccion: 'Av. Circunvalación, Edif. Caribe',
+                    idMunicipio: 'MARINO',
+                    telefonoContacto: '0412-1122334',
+                    nombreContacto: 'Gabriela Rivas',
+                    reglas: {
+                        horaEntrega: '09:00-13:00',
+                        diasRecepcion: ['LUN', 'MIE', 'VIE'],
+                        requiereCita: true,
+                        instrucciones: 'Oficina administrativa, solo recepción de documentos',
+                    },
+                },
             ],
         },
     ];
@@ -193,8 +293,7 @@ export class GuiaDialogComponent {
 
     estadosDisponibles = computed(() => {
         const role = this.userRole();
-        const roleKey =
-            role === 'ADMIN' ? 'ADMIN' : role === 'ANALISTA' ? 'ANALISTA' : 'CHOFER';
+        const roleKey = role === 'ADMIN' ? 'ADMIN' : role === 'ANALISTA' ? 'ANALISTA' : 'CHOFER';
         const estadosPermitidos = ESTADOS_POR_ROL[roleKey] || ESTADOS_POR_ROL['ADMIN'];
         return ESTADOS_GUIA.filter((e) => estadosPermitidos.includes(e.value));
     });
@@ -257,7 +356,10 @@ export class GuiaDialogComponent {
                 .order('nombre_empresa', { ascending: true });
             if (!error && data?.length) {
                 this.empresasOptions.set(
-                    data.map((e) => ({ label: e.nombre_empresa, value: e.prefijo || e.id_empresa })),
+                    data.map((e) => ({
+                        label: e.nombre_empresa,
+                        value: e.prefijo || e.id_empresa,
+                    })),
                 );
                 return;
             }
@@ -290,7 +392,12 @@ export class GuiaDialogComponent {
 
             if (datos.chofer) {
                 const match = this.choferes.find((ch) =>
-                    ch.nombreChofer.toLowerCase().includes(datos.chofer.toLowerCase().split(']')[1]?.trim() || datos.chofer.toLowerCase()),
+                    ch.nombreChofer
+                        .toLowerCase()
+                        .includes(
+                            datos.chofer.toLowerCase().split(']')[1]?.trim() ||
+                                datos.chofer.toLowerCase(),
+                        ),
                 );
                 if (match) {
                     this.form.patchValue({ idChofer: match.value });
@@ -298,8 +405,8 @@ export class GuiaDialogComponent {
             }
 
             if (datos.placa) {
-                const match = this.vehiculos.find((v) =>
-                    v.placaVehiculo.toLowerCase() === datos.placa.toLowerCase(),
+                const match = this.vehiculos.find(
+                    (v) => v.placaVehiculo.toLowerCase() === datos.placa.toLowerCase(),
                 );
                 if (match) {
                     this.form.patchValue({ idVehiculo: match.value });
@@ -464,9 +571,7 @@ export class GuiaDialogComponent {
                     SAB: 'Sáb',
                     DOM: 'Dom',
                 };
-                partes.push(
-                    `Días: ${r.diasRecepcion.map((d: string) => dias[d] || d).join(', ')}`,
-                );
+                partes.push(`Días: ${r.diasRecepcion.map((d: string) => dias[d] || d).join(', ')}`);
             }
             if (r.horaEntrega) partes.push(`Hora: ${r.horaEntrega}`);
             if (r.requiereCita) partes.push('Requiere cita');

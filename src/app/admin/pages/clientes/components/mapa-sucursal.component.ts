@@ -1,15 +1,25 @@
-import { Component, ElementRef, input, output, viewChild, afterNextRender, OnDestroy } from '@angular/core';
+import {
+    Component,
+    ElementRef,
+    input,
+    output,
+    viewChild,
+    afterNextRender,
+    effect,
+    signal,
+    OnDestroy,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
-import { environment } from '@/environments/environment';
-import mapboxgl from 'mapbox-gl';
+import { MessageModule } from 'primeng/message';
 import { BusquedaUbicacionComponent } from './busqueda-ubicacion.component';
-
-const MB_TOKEN = environment.mapboxKey;
+import { obtenerGeometriaMunicipio } from '../data/municipio-geometrias';
+import { puntoEnPoligono } from '../data/geo-utils';
 
 @Component({
     selector: 'app-mapa-sucursal',
     standalone: true,
-    imports: [ReactiveFormsModule, BusquedaUbicacionComponent],
+    imports: [CommonModule, ReactiveFormsModule, MessageModule, BusquedaUbicacionComponent],
     template: `
         <div class="flex flex-col gap-2 mt-2">
             <label class="font-semibold text-sm text-surface-700 dark:text-surface-200">
@@ -20,6 +30,17 @@ const MB_TOKEN = environment.mapboxKey;
                 [municipioNombre]="municipioNombre()"
                 (ubicacionSeleccionada)="onUbicacionSeleccionada($event)"
             />
+            <p-message
+                *ngIf="outsideBoundary()"
+                severity="warn"
+                variant="outlined"
+                styleClass="text-sm"
+            >
+                <span class="text-sm">
+                    <i class="pi pi-exclamation-triangle mr-1"></i>
+                    El marcador está fuera del municipio seleccionado. Verifica la ubicación.
+                </span>
+            </p-message>
             <div
                 #mapEl
                 class="w-full rounded-lg border border-surface-300 dark:border-surface-600 shadow-sm overflow-hidden"
@@ -33,37 +54,112 @@ export class MapaSucursalComponent implements OnDestroy {
     readonly municipioNombre = input<string>('');
     readonly marcadorMovido = output<void>();
 
+    outsideBoundary = signal(false);
+
     private mapEl = viewChild.required<ElementRef<HTMLDivElement>>('mapEl');
-    private map: mapboxgl.Map | null = null;
-    private marker: mapboxgl.Marker | null = null;
+    private map: google.maps.Map | null = null;
+    private marker: google.maps.Marker | null = null;
+    private boundaryLayer: google.maps.Data | null = null;
 
     constructor() {
         afterNextRender(() => this.initMap());
+
+        effect(() => {
+            const nombre = this.municipioNombre();
+            if (this.map && nombre) {
+                this.drawBoundary(nombre);
+                this.validarUbicacionActual();
+            }
+        });
     }
 
     private initMap() {
-        const el = this.mapEl();
-        if (!el) return;
+        const el = this.mapEl()?.nativeElement;
+        if (!el || typeof google === 'undefined' || !google.maps) {
+            setTimeout(() => this.initMap(), 200);
+            return;
+        }
 
-        this.map = new mapboxgl.Map({
-            container: el.nativeElement,
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: [-63.93, 10.99],
+        this.map = new google.maps.Map(el, {
+            center: { lat: 10.99, lng: -63.93 },
             zoom: 10,
-            accessToken: MB_TOKEN,
-            attributionControl: false,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            streetViewControl: false,
+            zoomControl: true,
         });
 
-        this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-        this.map.on('load', () => {
-            const group = this.sucursalGroup();
-            const lat = group?.get('latitud')?.value;
-            const lng = group?.get('longitud')?.value;
-            if (lat && lng) {
-                this.setMarker(Number(lat), Number(lng));
-            }
+        this.boundaryLayer = new google.maps.Data({ map: this.map });
+        this.boundaryLayer.setStyle({
+            fillColor: '#3b82f6',
+            fillOpacity: 0.1,
+            strokeColor: '#3b82f6',
+            strokeWeight: 2,
         });
+
+        google.maps.event.addListenerOnce(this.map, 'idle', () => {
+            this.placeMarkerFromForm();
+        });
+
+        setTimeout(() => this.placeMarkerFromForm(), 800);
+    }
+
+    private drawBoundary(nombre: string) {
+        if (!this.boundaryLayer) return;
+
+        this.boundaryLayer.forEach((f) => this.boundaryLayer!.remove(f));
+        this.outsideBoundary.set(false);
+
+        if (!nombre) return;
+
+        const geom = obtenerGeometriaMunicipio(nombre);
+        if (!geom) return;
+
+        const feature: GeoJSON.Feature = {
+            type: 'Feature',
+            properties: {},
+            geometry: geom as GeoJSON.Geometry,
+        };
+        try {
+            this.boundaryLayer.addGeoJson(feature as unknown as object);
+        } catch {
+            // ignore invalid geometry
+        }
+    }
+
+    private validarUbicacionActual() {
+        const group = this.sucursalGroup();
+        const lat = group?.get('latitud')?.value;
+        const lng = group?.get('longitud')?.value;
+        if (lat == null || lng == null) {
+            this.outsideBoundary.set(false);
+            return;
+        }
+        this.validarUbicacion(Number(lat), Number(lng));
+    }
+
+    private validarUbicacion(lat: number, lng: number) {
+        const nombre = this.municipioNombre();
+        if (!nombre) {
+            this.outsideBoundary.set(false);
+            return;
+        }
+        const geom = obtenerGeometriaMunicipio(nombre);
+        if (!geom) {
+            this.outsideBoundary.set(false);
+            return;
+        }
+        const dentro = puntoEnPoligono(lng, lat, geom.coordinates);
+        this.outsideBoundary.set(!dentro);
+    }
+
+    private placeMarkerFromForm() {
+        if (!this.map) return;
+        const group = this.sucursalGroup();
+        const lat = group?.get('latitud')?.value;
+        const lng = group?.get('longitud')?.value;
+        if (lat != null && lng != null) {
+            this.setMarker(Number(lat), Number(lng));
+        }
     }
 
     onUbicacionSeleccionada(event: { lat: number; lng: number; direccion: string }) {
@@ -75,6 +171,7 @@ export class MapaSucursalComponent implements OnDestroy {
             direccion: event.direccion,
         });
         this.setMarker(event.lat, event.lng);
+        this.validarUbicacion(event.lat, event.lng);
     }
 
     private setMarker(lat: number, lng: number) {
@@ -83,41 +180,38 @@ export class MapaSucursalComponent implements OnDestroy {
         if (!group) return;
 
         if (this.marker) {
-            this.marker.setLngLat([lng, lat]);
+            this.marker.setPosition({ lat, lng });
         } else {
-            const markerEl = document.createElement('div');
-            markerEl.className = 'mapbox-marker-custom';
-            markerEl.style.cssText =
-                'width:32px;height:32px;display:flex;align-items:center;justify-content:center;';
-            markerEl.innerHTML = `
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="#ef4444" stroke="white" stroke-width="1.5">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                    <circle cx="12" cy="9" r="2" fill="white"/>
-                </svg>
-            `;
-
-            this.marker = new mapboxgl.Marker({
-                element: markerEl,
+            this.marker = new google.maps.Marker({
+                position: { lat, lng },
+                map: this.map,
                 draggable: true,
-            })
-                .setLngLat([lng, lat])
-                .addTo(this.map);
+            });
 
-            this.marker.on('dragend', () => {
-                const pos = this.marker!.getLngLat();
+            this.marker.addListener('dragend', () => {
+                const pos = this.marker!.getPosition();
+                if (!pos) return;
+                const newLat = pos.lat();
+                const newLng = pos.lng();
                 group.patchValue({
-                    latitud: pos.lat,
-                    longitud: pos.lng,
+                    latitud: newLat,
+                    longitud: newLng,
                 });
+                this.validarUbicacion(newLat, newLng);
                 this.marcadorMovido.emit();
             });
         }
 
-        this.map.flyTo({ center: [lng, lat], zoom: 15, duration: 800 });
+        this.validarUbicacion(lat, lng);
+        this.map.panTo({ lat, lng });
+        this.map.setZoom(15);
     }
 
     ngOnDestroy() {
-        this.marker?.remove();
-        this.map?.remove();
+        this.marker?.setMap(null);
+        this.marker = null;
+        this.boundaryLayer?.setMap(null);
+        this.boundaryLayer = null;
+        this.map = null;
     }
 }
