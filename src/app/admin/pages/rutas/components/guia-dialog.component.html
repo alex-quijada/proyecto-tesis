@@ -74,15 +74,22 @@
                             />
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold">Estado</label>
+                            <label class="font-semibold"
+                                >Municipio / Ruta <span class="text-red-500">*</span></label
+                            >
                             <p-select
-                                formControlName="estado"
-                                [options]="estadosDisponibles()"
+                                formControlName="municipio"
+                                [options]="municipios"
                                 optionLabel="label"
                                 optionValue="value"
-                                placeholder="Estado"
+                                placeholder="Seleccionar municipio"
                                 appendTo="body"
                             />
+                            <small
+                                *ngIf="submitted && form.get('municipio')?.invalid"
+                                class="text-red-500"
+                                >Requerido</small
+                            >
                         </div>
                     </div>
 
@@ -106,6 +113,17 @@
                             >
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
+                            <label class="font-semibold">Ayudante</label>
+                            <p-select
+                                formControlName="idAyudante"
+                                [options]="ayudantes"
+                                optionLabel="label"
+                                optionValue="value"
+                                placeholder="Seleccionar ayudante"
+                                appendTo="body"
+                            />
+                        </div>
+                        <div class="col-span-4 flex flex-col gap-2">
                             <label class="font-semibold"
                                 >Vehículo <span class="text-red-500">*</span></label
                             >
@@ -119,24 +137,6 @@
                             />
                             <small
                                 *ngIf="submitted && form.get('idVehiculo')?.invalid"
-                                class="text-red-500"
-                                >Requerido</small
-                            >
-                        </div>
-                        <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold"
-                                >Municipio / Ruta <span class="text-red-500">*</span></label
-                            >
-                            <p-select
-                                formControlName="municipio"
-                                [options]="municipios"
-                                optionLabel="label"
-                                optionValue="value"
-                                placeholder="Seleccionar municipio"
-                                appendTo="body"
-                            />
-                            <small
-                                *ngIf="submitted && form.get('municipio')?.invalid"
                                 class="text-red-500"
                                 >Requerido</small
                             >
@@ -217,7 +217,9 @@
                                         />
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Sucursal</label>
+                                        <label class="text-xs font-semibold"
+                                            >Dirección de Entrega</label
+                                        >
                                         <p-select
                                             formControlName="idSucursal"
                                             [options]="
@@ -225,7 +227,7 @@
                                             "
                                             optionLabel="label"
                                             optionValue="value"
-                                            placeholder="Seleccionar sucursal"
+                                            placeholder="Seleccionar dirección"
                                             appendTo="body"
                                             (onChange)="onSucursalChange($index)"
                                         />
@@ -247,11 +249,11 @@
                                 </div>
 
                                 <div class="grid grid-cols-12 gap-3 mt-2">
-                                    <div class="col-span-3 flex flex-col gap-1">
+                                    <div class="col-span-4 flex flex-col gap-1">
                                         <label class="text-xs font-semibold">RIF / Cédula</label>
                                         <input pInputText formControlName="rifCliente" readonly />
                                     </div>
-                                    <div class="col-span-3 flex flex-col gap-1">
+                                    <div class="col-span-4 flex flex-col gap-1">
                                         <label class="text-xs font-semibold"
                                             >Nombre del Cliente</label
                                         >
@@ -261,13 +263,9 @@
                                             readonly
                                         />
                                     </div>
-                                    <div class="col-span-3 flex flex-col gap-1">
+                                    <div class="col-span-4 flex flex-col gap-1">
                                         <label class="text-xs font-semibold">Teléfono</label>
                                         <input pInputText formControlName="telefono" readonly />
-                                    </div>
-                                    <div class="col-span-3 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Dirección</label>
-                                        <input pInputText formControlName="direccion" readonly />
                                     </div>
                                 </div>
 

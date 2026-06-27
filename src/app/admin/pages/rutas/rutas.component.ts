@@ -10,8 +10,8 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
-import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { ChipModule } from 'primeng/chip';
@@ -22,8 +22,8 @@ import {
     Ruta,
     GUIAS_MOCK,
     RUTAS_MOCK,
-    ESTADOS_GUIA,
     MUNICIPIOS_NUEVA_ESPARTA,
+    ESTADOS_FACTURA,
 } from './data/rutas-mock';
 import { AuthService } from '../../../auth/service/auth.service';
 
@@ -40,8 +40,8 @@ import { AuthService } from '../../../auth/service/auth.service';
         InputTextModule,
         InputIconModule,
         IconFieldModule,
-        TagModule,
         SelectModule,
+        TagModule,
         ConfirmDialogModule,
         TooltipModule,
         ChipModule,
@@ -62,24 +62,12 @@ export class RutasComponent implements OnInit {
     editingGuia: GuiaDespacho = {} as GuiaDespacho;
     userRole: string = 'ADMIN';
 
-    filtroEstado: string | null = null;
     filtroMunicipio: string | null = null;
-
-    estadoFiltros = [
-        { label: 'Todos los Estados', value: null },
-        ...ESTADOS_GUIA.map((e) => ({ label: e.label, value: e.value })),
-    ];
 
     municipioFiltros = [
         { label: 'Todos los Municipios', value: null },
         ...MUNICIPIOS_NUEVA_ESPARTA.map((m) => ({ label: m.label, value: m.value })),
     ];
-
-    estadoLabels: Record<string, string> = {};
-    estadoSeverities: Record<
-        string,
-        'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast'
-    > = {};
 
     constructor() {
         const rawRole = this.authService.getUserRole();
@@ -93,11 +81,6 @@ export class RutasComponent implements OnInit {
         } else {
             this.userRole = 'ADMIN';
         }
-
-        for (const e of ESTADOS_GUIA) {
-            this.estadoLabels[e.value] = e.label;
-            this.estadoSeverities[e.value] = e.severity as any;
-        }
     }
 
     ngOnInit() {
@@ -107,28 +90,27 @@ export class RutasComponent implements OnInit {
 
     get guiasFiltradas(): GuiaDespacho[] {
         let list = this.guias();
-        if (this.filtroEstado) {
-            list = list.filter((g) => g.estado === this.filtroEstado);
-        }
         if (this.filtroMunicipio) {
             list = list.filter((g) => g.municipio === this.filtroMunicipio);
         }
         return list;
     }
 
-    getEstadoLabel(estado: string): string {
-        return this.estadoLabels[estado] || estado;
-    }
-
-    getEstadoSeverity(
-        estado: string,
-    ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        return this.estadoSeverities[estado] || 'info';
-    }
-
     onRowExpand(event: any) {}
 
     onRowCollapse(event: any) {}
+
+    getEstadoFacturaLabel(idEstado: string): string {
+        const e = ESTADOS_FACTURA.find((ef) => ef.value === idEstado);
+        return e?.label || idEstado;
+    }
+
+    getEstadoFacturaSeverity(
+        idEstado: string,
+    ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+        const e = ESTADOS_FACTURA.find((ef) => ef.value === idEstado);
+        return (e?.severity as any) || 'info';
+    }
 
     openCrearGuia() {
         this.editingGuia = {} as GuiaDespacho;

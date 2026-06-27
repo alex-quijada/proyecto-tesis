@@ -33,7 +33,6 @@ export interface Cliente {
     telefono?: string;
     correo?: string;
     personaContacto?: string;
-    reglas?: ReglasSucursal;
     idPrioridad?: string;
     prioridad?: string;
     sucursales?: SucursalCliente[];

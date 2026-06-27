@@ -19,6 +19,7 @@ export interface FacturaGuia {
     totalVES: number;
     prioridad: string;
     reglasRecepcion?: ReglasRecepcion;
+    idEstado: string;
 }
 
 export interface EventoGuia {
@@ -38,11 +39,12 @@ export interface GuiaDespacho {
     idChofer: string;
     nombreChofer: string;
     cedulaChofer: string;
+    idAyudante?: string;
+    nombreAyudante?: string;
     idVehiculo: string;
     placaVehiculo: string;
     camion?: string;
     municipio: string;
-    estado: string;
     pdfFuente: 'MANUAL' | 'PDF';
     fechaCreacion: string;
     observaciones?: string;
@@ -91,6 +93,15 @@ export const ESTADOS_GUIA = [
     { label: 'Incidencias', value: 'INCIDENCIAS', severity: 'danger' },
 ];
 
+export const ESTADOS_FACTURA = [
+    { label: 'Nuevo', value: 'nuevo', severity: 'info' },
+    { label: 'Embarque', value: 'embarque', severity: 'warn' },
+    { label: 'En Proceso', value: 'proceso', severity: 'info' },
+    { label: 'En Espera', value: 'espera', severity: 'warn' },
+    { label: 'Incidencia', value: 'incidencia', severity: 'danger' },
+    { label: 'Finalizado', value: 'finalizado', severity: 'success' },
+];
+
 export const ESTADOS_POR_ROL: Record<string, string[]> = {
     ANALISTA: ['NUEVO', 'EN_CARGA_MERCANCIA'],
     CHOFER: ['EN_PROCESO', 'EN_ESPERA', 'FINALIZADO', 'INCIDENCIAS'],
@@ -110,7 +121,6 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
         placaVehiculo: 'AB123CD',
         camion: '[AB123CD] Toyota Hilux',
         municipio: 'MARINO',
-        estado: 'FINALIZADO',
         pdfFuente: 'MANUAL',
         fechaCreacion: '2026-06-01',
         eventos: [],
@@ -126,6 +136,7 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
                 totalUSD: 1250.0,
                 totalVES: 45000.0,
                 prioridad: 'Alta',
+                idEstado: 'finalizado',
             },
         ],
     },
@@ -139,7 +150,6 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
         idVehiculo: '2',
         placaVehiculo: 'EF456GH',
         municipio: 'MANEIRO',
-        estado: 'EN_CARGA_MERCANCIA',
         pdfFuente: 'MANUAL',
         fechaCreacion: '2026-06-03',
         eventos: [],
@@ -155,6 +165,7 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
                 totalUSD: 2340.0,
                 totalVES: 85000.0,
                 prioridad: 'Media',
+                idEstado: 'nuevo',
             },
         ],
     },
@@ -168,7 +179,6 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
         idVehiculo: '1',
         placaVehiculo: 'AB123CD',
         municipio: 'MANEIRO',
-        estado: 'NUEVO',
         pdfFuente: 'MANUAL',
         fechaCreacion: '2026-06-04',
         eventos: [],
@@ -184,7 +194,6 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
         idVehiculo: '4',
         placaVehiculo: 'XY012ZZ',
         municipio: 'MARINO',
-        estado: 'INCIDENCIAS',
         pdfFuente: 'PDF',
         fechaCreacion: '2026-05-28',
         eventos: [],
@@ -200,6 +209,7 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
                 totalUSD: 3200.0,
                 totalVES: 115000.0,
                 prioridad: 'Baja',
+                idEstado: 'incidencia',
                 reglasRecepcion: {
                     diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
                     requiereCita: false,
@@ -218,7 +228,6 @@ export const GUIAS_MOCK: GuiaDespacho[] = [
         idVehiculo: '3',
         placaVehiculo: 'JK789LM',
         municipio: 'ARISMENDI',
-        estado: 'EN_PROCESO',
         pdfFuente: 'MANUAL',
         fechaCreacion: '2026-06-05',
         eventos: [],

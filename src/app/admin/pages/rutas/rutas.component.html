@@ -16,16 +16,6 @@
                     severity="success"
                     (onClick)="openCrearGuia()"
                 />
-
-                <p-select
-                    [(ngModel)]="filtroEstado"
-                    [options]="estadoFiltros"
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Filtrar por estado"
-                    appendTo="body"
-                    styleClass="w-44"
-                />
             </div>
         </ng-template>
 
@@ -99,9 +89,6 @@
                     Ruta <p-sortIcon field="municipio" />
                 </th>
                 <th style="min-width: 6rem">Facturas</th>
-                <th pSortableColumn="estado" style="min-width: 8rem">
-                    Estado <p-sortIcon field="estado" />
-                </th>
                 <th style="min-width: 8rem">Fecha</th>
                 <th style="width: 90px">Acciones</th>
             </tr>
@@ -141,12 +128,6 @@
                     <p-chip [label]="guia.facturas.length + ' factura(s)'" styleClass="text-xs" />
                 </td>
                 <td>
-                    <p-tag
-                        [value]="getEstadoLabel(guia.estado)"
-                        [severity]="getEstadoSeverity(guia.estado)"
-                    />
-                </td>
-                <td>
                     <span class="text-xs">{{ guia.fechaCreacion | date: 'dd/MM/yy' }}</span>
                 </td>
                 <td>
@@ -176,7 +157,7 @@
 
         <ng-template #expandedrow let-guia>
             <tr>
-                <td colspan="10">
+                <td colspan="9">
                     <div class="p-4">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="pi pi-file text-primary text-xl"></i>
@@ -247,9 +228,16 @@
                                                     {{ fact.numeroFactura }} —
                                                     {{ fact.nombreCliente }}
                                                 </span>
-                                                <span class="text-xs text-surface-400">{{
-                                                    fact.prioridad
-                                                }}</span>
+                                                <div class="flex items-center gap-2">
+                                                    <p-tag
+                                                        [value]="getEstadoFacturaLabel(fact.idEstado)"
+                                                        [severity]="getEstadoFacturaSeverity(fact.idEstado)"
+                                                        styleClass="text-xs"
+                                                    />
+                                                    <span class="text-xs text-surface-400">{{
+                                                        fact.prioridad
+                                                    }}</span>
+                                                </div>
                                             </div>
                                             <div class="grid grid-cols-12 gap-2 text-sm">
                                                 <div class="col-span-4">
@@ -322,7 +310,7 @@
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="10" class="text-center py-8 text-surface-400">
+                <td colspan="9" class="text-center py-8 text-surface-400">
                     <i class="pi pi-inbox text-4xl block mb-2"></i>
                     No hay guías de despacho registradas
                 </td>

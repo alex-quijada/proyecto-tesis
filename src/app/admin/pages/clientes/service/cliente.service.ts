@@ -94,7 +94,6 @@ export class ClienteService {
             telefono: c.telefono,
             correo: c.correo,
             personaContacto: c.persona_contacto,
-            reglas: c.reglas,
             idPrioridad: c.id_prioridad,
             prioridad: c.nombre_prioridad,
         }));
@@ -115,7 +114,6 @@ export class ClienteService {
             p_correo: cliente.correo || '',
             p_persona_contacto: cliente.personaContacto || '',
             p_id_prioridad: cliente.idPrioridad,
-            p_reglas: cliente.reglas ?? null,
         };
         const { data, error } = await this.supabase.rpc('crear_cliente', params);
         if (error) throw this.formatearError('Error al crear cliente', error);
@@ -124,7 +122,7 @@ export class ClienteService {
 
     async actualizarCliente(cliente: Cliente): Promise<void> {
         const params = {
-            p_cliente_id: cliente.id,
+            p_id_cliente: cliente.id,
             p_id_prefijo: cliente.idPrefijo,
             p_numero_doc: cliente.documentoIdentidad?.numero || '',
             p_nombre_comercial: cliente.nombreComercial || '',
@@ -132,7 +130,6 @@ export class ClienteService {
             p_correo: cliente.correo || '',
             p_persona_contacto: cliente.personaContacto || '',
             p_id_prioridad: cliente.idPrioridad,
-            p_reglas: cliente.reglas ?? null,
         };
         const { error } = await this.supabase.rpc('actualizar_cliente', params);
         if (error) throw this.formatearError('Error al actualizar cliente', error);

@@ -6,7 +6,6 @@ import {
     effect,
     inject,
     signal,
-    computed,
     ViewChild,
     ElementRef,
 } from '@angular/core';
@@ -32,8 +31,6 @@ import {
     FacturaGuia,
     EMPRESAS,
     MUNICIPIOS_NUEVA_ESPARTA,
-    ESTADOS_GUIA,
-    ESTADOS_POR_ROL,
 } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
@@ -115,6 +112,12 @@ export class GuiaDialogComponent {
         cedulaChofer: ch.documentoIdentidad
             ? `${ch.documentoIdentidad.prefijo}-${ch.documentoIdentidad.numero}`
             : '',
+    }));
+
+    ayudantes = CHOFERES_MOCK.filter((ch) => ch.rol === 'Ayudante').map((a) => ({
+        label: `${a.nombreCompleto} (${a.documentoIdentidad?.prefijo}-${a.documentoIdentidad?.numero})`,
+        value: a.id!,
+        nombreAyudante: a.nombreCompleto!,
     }));
 
     vehiculos = VEHICULOS_MOCK.map((v) => ({
@@ -291,20 +294,13 @@ export class GuiaDialogComponent {
 
     sucursalesPorCliente = new Map<string, SucursalCliente[]>();
 
-    estadosDisponibles = computed(() => {
-        const role = this.userRole();
-        const roleKey = role === 'ADMIN' ? 'ADMIN' : role === 'ANALISTA' ? 'ANALISTA' : 'CHOFER';
-        const estadosPermitidos = ESTADOS_POR_ROL[roleKey] || ESTADOS_POR_ROL['ADMIN'];
-        return ESTADOS_GUIA.filter((e) => estadosPermitidos.includes(e.value));
-    });
-
     form: FormGroup = this.fb.group({
         empresa: ['', Validators.required],
         codigoGuia: [''],
         idChofer: ['', Validators.required],
+        idAyudante: [''],
         idVehiculo: ['', Validators.required],
         municipio: ['', Validators.required],
-        estado: ['NUEVO'],
         pdfFuente: ['MANUAL'],
         observaciones: [''],
         facturas: this.fb.array([]),
@@ -325,9 +321,9 @@ export class GuiaDialogComponent {
                     empresa: data.empresa || '',
                     codigoGuia: data.codigoGuia || '',
                     idChofer: data.idChofer || '',
+                    idAyudante: data.idAyudante || '',
                     idVehiculo: data.idVehiculo || '',
                     municipio: data.municipio || '',
-                    estado: data.estado || 'NUEVO',
                     pdfFuente: data.pdfFuente || 'MANUAL',
                     observaciones: data.observaciones || '',
                 });
@@ -337,9 +333,9 @@ export class GuiaDialogComponent {
                     empresa: '',
                     codigoGuia: '',
                     idChofer: '',
+                    idAyudante: '',
                     idVehiculo: '',
                     municipio: '',
-                    estado: 'NUEVO',
                     pdfFuente: 'MANUAL',
                     observaciones: '',
                 });
@@ -460,6 +456,7 @@ export class GuiaDialogComponent {
             totalVES: [data?.totalVES ?? 0, [Validators.required, Validators.min(0)]],
             prioridad: [data?.prioridad || ''],
             reglasRecepcion: [data?.reglasRecepcion ? JSON.stringify(data.reglasRecepcion) : ''],
+            idEstado: [data?.idEstado || 'nuevo'],
         });
 
         if (data?.idCliente) {
@@ -504,7 +501,7 @@ export class GuiaDialogComponent {
                 prioridad: cliente.prioridad || '',
                 direccion: '',
                 idSucursal: '',
-                reglasRecepcion: cliente.reglas ? JSON.stringify(cliente.reglas) : '',
+                reglasRecepcion: '',
             });
             this.cargarSucursalesCliente(cliente);
         }
@@ -607,6 +604,7 @@ export class GuiaDialogComponent {
         const raw = this.form.getRawValue();
 
         const chofer = this.choferes.find((ch) => ch.value === raw.idChofer);
+        const ayudante = this.ayudantes.find((a) => a.value === raw.idAyudante);
         const vehiculo = this.vehiculos.find((v) => v.value === raw.idVehiculo);
 
         const fechaCreacion = this.guiaData().fechaCreacion || this.formatDate(new Date());
@@ -634,6 +632,7 @@ export class GuiaDialogComponent {
                 totalVES: f.totalVES,
                 prioridad: f.prioridad || cliente?.prioridad || '',
                 reglasRecepcion: reglas,
+                idEstado: f.idEstado || 'nuevo',
             };
         });
 
@@ -647,12 +646,13 @@ export class GuiaDialogComponent {
             idChofer: raw.idChofer,
             nombreChofer: chofer?.nombreChofer || '',
             cedulaChofer: chofer?.cedulaChofer || '',
+            idAyudante: raw.idAyudante || undefined,
+            nombreAyudante: ayudante?.nombreAyudante || '',
             idVehiculo: raw.idVehiculo,
             placaVehiculo: vehiculo?.placaVehiculo || '',
             camion: vehiculo?.camion || undefined,
             fechaCreacion,
             municipio: raw.municipio,
-            estado: raw.estado,
             pdfFuente: raw.pdfFuente,
             observaciones: raw.observaciones || undefined,
             eventos: this.guiaData().id ? this.guiaData().eventos || [] : [],
