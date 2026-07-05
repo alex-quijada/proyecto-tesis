@@ -96,11 +96,15 @@ export class MapaSucursalComponent implements OnDestroy {
             strokeWeight: 2,
         });
 
-        google.maps.event.addListenerOnce(this.map, 'idle', () => {
+        const dibujar = () => {
             this.placeMarkerFromForm();
-        });
+            this.drawBoundary(this.municipioNombre());
+            this.validarUbicacionActual();
+        };
 
-        setTimeout(() => this.placeMarkerFromForm(), 800);
+        google.maps.event.addListenerOnce(this.map, 'idle', dibujar);
+
+        setTimeout(dibujar, 800);
     }
 
     private drawBoundary(nombre: string) {

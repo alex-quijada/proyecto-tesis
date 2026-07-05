@@ -11,8 +11,7 @@ export const roleGuard: CanActivateFn = async (route, state) => {
     const user = authService.getCurrentUser();
 
     if (!user) {
-        router.navigate(['/']);
-        return false;
+        return router.parseUrl('/');
     }
 
     const allowedRoles = route.data['roles'] as Array<string>;
@@ -23,14 +22,12 @@ export const roleGuard: CanActivateFn = async (route, state) => {
     }
 
     if (userRole === 'Chofer') {
-        router.navigate(['/driver']);
-    } else if (userRole === 'Analista') {
-        router.navigate(['/app']);
-    } else if (userRole === 'Administrador' || userRole === 'Coordinador') {
-        router.navigate(['/app']);
-    } else {
-        router.navigate(['/']);
+        return router.parseUrl('/driver');
     }
 
-    return false;
+    if (userRole === 'Analista' || userRole === 'Administrador' || userRole === 'Coordinador') {
+        return router.parseUrl('/app');
+    }
+
+    return router.parseUrl('/');
 };

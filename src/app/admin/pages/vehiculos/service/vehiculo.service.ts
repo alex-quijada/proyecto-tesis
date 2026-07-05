@@ -1,16 +1,17 @@
 import { Injectable, inject } from '@angular/core';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
-import { environment } from '@/environments/environment';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { AuthService } from '@/app/auth/service/auth.service';
 import { Vehiculo } from '../data/vehiculos-mock';
 
 @Injectable({
     providedIn: 'root',
 })
 export class VehiculoService {
-    private supabase: SupabaseClient = createClient(
-        environment.supabaseUrl,
-        environment.supabaseKey,
-    );
+    private authService = inject(AuthService);
+
+    private get supabase(): SupabaseClient {
+        return this.authService.client;
+    }
 
     async obtenerVehiculos(): Promise<Vehiculo[]> {
         const { data, error } = await this.supabase.rpc('obtener_vehiculos');

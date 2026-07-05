@@ -14,6 +14,10 @@ export class AuthService {
     private supabase: SupabaseClient = this.supabaseClient;
     private router = inject(Router);
 
+    get client(): SupabaseClient {
+        return this.supabaseClient;
+    }
+
     private userSubject = new BehaviorSubject<User | null>(null);
     public user$ = this.userSubject.asObservable();
 

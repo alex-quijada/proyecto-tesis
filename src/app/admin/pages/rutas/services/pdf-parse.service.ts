@@ -112,6 +112,7 @@ export class PdfNormalizerService {
 
             cuerpo = cuerpo.replace(new RegExp(`\\s*${nums[i].num}\\s*`), ' ').trim();
             cuerpo = cuerpo.replace(/\s+/g, ' ').trim();
+            cuerpo = cuerpo.replace(/^\d{6}\s*/, '').trim();
 
             let cliente = cuerpo;
             let tlf = 'N/A';
@@ -119,7 +120,7 @@ export class PdfNormalizerService {
 
             const tlfMatch = cuerpo.match(/\+58[\s-]*\d{3}[\s-]*\d{7}/);
             if (tlfMatch) {
-                tlf = tlfMatch[0];
+                tlf = '0' + tlfMatch[0].replace(/^\+58[\s-]*/, '').replace(/[\s-]/g, '');
                 cliente = cuerpo
                     .slice(0, tlfMatch.index)
                     .replace(/[,\s]+$/, '')
@@ -141,7 +142,6 @@ export class PdfNormalizerService {
                 direccion = direccion === 'NO ESPECIFICADA' ? extra : `${direccion}, ${extra}`;
             }
 
-            cliente = cliente.replace(/,?\s*C\.A\.?$/i, '').trim();
             cliente = cliente.replace(/\s+/g, ' ').trim();
             if (!cliente) cliente = 'CLIENTE DESCONOCIDO';
 

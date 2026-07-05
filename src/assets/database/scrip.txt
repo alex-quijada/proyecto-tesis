@@ -1,0 +1,1 @@
+supabase db dump > backup_tesis.sql

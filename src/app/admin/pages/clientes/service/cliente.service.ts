@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
-import { environment } from '@/environments/environment';
+import { Injectable, inject } from '@angular/core';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { AuthService } from '@/app/auth/service/auth.service';
 import { PrefijoDoc } from '../../rutas/models/pdf-data.model';
 import { Cliente, SucursalCliente } from '../clientes.types';
 
@@ -25,10 +25,11 @@ export interface PrioridadItem {
     providedIn: 'root',
 })
 export class ClienteService {
-    private supabase: SupabaseClient = createClient(
-        environment.supabaseUrl,
-        environment.supabaseKey,
-    );
+    private authService = inject(AuthService);
+
+    private get supabase(): SupabaseClient {
+        return this.authService.client;
+    }
 
     private readonly PREFIJOS_FALLBACK: PrefijoItem[] = [
         { id_prefijo: 'V', prefijo: 'V', descripcion: 'V - Venezolano' },

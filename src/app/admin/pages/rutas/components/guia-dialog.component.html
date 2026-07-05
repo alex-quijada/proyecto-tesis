@@ -4,7 +4,7 @@
     header="Crear Guía de Despacho"
     [modal]="true"
     [maximizable]="true"
-    (onShow)="cargarEmpresas()"
+    (onShow)="cargarDatos()"
 >
     <ng-template #content>
         <input
@@ -79,7 +79,7 @@
                             >
                             <p-select
                                 formControlName="municipio"
-                                [options]="municipios"
+                                [options]="municipios()"
                                 optionLabel="label"
                                 optionValue="value"
                                 placeholder="Seleccionar municipio"
@@ -100,7 +100,7 @@
                             >
                             <p-select
                                 formControlName="idChofer"
-                                [options]="choferes"
+                                [options]="choferesSig()"
                                 optionLabel="label"
                                 optionValue="value"
                                 placeholder="Seleccionar chofer"
@@ -116,7 +116,7 @@
                             <label class="font-semibold">Ayudante</label>
                             <p-select
                                 formControlName="idAyudante"
-                                [options]="ayudantes"
+                                [options]="ayudantesSig()"
                                 optionLabel="label"
                                 optionValue="value"
                                 placeholder="Seleccionar ayudante"
@@ -129,7 +129,7 @@
                             >
                             <p-select
                                 formControlName="idVehiculo"
-                                [options]="vehiculos"
+                                [options]="vehiculosSig()"
                                 optionLabel="label"
                                 optionValue="value"
                                 placeholder="Seleccionar vehículo"
@@ -208,13 +208,30 @@
                                         >
                                         <p-select
                                             formControlName="idCliente"
-                                            [options]="clientesOptions"
+                                            [options]="clientesOptionsSig()"
                                             optionLabel="label"
                                             optionValue="value"
                                             placeholder="Seleccionar cliente"
                                             appendTo="body"
                                             (onChange)="onClienteChange($index)"
                                         />
+                                        @if (
+                                            !factura.get('idCliente')?.value &&
+                                            factura.get('nombreCliente')?.value
+                                        ) {
+                                            <div class="flex items-center gap-1 mt-1">
+                                                <span class="text-xs text-amber-600"
+                                                    >No registrado</span
+                                                >
+                                                <p-button
+                                                    label="Crear"
+                                                    icon="pi pi-plus"
+                                                    size="small"
+                                                    severity="warn"
+                                                    (onClick)="abrirRegistroCliente($index)"
+                                                />
+                                            </div>
+                                        }
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
                                         <label class="text-xs font-semibold"
@@ -331,3 +348,9 @@
         }
     </ng-template>
 </p-dialog>
+
+<app-cliente-dialog
+    [(visible)]="clienteDialogVisible"
+    [clienteData]="clientePendiente()"
+    (onSave)="onClienteCreado($event)"
+/>
