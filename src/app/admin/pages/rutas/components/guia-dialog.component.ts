@@ -9,6 +9,8 @@ import {
     computed,
     ViewChild,
     ElementRef,
+    OnInit,
+    untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -88,7 +90,7 @@ interface VehiculoOption {
     ],
     templateUrl: './guia-dialog.component.html',
 })
-export class GuiaDialogComponent {
+export class GuiaDialogComponent implements OnInit {
     private fb = inject(FormBuilder);
     private pdfNormalizerService = inject(PdfNormalizerService);
     private authService = inject(AuthService);
@@ -126,7 +128,7 @@ export class GuiaDialogComponent {
     );
     filteredClientesSig = signal<{ label: string; value: string }[]>([]);
 
-    sucursalesPorCliente = signal(new Map<string, SucursalCliente[]>());
+    sucursalesPorCliente = signal<Record<string, SucursalCliente[]>>({});
 
     private fuseClientes: Fuse<Cliente>;
 
@@ -153,12 +155,17 @@ export class GuiaDialogComponent {
             distance: 100,
             minMatchCharLength: 3,
         });
-        this.filteredClientesSig.set(this.clientesOptionsSig());
+
+        effect(() => {
+            this.filteredClientesSig.set(this.clientesOptionsSig());
+        });
 
         effect(() => {
             const data = this.guiaData();
-            this.submitted = false;
-            this.errorMessage = '';
+
+            untracked(() => {
+                this.submitted = false;
+                this.errorMessage = '';
 
             if (data?.id) {
                 this.form.patchValue({
@@ -172,20 +179,25 @@ export class GuiaDialogComponent {
                     observaciones: data.observaciones || '',
                 });
                 this.setFacturas(data.facturas || []);
-            } else {
-                this.form.reset({
-                    empresa: '',
-                    codigoGuia: '',
-                    idChofer: '',
-                    idAyudante: '',
-                    idVehiculo: '',
-                    municipio: '',
-                    pdfFuente: 'MANUAL',
-                    observaciones: '',
-                });
-                this.facturas.clear();
-            }
+    } else {
+        this.form.reset({
+            empresa: '',
+            codigoGuia: '',
+            idChofer: '',
+            idAyudante: '',
+            idVehiculo: '',
+            municipio: '',
+            pdfFuente: 'MANUAL',
+            observaciones: '',
         });
+        this.facturas.clear();
+    }
+        });
+    });
+    }
+
+    ngOnInit() {
+        this.cargarDatos();
     }
 
     async cargarDatos() {
@@ -252,13 +264,7 @@ export class GuiaDialogComponent {
             const clientesData = await this.clienteService.obtenerClientes();
             if (clientesData?.length) {
                 this.clientesSig.set(clientesData);
-                this.resetFilteredClientes();
-                this.fuseClientes = new Fuse(clientesData, {
-                    keys: ['nombreComercial'],
-                    threshold: 0.4,
-                    distance: 100,
-                    minMatchCharLength: 3,
-                });
+                this.fuseClientes.setCollection(clientesData);
             }
         } catch {
             /* keep fallback */
@@ -449,15 +455,16 @@ export class GuiaDialogComponent {
     }
 
     filterClientes(event: AutoCompleteCompleteEvent) {
-        // Si event.query es undefined o null, asegúrate de tener un string vacío
         const query = (event.query || '').toLowerCase().trim();
-
-        this.filteredClientesSig.set(
-            query
-                ? this.clientesOptionsSig().filter((c) => c.label.toLowerCase().includes(query))
-                : // ¡IMPORTANTE!: Usamos [...] para crear una nueva referencia del arreglo
-                  [...this.clientesOptionsSig()],
-        );
+        queueMicrotask(() => {
+            this.filteredClientesSig.set(
+                query
+                    ? this.clientesOptionsSig().filter((c) =>
+                          c.label.toLowerCase().includes(query),
+                      )
+                    : [...this.clientesOptionsSig()],
+            );
+        });
     }
 
     async onClienteChange(index: number) {
@@ -482,7 +489,7 @@ export class GuiaDialogComponent {
     }
 
     private async cargarSucursalesCliente(clienteId: string) {
-        if (!clienteId || this.sucursalesPorCliente().has(clienteId)) return;
+        if (!clienteId || this.sucursalesPorCliente()[clienteId]) return;
         try {
             const data = await this.clienteService.obtenerSucursales(clienteId);
             const sucursales = data.map((s) => ({
@@ -500,16 +507,17 @@ export class GuiaDialogComponent {
                 latitud: s.latitud,
                 longitud: s.longitud,
             }));
-            this.sucursalesPorCliente.set(
-                new Map(this.sucursalesPorCliente()).set(clienteId, sucursales),
-            );
+            this.sucursalesPorCliente.update((prev) => ({
+                ...prev,
+                [clienteId]: sucursales,
+            }));
         } catch {
             /* ignore */
         }
     }
 
     private autoSelectSucursalSiUnica(clienteId: string, group: AbstractControl) {
-        const sucs = this.sucursalesPorCliente().get(clienteId);
+        const sucs = this.sucursalesPorCliente()[clienteId];
         if (sucs?.length === 1) {
             const suc = sucs[0];
             group.patchValue({
@@ -526,7 +534,7 @@ export class GuiaDialogComponent {
         const idSucursal = group.get('idSucursal')?.value;
         const idCliente = group.get('idCliente')?.value;
         if (idCliente && idSucursal) {
-            const sucs = this.sucursalesPorCliente().get(idCliente) || [];
+            const sucs = this.sucursalesPorCliente()[idCliente] || [];
             const suc = sucs.find((s) => s.id === idSucursal);
             if (suc) {
                 group.patchValue({
@@ -539,7 +547,7 @@ export class GuiaDialogComponent {
     }
 
     getSucursales(clienteId: string): { label: string; value: string }[] {
-        const sucs = this.sucursalesPorCliente().get(clienteId) || [];
+        const sucs = this.sucursalesPorCliente()[clienteId] || [];
         return sucs.map((s) => ({
             label: `${s.direccion}${s.puntoDeReferencia ? ` (${s.puntoDeReferencia})` : ''}`,
             value: s.id!,
@@ -635,13 +643,7 @@ export class GuiaDialogComponent {
             const clientesData = await this.clienteService.obtenerClientes();
             if (clientesData?.length) {
                 this.clientesSig.set(clientesData);
-                this.resetFilteredClientes();
-                this.fuseClientes = new Fuse(clientesData, {
-                    keys: ['nombreComercial'],
-                    threshold: 0.4,
-                    distance: 100,
-                    minMatchCharLength: 3,
-                });
+                this.fuseClientes.setCollection(clientesData);
             }
         } catch {
             /* ignore */
