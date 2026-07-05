@@ -11,7 +11,14 @@ import {
     ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, AbstractControl, Validators } from '@angular/forms';
+import {
+    ReactiveFormsModule,
+    FormBuilder,
+    FormGroup,
+    FormArray,
+    AbstractControl,
+    Validators,
+} from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -24,6 +31,7 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 
 import { GuiaDespacho, FacturaGuia } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
@@ -75,6 +83,7 @@ interface VehiculoOption {
         AccordionModule,
         TooltipModule,
         ProgressSpinnerModule,
+        AutoCompleteModule,
         ClienteDialogComponent,
     ],
     templateUrl: './guia-dialog.component.html',
@@ -105,206 +114,17 @@ export class GuiaDialogComponent {
     empresasOptions = signal<{ label: string; value: string }[]>([]);
     municipios = signal<{ label: string; value: string }[]>([]);
 
-    choferesSig = signal<ChoferOption[]>(this.choferesFallback);
-    ayudantesSig = signal<AyudanteOption[]>(this.ayudantesFallback);
-    vehiculosSig = signal<VehiculoOption[]>(this.vehiculosFallback);
-    clientesSig = signal<Cliente[]>(this.mockClientes);
+    choferesSig = signal<ChoferOption[]>([]);
+    ayudantesSig = signal<AyudanteOption[]>([]);
+    vehiculosSig = signal<VehiculoOption[]>([]);
+    clientesSig = signal<Cliente[]>([]);
     clientesOptionsSig = computed(() =>
         this.clientesSig().map((c) => ({
             label: c.nombreComercial || '',
             value: c.id || c.idCliente || '',
         })),
     );
-
-    private get choferesFallback(): ChoferOption[] {
-        return CHOFERES_MOCK.map((ch) => ({
-            label: `${ch.nombreCompleto} (${ch.documentoIdentidad?.prefijo}-${ch.documentoIdentidad?.numero})`,
-            value: ch.id!,
-            nombreChofer: ch.nombreCompleto!,
-            cedulaChofer: ch.documentoIdentidad
-                ? `${ch.documentoIdentidad.prefijo}-${ch.documentoIdentidad.numero}`
-                : '',
-        }));
-    }
-
-    private get ayudantesFallback(): AyudanteOption[] {
-        return CHOFERES_MOCK.filter((ch) => ch.rol === 'Ayudante').map((a) => ({
-            label: `${a.nombreCompleto} (${a.documentoIdentidad?.prefijo}-${a.documentoIdentidad?.numero})`,
-            value: a.id!,
-            nombreAyudante: a.nombreCompleto!,
-        }));
-    }
-
-    private get vehiculosFallback(): VehiculoOption[] {
-        return VEHICULOS_MOCK.map((v) => ({
-            label: `${v.placa} — ${v.marca} ${v.modelo} (${v.anio})`,
-            value: v.id!,
-            placaVehiculo: v.placa!,
-            camion: `[${v.placa}] ${v.marca} ${v.modelo}`,
-        }));
-    }
-
-    private get mockClientes(): Cliente[] {
-        return [
-            {
-                id: 'cli-1',
-                documentoIdentidad: { prefijo: 'J', numero: '123456789' },
-                nombreComercial: 'Distribuidora Los Andes C.A.',
-                telefono: '0295-1234567',
-                correo: 'contacto@distrilandesa.com',
-                personaContacto: 'María Fernanda López',
-                prioridad: 'Alta',
-                sucursales: [
-                    {
-                        id: 'ub-1-1',
-                        direccion: 'Av. Principal, Edif. Los Andes, Piso 1',
-                        idMunicipio: 'MARINO',
-                        telefonoContacto: '0414-1112233',
-                        nombreContacto: 'Pedro Rojas',
-                        reglas: {
-                            horaEntrega: '08:00-17:00',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
-                            requiereCita: true,
-                            instrucciones: 'Solicitar identificación en recepción',
-                        },
-                    },
-                    {
-                        id: 'ub-1-2',
-                        direccion: 'Calle Los Mangos, Local 5',
-                        idMunicipio: 'DIAZ',
-                        telefonoContacto: '0416-2223344',
-                        nombreContacto: 'Ana Castillo',
-                        reglas: {
-                            horaEntrega: '09:00-15:00',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'],
-                            requiereCita: false,
-                        },
-                    },
-                ],
-            },
-            {
-                id: 'cli-2',
-                documentoIdentidad: { prefijo: 'V', numero: '987654321' },
-                nombreComercial: 'Comercial El Ávila S.R.L.',
-                telefono: '0295-7654321',
-                correo: 'ventas@comercialavila.com',
-                personaContacto: 'José Antonio Pérez',
-                prioridad: 'Media',
-                sucursales: [
-                    {
-                        id: 'ub-2-1',
-                        direccion: 'Calle Sucre, Local 3-A',
-                        idMunicipio: 'MARINO',
-                        telefonoContacto: '0414-5544332',
-                        nombreContacto: 'Rosa Hernández',
-                        reglas: {
-                            horaEntrega: '08:30-17:30',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
-                            requiereCita: false,
-                            instrucciones: 'Llamar al llegar',
-                        },
-                    },
-                ],
-            },
-            {
-                id: 'cli-3',
-                documentoIdentidad: { prefijo: 'G', numero: '456789123' },
-                nombreComercial: 'Supermercado Margarita C.A.',
-                telefono: '0295-4567890',
-                correo: 'compras@supermargarita.com',
-                personaContacto: 'Carmen Elena Salazar',
-                prioridad: 'Alta',
-                sucursales: [
-                    {
-                        id: 'ub-3-1',
-                        direccion: 'Av. 4 de Mayo, CC Costa Azul',
-                        idMunicipio: 'MANEIRO',
-                        telefonoContacto: '0412-6655778',
-                        nombreContacto: 'Luisana Gil',
-                        reglas: {
-                            horaEntrega: '06:00-14:00',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'],
-                            requiereCita: false,
-                            instrucciones: 'Recepción por el área de carga',
-                        },
-                    },
-                    {
-                        id: 'ub-3-2',
-                        direccion: 'Calle Bolívar, Local 8',
-                        idMunicipio: 'DIAZ',
-                        telefonoContacto: '0426-9988776',
-                        nombreContacto: 'José Gregorio Rivas',
-                        reglas: {
-                            horaEntrega: '08:00-12:00',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'],
-                            requiereCita: true,
-                            instrucciones: 'Solo recepción en horario de mañana',
-                        },
-                    },
-                ],
-            },
-            {
-                id: 'cli-4',
-                documentoIdentidad: { prefijo: 'V', numero: '112233445' },
-                nombreComercial: 'Ferretería El Martillo',
-                telefono: '0295-3322114',
-                correo: 'pedidos@ferremartillo.com',
-                personaContacto: 'Alberto José Guzmán',
-                prioridad: 'Baja',
-                sucursales: [
-                    {
-                        id: 'ub-4-1',
-                        direccion: 'Av. Principal de Pampatar, Local 2',
-                        idMunicipio: 'MANEIRO',
-                        telefonoContacto: '0414-4433221',
-                        nombreContacto: 'Marlene Rojas',
-                        reglas: {
-                            horaEntrega: '09:00-18:00',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
-                            requiereCita: false,
-                        },
-                    },
-                ],
-            },
-            {
-                id: 'cli-5',
-                documentoIdentidad: { prefijo: 'E', numero: '998877665' },
-                nombreComercial: 'Importadora Caribe 3000 S.A.',
-                telefono: '0295-9988776',
-                correo: 'info@caribe3000.com',
-                personaContacto: 'Eduardo Schwarz',
-                prioridad: 'Alta',
-                sucursales: [
-                    {
-                        id: 'ub-5-1',
-                        direccion: 'Zona Franca, Módulo 7',
-                        idMunicipio: 'GARCIA',
-                        telefonoContacto: '0424-7766554',
-                        nombreContacto: 'Francisco Díaz',
-                        reglas: {
-                            horaEntrega: '08:00-16:00',
-                            diasRecepcion: ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'],
-                            requiereCita: true,
-                            instrucciones: 'Presentar documentación aduanera',
-                        },
-                    },
-                    {
-                        id: 'ub-5-2',
-                        direccion: 'Av. Circunvalación, Edif. Caribe',
-                        idMunicipio: 'MARINO',
-                        telefonoContacto: '0412-1122334',
-                        nombreContacto: 'Gabriela Rivas',
-                        reglas: {
-                            horaEntrega: '09:00-13:00',
-                            diasRecepcion: ['LUN', 'MIE', 'VIE'],
-                            requiereCita: true,
-                            instrucciones: 'Oficina administrativa, solo recepción de documentos',
-                        },
-                    },
-                ],
-            },
-        ];
-    }
+    filteredClientesSig = signal<{ label: string; value: string }[]>([]);
 
     sucursalesPorCliente = signal(new Map<string, SucursalCliente[]>());
 
@@ -333,6 +153,7 @@ export class GuiaDialogComponent {
             distance: 100,
             minMatchCharLength: 3,
         });
+        this.filteredClientesSig.set(this.clientesOptionsSig());
 
         effect(() => {
             const data = this.guiaData();
@@ -431,6 +252,7 @@ export class GuiaDialogComponent {
             const clientesData = await this.clienteService.obtenerClientes();
             if (clientesData?.length) {
                 this.clientesSig.set(clientesData);
+                this.resetFilteredClientes();
                 this.fuseClientes = new Fuse(clientesData, {
                     keys: ['nombreComercial'],
                     threshold: 0.4,
@@ -614,11 +436,28 @@ export class GuiaDialogComponent {
     }
 
     addFactura() {
+        this.resetFilteredClientes();
         this.facturas.push(this.createFacturaGroup());
     }
 
     removeFactura(index: number) {
         this.facturas.removeAt(index);
+    }
+
+    private resetFilteredClientes() {
+        this.filteredClientesSig.set(this.clientesOptionsSig());
+    }
+
+    filterClientes(event: AutoCompleteCompleteEvent) {
+        // Si event.query es undefined o null, asegúrate de tener un string vacío
+        const query = (event.query || '').toLowerCase().trim();
+
+        this.filteredClientesSig.set(
+            query
+                ? this.clientesOptionsSig().filter((c) => c.label.toLowerCase().includes(query))
+                : // ¡IMPORTANTE!: Usamos [...] para crear una nueva referencia del arreglo
+                  [...this.clientesOptionsSig()],
+        );
     }
 
     async onClienteChange(index: number) {
@@ -661,7 +500,9 @@ export class GuiaDialogComponent {
                 latitud: s.latitud,
                 longitud: s.longitud,
             }));
-            this.sucursalesPorCliente.set(new Map(this.sucursalesPorCliente()).set(clienteId, sucursales));
+            this.sucursalesPorCliente.set(
+                new Map(this.sucursalesPorCliente()).set(clienteId, sucursales),
+            );
         } catch {
             /* ignore */
         }
@@ -794,6 +635,7 @@ export class GuiaDialogComponent {
             const clientesData = await this.clienteService.obtenerClientes();
             if (clientesData?.length) {
                 this.clientesSig.set(clientesData);
+                this.resetFilteredClientes();
                 this.fuseClientes = new Fuse(clientesData, {
                     keys: ['nombreComercial'],
                     threshold: 0.4,

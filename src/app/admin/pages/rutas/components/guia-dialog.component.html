@@ -206,14 +206,17 @@
                                         <label class="text-xs font-semibold"
                                             >Cliente <span class="text-red-500">*</span></label
                                         >
-                                        <p-select
+                                        <p-autocomplete
                                             formControlName="idCliente"
-                                            [options]="clientesOptionsSig()"
+                                            [suggestions]="filteredClientesSig()"
+                                            (completeMethod)="filterClientes($event)"
                                             optionLabel="label"
                                             optionValue="value"
-                                            placeholder="Seleccionar cliente"
+                                            placeholder="Buscar cliente..."
+                                            [dropdown]="true"
+                                            dropdownMode="blank"
                                             appendTo="body"
-                                            (onChange)="onClienteChange($index)"
+                                            (onSelect)="onClienteChange($index)"
                                         />
                                         @if (
                                             !factura.get('idCliente')?.value &&
