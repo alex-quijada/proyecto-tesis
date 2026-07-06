@@ -24,6 +24,7 @@ import {
     RUTAS_MOCK,
     MUNICIPIOS_NUEVA_ESPARTA,
     ESTADOS_FACTURA,
+    ESTADOS_GUIA,
 } from './data/rutas-mock';
 import { AuthService } from '../../../auth/service/auth.service';
 
@@ -112,6 +113,33 @@ export class RutasComponent implements OnInit {
         return (e?.severity as any) || 'info';
     }
 
+    getEstadoGuia(guia: GuiaDespacho): string {
+        const facturas = guia.facturas;
+        if (!facturas?.length) return 'NUEVO';
+
+        const estados = facturas.map((f) => f.idEstado);
+
+        if (estados.some((e) => e === 'incidencia')) return 'INCIDENCIAS';
+        if (estados.some((e) => e === 'proceso')) return 'EN_PROCESO';
+        if (estados.some((e) => e === 'espera')) return 'EN_ESPERA';
+        if (estados.some((e) => e === 'embarque')) return 'EN_CARGA_MERCANCIA';
+        if (estados.every((e) => e === 'finalizado')) return 'FINALIZADO';
+
+        return 'NUEVO';
+    }
+
+    getEstadoGuiaSeverity(
+        estado: string,
+    ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+        const e = ESTADOS_GUIA.find((eg) => eg.value === estado);
+        return (e?.severity as any) || 'info';
+    }
+
+    getEstadoGuiaLabel(estado: string): string {
+        const e = ESTADOS_GUIA.find((eg) => eg.value === estado);
+        return e?.label || estado;
+    }
+
     openCrearGuia() {
         this.editingGuia = {} as GuiaDespacho;
         this.guiaDialogVisible = true;
@@ -123,6 +151,15 @@ export class RutasComponent implements OnInit {
     }
 
     onSaveGuia(guia: GuiaDespacho) {
+        if (!guia.facturas?.length) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Factura requerida',
+                detail: 'La guía debe tener al menos una factura para ser registrada.',
+            });
+            return;
+        }
+
         const idx = this.guias().findIndex((g) => g.id === guia.id);
         if (idx >= 0) {
             const updated = [...this.guias()];

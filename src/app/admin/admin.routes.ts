@@ -43,4 +43,11 @@ export default [
         path: 'rutas/carga',
         loadComponent: () => import('./pages/rutas/rutas.component').then((m) => m.RutasComponent),
     },
+    {
+        path: 'rutas/optimizacion',
+        loadComponent: () =>
+            import('./pages/rutas/optimizacion/optimizacion-rutas.component').then(
+                (m) => m.OptimizacionRutasComponent,
+            ),
+    },
 ] as Routes;
