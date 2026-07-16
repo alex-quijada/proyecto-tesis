@@ -29,7 +29,7 @@ export class Map implements OnDestroy {
     optimizedOrder = signal<number[]>([]);
 
     private markers: mapboxgl.Marker[] = [];
-    private googleMarkers: google.maps.Marker[] = [];
+    private googleMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
     private routeSourceId = 'route';
     private routeLayerId = 'route-layer';
     private googlePolyline: google.maps.Polyline | null = null;
@@ -68,6 +68,7 @@ export class Map implements OnDestroy {
         this.googleMap = new google.maps.Map(el, {
             center: { lat: 10.96, lng: -63.85 },
             zoom: 10,
+            mapId: 'map',
             mapTypeId: google.maps.MapTypeId.ROADMAP,
             streetViewControl: false,
             fullscreenControl: false,
@@ -344,24 +345,15 @@ export class Map implements OnDestroy {
         const color =
             index === 0 ? '#3b82f6' : index === total - 1 ? '#ef4444' : '#f59e0b';
 
-        const marker = new google.maps.Marker({
+        const markerContent = document.createElement('div');
+        markerContent.textContent = label;
+        markerContent.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;border:2px solid white;`;
+
+        const marker = new google.maps.marker.AdvancedMarkerElement({
             position: { lat: wp.lat, lng: wp.lng },
             map: this.googleMap,
             title: wp.name,
-            label: {
-                text: label,
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 'bold',
-            },
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: color,
-                fillOpacity: 1,
-                strokeColor: 'white',
-                strokeWeight: 2,
-            },
+            content: markerContent,
         });
 
         const info = new google.maps.InfoWindow({ content: wp.name });
@@ -371,7 +363,7 @@ export class Map implements OnDestroy {
     }
 
     private clearGoogleMarkers() {
-        this.googleMarkers.forEach((m) => m.setMap(null));
+        this.googleMarkers.forEach((m) => { m.map = null; });
         this.googleMarkers = [];
     }
 
@@ -394,24 +386,15 @@ export class Map implements OnDestroy {
             const color =
                 optIdx === 0 ? '#22c55e' : optIdx === total - 1 ? '#ef4444' : '#f59e0b';
 
-            const marker = new google.maps.Marker({
+            const markerContent = document.createElement('div');
+            markerContent.textContent = label;
+            markerContent.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;border:2px solid white;`;
+
+            const marker = new google.maps.marker.AdvancedMarkerElement({
                 position: { lat: wp.lat, lng: wp.lng },
                 map: this.googleMap,
                 title: wp.name,
-                label: {
-                    text: label,
-                    color: 'white',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                },
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 12,
-                    fillColor: color,
-                    fillOpacity: 1,
-                    strokeColor: 'white',
-                    strokeWeight: 2,
-                },
+                content: markerContent,
             });
 
             const text =

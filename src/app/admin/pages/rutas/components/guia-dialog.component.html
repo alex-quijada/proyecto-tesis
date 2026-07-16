@@ -199,7 +199,6 @@
                                             [suggestions]="filteredClientesSig()"
                                             (completeMethod)="filterClientes($event)"
                                             optionLabel="label"
-                                            optionValue="value"
                                             placeholder="Buscar cliente..."
                                             [dropdown]="true"
                                             dropdownMode="blank"
@@ -207,7 +206,7 @@
                                             (onSelect)="onClienteChange($index)"
                                         />
                                         @if (
-                                            !factura.get('idCliente')?.value &&
+                                            !obtenerIdCliente(factura.get('idCliente')?.value) &&
                                             factura.get('nombreCliente')?.value
                                         ) {
                                             <div
@@ -235,7 +234,9 @@
                                         <p-select
                                             formControlName="idSucursal"
                                             [options]="
-                                                getSucursales(factura.get('idCliente')?.value)
+                                                getSucursales(
+                                                    obtenerIdCliente(factura.get('idCliente')?.value)
+                                                )
                                             "
                                             optionLabel="label"
                                             optionValue="value"

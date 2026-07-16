@@ -1,337 +1,407 @@
-<div class="card">
+<!-- Ajustado h-full por una altura dinámica basada en el viewport para Sakai -->
+<div class="card h-[calc(100vh-8.4rem)] flex flex-col">
     <p-toast />
 
-    <div class="flex items-center gap-3 mb-6">
+    <div class="flex items-center gap-3 mb-6 shrink-0">
         <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">
             Optimización de Rutas
         </h1>
     </div>
 
-    <div class="mb-6">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-semibold text-surface-700 dark:text-surface-200">
-                <i class="pi pi-calendar mr-2"></i>
-                Cronograma Semanal
-            </h2>
-            <span class="text-xs text-surface-400">Arrastra o reordena municipios por día</span>
-        </div>
+    <!-- Contenedor principal de columnas fijas -->
+    <div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden">
+        <!-- COLUMNA IZQUIERDA: Cronograma Semanal (Scroll independiente) -->
+        <div class="w-full lg:w-2/5 shrink-0 overflow-y-auto pr-2">
+            <div
+                class="flex items-center justify-between mb-3 sticky top-0 bg-surface-0 dark:bg-surface-900 z-10 pb-2"
+            >
+                <h2 class="text-lg font-semibold text-surface-700 dark:text-surface-200">
+                    <i class="pi pi-calendar mr-2"></i>
+                    Cronograma Semanal
+                </h2>
+            </div>
 
-        <div class="flex gap-3 overflow-x-auto pb-2">
-            @for (dia of cronograma(); track dia.dia) {
-                <div
-                    class="flex-shrink-0 w-56 border-2 rounded-lg p-3"
-                    [class.bg-primary-50]="dia.dia === hoy"
-                    [class.dark:bg-primary-950]="dia.dia === hoy"
-                    [class.border-primary]="dia.dia === hoy"
-                    [class.border-surface-200]="dia.dia !== hoy"
-                    [class.dark:border-surface-700]="dia.dia !== hoy"
-                    [class.bg-surface-0]="dia.dia !== hoy"
-                    [class.dark:bg-surface-900]="dia.dia !== hoy"
-                    [class.shadow-md]="dia.dia === hoy"
-                >
-                    <div class="flex items-center justify-between mb-2">
-                        <span
-                            class="text-sm font-bold"
-                            [class.text-primary]="dia.dia === hoy"
-                            [class.text-surface-600]="dia.dia !== hoy"
+            @if (loadingCronograma()) {
+                <div class="grid grid-cols-2 gap-3">
+                    @for (_ of [1, 2, 3, 4, 5, 6]; track _) {
+                        <p-skeleton height="130px" borderRadius="8px" />
+                    }
+                </div>
+            } @else {
+                <div class="grid grid-cols-2 gap-3">
+                    @for (dia of cronograma(); track dia.dia) {
+                        <div
+                            class="border-2 rounded-lg p-3"
+                            [class.bg-primary-50]="dia.dia === hoy"
+                            [class.dark:bg-primary-950]="dia.dia === hoy"
+                            [class.border-primary]="dia.dia === hoy"
+                            [class.border-surface-200]="dia.dia !== hoy"
+                            [class.dark:border-surface-700]="dia.dia !== hoy"
+                            [class.bg-surface-0]="dia.dia !== hoy"
+                            [class.dark:bg-surface-900]="dia.dia !== hoy"
                         >
-                            @if (dia.dia === hoy) {
-                                <i class="pi pi-sun text-yellow-500 mr-1 text-xs"></i>
-                            }
-                            {{ dia.label }}
-                        </span>
-                        <div class="flex items-center gap-1">
-                            <span
-                                class="text-xs text-surface-400 bg-surface-100 dark:bg-surface-800 px-2 py-0.5 rounded-full"
-                            >
-                                {{ dia.municipios.length }}
-                            </span>
-                            <i
-                                class="pi pi-pencil text-xs text-surface-400 hover:text-primary transition-colors cursor-pointer"
-                                (click)="toggleEditarDia(dia.dia)"
-                                pTooltip="Editar día"
-                            ></i>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-1.5 min-h-[60px]">
-                        @for (mValue of dia.municipios; track mValue; let idx = $index) {
-                            <div
-                                class="flex items-center gap-1"
-                                draggable="true"
-                                (dragstart)="onDragStart(dia.dia, idx)"
-                                (dragover)="onDragOver($event)"
-                                (drop)="onDrop($event, dia.dia, idx)"
-                                (dragend)="onDragEnd()"
-                                [class.opacity-50]="dragIndex()?.dia === dia.dia && dragIndex()?.idx === idx"
-                                [class.cursor-grab]="diaEditando() === dia.dia"
-                            >
-                                @if (diaEditando() === dia.dia) {
-                                    <i class="pi pi-bars text-[10px] text-surface-300 cursor-grab"></i>
-                                }
+                            <div class="flex items-center justify-between mb-2">
                                 <span
-                                    class="flex-1 text-xs truncate px-2 py-1 rounded bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-200"
-                                    [class.border]="dragIndex()?.dia === dia.dia && dragIndex()?.idx !== idx"
-                                    [class.border-primary]="dragIndex()?.dia === dia.dia && dragIndex()?.idx !== idx"
+                                    class="text-sm font-bold"
+                                    [class.text-primary]="dia.dia === hoy"
+                                    [class.text-surface-600]="dia.dia !== hoy"
                                 >
-                                    {{ getMunicipioLabelFrom(mValue) }}
+                                    @if (dia.dia === hoy) {
+                                        <i class="pi pi-sun text-yellow-500 mr-1 text-xs"></i>
+                                    }
+                                    {{ dia.label }}
                                 </span>
-                                @if (diaEditando() === dia.dia) {
-                                    <button
-                                        class="text-xs text-red-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-0 leading-none"
-                                        (click)="quitarMunicipioDeDia(dia.dia, mValue)"
-                                        pTooltip="Quitar"
+                                <div class="flex items-center gap-1">
+                                    <span
+                                        class="text-xs text-surface-400 bg-surface-100 dark:bg-surface-800 px-2 py-0.5 rounded-full"
                                     >
-                                        <i class="pi pi-times-circle"></i>
-                                    </button>
-                                }
+                                        {{ dia.municipios.length }}
+                                    </span>
+                                    <i
+                                        class="pi pi-pencil text-xs text-surface-400 hover:text-primary transition-colors cursor-pointer"
+                                        (click)="toggleEditarDia(dia.dia)"
+                                        pTooltip="Editar día"
+                                    ></i>
+                                </div>
                             </div>
-                        }
-                    </div>
 
-                    @if (diaEditando() === dia.dia) {
-                        <div class="flex items-center gap-1 mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 min-w-0">
-                            <p-select
-                                [(ngModel)]="municipioAgregar"
-                                [options]="municipiosDisponiblesPara(dia)"
-                                optionLabel="label"
-                                optionValue="value"
-                                placeholder="+ Agregar"
-                                appendTo="body"
-                                styleClass="text-xs"
-                                [style]="{'min-width': '0', 'width': '100%'}"
-                            />
-                            <p-button
-                                icon="pi pi-plus"
-                                severity="info"
-                                size="small"
-                                styleClass="p-button-sm flex-shrink-0"
-                                [disabled]="!municipioAgregar()"
-                                (onClick)="agregarMunicipioADia(dia)"
-                            />
+                            @if (diaEditando() === dia.dia) {
+                                <p-orderList
+                                    [value]="diaEditandoLista()"
+                                    [dragdrop]="true"
+                                    (onReorder)="onReorderDiaEditando($event)"
+                                    scrollHeight="12rem"
+                                    styleClass="border-0"
+                                >
+                                    <ng-template let-mValue pTemplate="item">
+                                        <div class="flex items-center gap-1 px-1 py-0.5">
+                                            <i
+                                                class="pi pi-bars text-[10px] text-surface-300 cursor-grab"
+                                            ></i>
+                                            <span
+                                                class="flex-1 text-xs truncate text-surface-700 dark:text-surface-200"
+                                            >
+                                                {{ getMunicipioLabelFrom(mValue) }}
+                                            </span>
+                                            <button
+                                                class="text-xs text-red-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-0 leading-none"
+                                                (click)="quitarMunicipioDeDia(mValue)"
+                                                pTooltip="Quitar"
+                                            >
+                                                <i class="pi pi-times-circle"></i>
+                                            </button>
+                                        </div>
+                                    </ng-template>
+                                </p-orderList>
+
+                                <div
+                                    class="flex items-center gap-1 mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 min-w-0"
+                                >
+                                    <p-select
+                                        [(ngModel)]="municipioAgregar"
+                                        [options]="municipiosDisponiblesParaAgregar"
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        placeholder="+ Agregar"
+                                        appendTo="body"
+                                        styleClass="text-xs"
+                                        [style]="{ 'min-width': '0', width: '100%' }"
+                                        (onChange)="agregarMunicipioADia()"
+                                    />
+                                </div>
+
+                                <div
+                                    class="flex items-center gap-2 mt-2 pt-2 border-t border-surface-200 dark:border-surface-700"
+                                >
+                                    <p-button
+                                        label="Guardar"
+                                        icon="pi pi-check"
+                                        severity="success"
+                                        size="small"
+                                        styleClass="p-button-sm flex-1"
+                                        (onClick)="guardarEdicion()"
+                                    />
+                                    <p-button
+                                        label="Cancelar"
+                                        icon="pi pi-times"
+                                        severity="secondary"
+                                        size="small"
+                                        styleClass="p-button-sm flex-1"
+                                        (onClick)="cancelarEdicion()"
+                                    />
+                                </div>
+                            } @else {
+                                <div class="flex flex-col gap-1 min-h-[60px]">
+                                    @for (mValue of dia.municipios; track mValue) {
+                                        <div class="flex items-center gap-1">
+                                            <span
+                                                class="flex-1 text-xs truncate px-2 py-1 rounded bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-200"
+                                            >
+                                                {{ getMunicipioLabelFrom(mValue) }}
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
                     }
                 </div>
             }
         </div>
-    </div>
 
-    @if (!selectedMunicipio()) {
-        <div class="mb-6">
-            <h2 class="text-lg font-semibold text-surface-700 dark:text-surface-200 mb-4">
-                <i class="pi pi-map-marker mr-2"></i>
-                Guías pendientes por municipio
-                @if (esDomingo) {
-                    <span class="text-sm font-normal text-surface-400 ml-2">
-                        — Hoy es domingo, mostrando plan del lunes
-                    </span>
-                } @else {
-                    <span class="text-sm font-normal text-surface-400 ml-2">
-                        — Prioridad: hoy ({{ DIAS_LABEL[hoy] }})
-                    </span>
-                }
-            </h2>
-            <div class="grid grid-cols-12 gap-4">
-                @for (m of municipiosConteo; track m.value) {
-                    <div
-                        class="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3 cursor-pointer"
-                        (click)="seleccionarMunicipio(m.value)"
-                    >
-                        <div
-                            class="border-2 rounded-lg p-4 transition-all duration-200"
-                            [class.bg-primary-50]="m.esHoy"
-                            [class.dark:bg-primary-950]="m.esHoy"
-                            [class.border-primary]="m.esHoy"
-                            [class.shadow-md]="m.esHoy"
-                            [class.border-red-400]="m.tieneAlta"
-                            [class.bg-red-50]="m.tieneAlta"
-                            [class.dark:bg-red-950]="m.tieneAlta"
-                            [class.border-surface-200]="!m.esHoy && !m.tieneAlta"
-                            [class.dark:border-surface-700]="!m.esHoy && !m.tieneAlta"
-                            [class.bg-surface-0]="!m.esHoy && !m.tieneAlta"
-                            [class.dark:bg-surface-900]="!m.esHoy && !m.tieneAlta"
-                            [class.hover:border-primary]="!m.esHoy && !m.tieneAlta"
-                            [class.hover:shadow-md]="!m.esHoy && !m.tieneAlta"
+        <!-- COLUMNA DERECHA: Guías y Mapa (Scroll independiente de la izquierda) -->
+        <div class="w-full lg:w-3/5 min-w-0 flex flex-col h-full overflow-hidden">
+            <!-- Zona de guías con scroll interno para que el mapa no se hunda si hay muchas guías -->
+            <div class="flex-1 overflow-y-auto pr-2 mb-4">
+                @if (!selectedMunicipio()) {
+                    <div class="mb-2">
+                        <h2
+                            class="text-lg font-semibold text-surface-700 dark:text-surface-200 mb-4"
                         >
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm font-medium text-surface-700 dark:text-surface-200">
-                                    @if (m.tieneAlta) {
-                                        <i class="pi pi-exclamation-triangle text-red-500 mr-1 text-xs"></i>
-                                    } @else if (m.esHoy) {
-                                        <i class="pi pi-sun text-yellow-500 mr-1 text-xs"></i>
-                                    }
-                                    {{ m.label }}
-                                </span>
-                                <p-tag
-                                    [value]="m.cantidad.toString()"
-                                    [severity]="getSeverity(m.cantidad)"
-                                    styleClass="text-sm font-bold px-3 py-1"
-                                />
-                            </div>
-
-                            @if (m.cantidad > 0) {
-                                <div class="flex items-center gap-2 mt-2 text-xs">
-                                    @if (m.alta > 0) {
-                                        <span class="flex items-center gap-0.5 text-red-500 font-semibold">
-                                            <i class="pi pi-exclamation-triangle text-[10px]"></i>
-                                            {{ m.alta }} alta
-                                        </span>
-                                    }
-                                    @if (m.media > 0) {
-                                        <span class="flex items-center gap-0.5 text-yellow-600">
-                                            <i class="pi pi-flag text-[10px]"></i>
-                                            {{ m.media }} media
-                                        </span>
-                                    }
-                                    @if (m.baja > 0) {
-                                        <span class="flex items-center gap-0.5 text-surface-400">
-                                            <i class="pi pi-flag text-[10px]"></i>
-                                            {{ m.baja }} baja
-                                        </span>
-                                    }
+                            <i class="pi pi-map-marker mr-2"></i>
+                            Guías pendientes por municipio
+                            @if (esDomingo) {
+                                <span class="text-sm font-normal text-surface-400 ml-2"
+                                    >— Hoy es domingo, mostrando plan del lunes</span
+                                >
+                            } @else {
+                                <span class="text-sm font-normal text-surface-400 ml-2"
+                                    >— Prioridad: hoy ({{ DIAS_LABEL[hoy] }})</span
+                                >
+                            }
+                        </h2>
+                        <div class="grid grid-cols-12 gap-4">
+                            @for (m of municipiosConteo; track m.value) {
+                                <div
+                                    class="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3 cursor-pointer"
+                                    (click)="seleccionarMunicipio(m.value)"
+                                >
+                                    <div
+                                        class="border-2 rounded-lg p-4 transition-all duration-200"
+                                        [class.bg-primary-50]="m.esHoy"
+                                        [class.dark:bg-primary-950]="m.esHoy"
+                                        [class.border-primary]="m.esHoy"
+                                        [class.shadow-md]="m.esHoy"
+                                        [class.border-red-400]="m.tieneAlta"
+                                        [class.bg-red-50]="m.tieneAlta"
+                                        [class.dark:bg-red-950]="m.tieneAlta"
+                                        [class.border-surface-200]="!m.esHoy && !m.tieneAlta"
+                                        [class.dark:border-surface-700]="!m.esHoy && !m.tieneAlta"
+                                        [class.bg-surface-0]="!m.esHoy && !m.tieneAlta"
+                                        [class.dark:bg-surface-900]="!m.esHoy && !m.tieneAlta"
+                                        [class.hover:border-primary]="!m.esHoy && !m.tieneAlta"
+                                        [class.hover:shadow-md]="!m.esHoy && !m.tieneAlta"
+                                    >
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span
+                                                class="text-sm font-medium text-surface-700 dark:text-surface-200"
+                                            >
+                                                @if (m.tieneAlta) {
+                                                    <i
+                                                        class="pi pi-exclamation-triangle text-red-500 mr-1 text-xs"
+                                                    ></i>
+                                                } @else if (m.esHoy) {
+                                                    <i
+                                                        class="pi pi-sun text-yellow-500 mr-1 text-xs"
+                                                    ></i>
+                                                }
+                                                {{ m.label }}
+                                            </span>
+                                            <p-tag
+                                                [value]="m.cantidad.toString()"
+                                                [severity]="getSeverity(m.cantidad)"
+                                                styleClass="text-sm font-bold px-3 py-1"
+                                            />
+                                        </div>
+                                        @if (m.cantidad > 0) {
+                                            <div class="flex items-center gap-2 mt-2 text-xs">
+                                                @if (m.alta > 0) {
+                                                    <span
+                                                        class="flex items-center gap-0.5 text-red-500 font-semibold"
+                                                        ><i
+                                                            class="pi pi-exclamation-triangle text-[10px]"
+                                                        ></i>
+                                                        {{ m.alta }} alta</span
+                                                    >
+                                                }
+                                                @if (m.media > 0) {
+                                                    <span
+                                                        class="flex items-center gap-0.5 text-yellow-600"
+                                                        ><i class="pi pi-flag text-[10px]"></i>
+                                                        {{ m.media }} media</span
+                                                    >
+                                                }
+                                                @if (m.baja > 0) {
+                                                    <span
+                                                        class="flex items-center gap-0.5 text-surface-400"
+                                                        ><i class="pi pi-flag text-[10px]"></i>
+                                                        {{ m.baja }} baja</span
+                                                    >
+                                                }
+                                            </div>
+                                        }
+                                        <div class="mt-2 text-xs text-surface-400">
+                                            {{
+                                                m.cantidad === 1
+                                                    ? '1 guía pendiente'
+                                                    : m.cantidad + ' guías pendientes'
+                                            }}
+                                        </div>
+                                    </div>
+                                </div>
+                            } @empty {
+                                <div class="col-span-12 text-center py-8 text-surface-400">
+                                    <i class="pi pi-check-circle text-4xl block mb-2"></i>
+                                    No hay guías pendientes por municipio
                                 </div>
                             }
-
-                            <div class="mt-2 text-xs text-surface-400">
-                                {{ m.cantidad === 1 ? '1 guía pendiente' : m.cantidad + ' guías pendientes' }}
-                            </div>
                         </div>
                     </div>
-                }
-                @empty {
-                    <div class="col-span-12 text-center py-8 text-surface-400">
-                        <i class="pi pi-check-circle text-4xl block mb-2"></i>
-                        No hay guías pendientes por municipio
-                    </div>
-                }
-            </div>
-        </div>
-    } @else {
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-3">
-                    <p-button
-                        icon="pi pi-arrow-left"
-                        text
-                        severity="secondary"
-                        pTooltip="Volver a municipios"
-                        (onClick)="volverMunicipios()"
-                    />
-                    <h2 class="text-lg font-semibold text-surface-700 dark:text-surface-200">
-                        <i class="pi pi-map-marker mr-2 text-primary"></i>
-                        {{ getMunicipioLabel(selectedMunicipio()) }}
-                    </h2>
-                    <p-tag
-                        [value]="guiasDelMunicipio.length + ' pendiente(s)'"
-                        severity="info"
-                    />
-                </div>
-                <div class="flex items-center gap-2">
-                    <p-select
-                        [(ngModel)]="filtroChofer"
-                        [options]="choferesOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Filtrar por chofer"
-                        appendTo="body"
-                        styleClass="w-48"
-                    />
-                </div>
-            </div>
-
-            <div
-                class="border border-surface-200 dark:border-surface-700 rounded-lg overflow-hidden"
-            >
-                <div
-                    class="flex items-center justify-between px-4 py-3 bg-surface-50 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700"
-                >
-                    <div class="flex items-center gap-3">
-                        <p-checkbox
-                            [binary]="true"
-                            [ngModel]="todasSeleccionadas"
-                            (onChange)="toggleTodas()"
-                        />
-                        <span class="text-sm font-medium text-surface-600 dark:text-surface-300">
-                            Seleccionar todas ({{ guiasDelMunicipio.length }})
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <p-button
-                            label="Cambiar a Carga de Mercancía"
-                            icon="pi pi-truck"
-                            severity="success"
-                            [disabled]="!haySeleccionadas"
-                            (onClick)="cambiarACargaMercancia()"
-                        />
-                        <p-button
-                            label="Optimizar Ruta"
-                            icon="pi pi-directions"
-                            severity="primary"
-                            [disabled]="guiasDelMunicipio.length < 2"
-                            [loading]="optimizando()"
-                            (onClick)="optimizarRuta()"
-                        />
-                    </div>
-                </div>
-
-                <div class="divide-y divide-surface-100 dark:divide-surface-800">
-                    @for (guia of guiasDelMunicipio; track guia.id) {
+                } @else {
+                    <div class="mb-6">
                         <div
-                            class="flex items-center gap-3 px-4 py-3 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
-                            [class.bg-primary-50]="selectedGuias().has(guia.id)"
+                            class="flex items-center justify-between mb-4 sticky top-0 bg-surface-0 dark:bg-surface-900 z-10 pb-2"
                         >
-                            <p-checkbox
-                                [binary]="true"
-                                [ngModel]="selectedGuias().has(guia.id)"
-                                (onChange)="toggleGuia(guia.id)"
-                            />
-                            <div class="flex-1 flex items-center justify-between">
-                                <div class="flex items-center gap-4">
-                                    @if (tieneAltaPrioridad(guia)) {
-                                        <i
-                                            class="pi pi-exclamation-triangle text-red-500 text-sm"
-                                            pTooltip="Cliente de alta prioridad"
-                                        ></i>
-                                    }
-                                    <span class="font-semibold text-sm text-primary">
-                                        {{ guia.numeroGuia }}
-                                    </span>
-                                    <span class="text-sm text-surface-600 dark:text-surface-300">
-                                        {{ guia.empresa }}
-                                    </span>
-                                    <span class="text-xs text-surface-400">
-                                        {{ guia.nombreChofer }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-3 text-xs text-surface-400">
-                                    <span>{{ guia.placaVehiculo }}</span>
-                                    <span>{{ guia.facturas.length }} factura(s)</span>
-                                </div>
+                            <div class="flex items-center gap-3">
+                                <p-button
+                                    icon="pi pi-arrow-left"
+                                    text
+                                    severity="secondary"
+                                    pTooltip="Volver a municipios"
+                                    (onClick)="volverMunicipios()"
+                                />
+                                <h2
+                                    class="text-lg font-semibold text-surface-700 dark:text-surface-200"
+                                >
+                                    <i class="pi pi-map-marker mr-2 text-primary"></i>
+                                    {{ getMunicipioLabel(selectedMunicipio()) }}
+                                </h2>
+                                <p-tag
+                                    [value]="guiasDelMunicipio.length + ' pendiente(s)'"
+                                    severity="info"
+                                />
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <p-select
+                                    [(ngModel)]="filtroChofer"
+                                    [options]="choferesOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    placeholder="Filtrar por chofer"
+                                    appendTo="body"
+                                    styleClass="w-48"
+                                />
                             </div>
                         </div>
-                    }
-                    @empty {
-                        <div class="text-center py-8 text-surface-400">
-                            <i class="pi pi-inbox text-3xl block mb-2"></i>
-                            No hay guías pendientes en este municipio
+
+                        <div
+                            class="border border-surface-200 dark:border-surface-700 rounded-lg overflow-hidden"
+                        >
+                            <div
+                                class="flex items-center justify-between px-4 py-3 bg-surface-50 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <p-checkbox
+                                        [binary]="true"
+                                        [ngModel]="todasSeleccionadas"
+                                        (onChange)="toggleTodas()"
+                                    />
+                                    <span
+                                        class="text-sm font-medium text-surface-600 dark:text-surface-300"
+                                        >Seleccionar todas ({{ guiasDelMunicipio.length }})</span
+                                    >
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <p-button
+                                        label="Cambiar a Carga de Mercancía"
+                                        icon="pi pi-truck"
+                                        severity="success"
+                                        [disabled]="!haySeleccionadas"
+                                        (onClick)="cambiarACargaMercancia()"
+                                    />
+                                    <p-button
+                                        label="Optimizar Ruta"
+                                        icon="pi pi-directions"
+                                        severity="primary"
+                                        [disabled]="guiasDelMunicipio.length < 2"
+                                        [loading]="optimizando()"
+                                        (onClick)="optimizarRuta()"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="divide-y divide-surface-100 dark:divide-surface-800">
+                                @for (guia of guiasDelMunicipio; track guia.id) {
+                                    <div
+                                        class="flex items-center gap-3 px-4 py-3 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+                                        [class.bg-primary-50]="selectedGuias().has(guia.id)"
+                                    >
+                                        <p-checkbox
+                                            [binary]="true"
+                                            [ngModel]="selectedGuias().has(guia.id)"
+                                            (onChange)="toggleGuia(guia.id)"
+                                        />
+                                        <div class="flex-1 flex items-center justify-between">
+                                            <div class="flex items-center gap-4">
+                                                @if (tieneAltaPrioridad(guia)) {
+                                                    <i
+                                                        class="pi pi-exclamation-triangle text-red-500 text-sm"
+                                                        pTooltip="Cliente de alta prioridad"
+                                                    ></i>
+                                                }
+                                                <span class="font-semibold text-sm text-primary">{{
+                                                    guia.numeroGuia
+                                                }}</span>
+                                                <span
+                                                    class="text-sm text-surface-600 dark:text-surface-300"
+                                                    >{{ guia.empresa }}</span
+                                                >
+                                                <span class="text-xs text-surface-400">{{
+                                                    guia.nombreChofer
+                                                }}</span>
+                                            </div>
+                                            <div
+                                                class="flex items-center gap-3 text-xs text-surface-400"
+                                            >
+                                                <span>{{ guia.placaVehiculo }}</span>
+                                                <span>{{ guia.facturas.length }} factura(s)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                } @empty {
+                                    <div class="text-center py-8 text-surface-400">
+                                        <i class="pi pi-inbox text-3xl block mb-2"></i>
+                                        No hay guías pendientes en este municipio
+                                    </div>
+                                }
+                            </div>
                         </div>
+                    </div>
+                }
+            </div>
+
+            <!-- El mapa se queda fijo abajo, fuera del scroll de las guías -->
+            <div class="shrink-0">
+                <h3 class="text-lg font-semibold text-surface-700 dark:text-surface-200 mb-3">
+                    <i class="pi pi-map mr-2"></i>
+                    Mapa de Rutas
+                </h3>
+                <div class="relative">
+                    <div
+                        #mapaElement
+                        class="w-full rounded-lg border border-surface-200 dark:border-surface-700"
+                        style="height: 320px"
+                    ></div>
+                    @if (!mapaCargado()) {
+                        <p-skeleton
+                            width="100%"
+                            height="320px"
+                            borderRadius="8px"
+                            styleClass="absolute inset-0"
+                        />
                     }
                 </div>
             </div>
         </div>
-    }
-
-    <p-divider />
-
-    <div>
-        <h3 class="text-lg font-semibold text-surface-700 dark:text-surface-200 mb-3">
-            <i class="pi pi-map mr-2"></i>
-            Mapa de Rutas
-        </h3>
-        <div
-            #mapaElement
-            class="w-full rounded-lg border border-surface-200 dark:border-surface-700"
-            style="height: 500px"
-        ></div>
     </div>
 </div>

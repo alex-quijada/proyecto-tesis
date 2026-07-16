@@ -11,6 +11,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
+import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RouterModule } from '@angular/router';
@@ -36,6 +37,7 @@ import { CapitalizePipe } from './pipes/capitalize.pipe';
         InputTextModule,
         InputIconModule,
         IconFieldModule,
+        SkeletonModule,
         TooltipModule,
         ConfirmDialogModule,
         RouterModule,

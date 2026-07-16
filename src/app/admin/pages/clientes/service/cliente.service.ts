@@ -46,21 +46,21 @@ export class ClienteService {
     }
 
     private readonly MUNICIPIOS_FALLBACK: MunicipioItem[] = [
-        { id_municipio: 'ANTOLIN_DEL_CAMPO', nombre: 'Antolín del Campo', capital: 'Paraguachí' },
-        { id_municipio: 'ARISMENDI', nombre: 'Arismendi', capital: 'La Asunción' },
-        { id_municipio: 'DIAZ', nombre: 'Díaz', capital: 'San Juan Bautista' },
-        { id_municipio: 'GARCIA', nombre: 'García', capital: 'El Valle del Espíritu Santo' },
-        { id_municipio: 'GOMEZ', nombre: 'Gómez', capital: 'Santa Ana' },
-        { id_municipio: 'MANEIRO', nombre: 'Maneiro', capital: 'Pampatar' },
-        { id_municipio: 'MARCANO', nombre: 'Marcano', capital: 'Juan Griego' },
-        { id_municipio: 'MARINO', nombre: 'Mariño', capital: 'Porlamar' },
+        { id_municipio: 'ca688dbd-e098-437f-a4dd-950d8e22715c', nombre: 'Antolín del Campo', capital: 'Paraguachí' },
+        { id_municipio: 'b296c432-4c47-4251-a38d-e8ac3cdafb63', nombre: 'Arismendi', capital: 'La Asunción' },
+        { id_municipio: '3b568ab8-1fc3-46ae-99b3-43d58fb4c4ad', nombre: 'Díaz', capital: 'San Juan Bautista' },
+        { id_municipio: '66f23356-6246-4c01-a6da-b7c59326c8f9', nombre: 'García', capital: 'El Valle del Espíritu Santo' },
+        { id_municipio: '020bff72-e966-4356-9664-e860ea9c1e41', nombre: 'Gómez', capital: 'Santa Ana' },
+        { id_municipio: 'a1f6d9e1-d999-4e04-a1b0-f80a32e072d3', nombre: 'Maneiro', capital: 'Pampatar' },
+        { id_municipio: 'bdc8027f-3d0f-4ec0-b4c3-45ca8637d6db', nombre: 'Marcano', capital: 'Juan Griego' },
+        { id_municipio: 'd1b9ed3e-d2d9-420e-9158-d01e35e79784', nombre: 'Mariño', capital: 'Porlamar' },
         {
-            id_municipio: 'PENINSULA_DE_MACANAO',
+            id_municipio: 'dd76c370-a034-4fef-8046-7782b41832b1',
             nombre: 'Península de Macanao',
             capital: 'Boca de Río',
         },
-        { id_municipio: 'TUBORES', nombre: 'Tubores', capital: 'Punta de Piedras' },
-        { id_municipio: 'VILLALBA', nombre: 'Villalba', capital: 'San Pedro de Coche' },
+        { id_municipio: '40844c65-3bee-4d1f-a87e-588652a8cb82', nombre: 'Tubores', capital: 'Punta de Piedras' },
+        { id_municipio: '1d380be4-9b76-4230-a83c-67c796d6215c', nombre: 'Villalba', capital: 'San Pedro de Coche' },
     ];
 
     private readonly PRIORIDADES_FALLBACK: PrioridadItem[] = [

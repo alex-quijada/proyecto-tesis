@@ -91,3 +91,35 @@ Contains `supabaseUrl`, `supabaseKey`, `mapboxKey`.
 ## Mock-based prototyping
 
 Most admin CRUD pages currently use mock data arrays. To move to real data, replace `*-mock.ts` imports in the component with `AuthService` Supabase calls. The mock interfaces (`Vehiculo`, `Usuario`, `Chofer`, `Cliente`, `GuiaDespacho`) serve as the domain model contracts.
+
+## Anchored Summary — Session progress
+
+### Layout
+- **Optimización de Rutas** page: two-column layout with Cronograma Semanal (left, w-80) and Guías + Mapa (right, flex-1). Cronograma days arranged in a 2-column grid using `grid grid-cols-2`.
+
+### Database / Supabase
+- Migration `00026`: `cronograma_semanal` table with RLS.
+- Migration `00027`: `obtener_cronograma_semanal` RPC.
+- `CronogramaService` (`src/app/admin/services/cronograma.service.ts`) — loads/saves cronograma from DB.
+- `MunicipioService` (`src/app/admin/services/municipio.service.ts`) — fetches distinct municipios via `obtener_municipios` RPC.
+- Migrations `00026` and `00027` pushed to remote Supabase project.
+- `CRONOGRAMA_DEFAULT` seeded with real UUIDs from `obtener_municipios` output.
+
+### Google Maps integration
+- Replaced Mapbox GL JS with **Google Maps JavaScript API** (`@googlemaps/js-api-loader`).
+- **GoogleMapsOptimizationService** (`src/app/admin/services/google-maps-optimization.service.ts`) — handles map init, markers, directions, route optimization.
+- Warehouse coordinates from environment (`WH_COORDS`).
+- All facturas (not just one per guía) plotted as numbered delivery markers (blue circle icons).
+- Marker system: warehouse marker (brown home icon) + numbered markers for deliveries.
+- All markers turn blue when guías are selected; single route polyline shown.
+- **Optimize Route** button calls `computeRoute()` (not Directions API optimizeWaypoints) to show a single polyline connecting waypoints in order.
+- Environment config: replaced `mapboxKey` with `googleMapsKey` + `WH_COORDS` in both `environment.ts` and `environment.development.ts`.
+
+### Optimization page component
+- `OptimizacionRutasComponent` (`src/app/admin/pages/rutas/optimizacion/`):
+  - Loads cronograma, municipios, guías pendientes on init
+  - Day editing: drag-and-drop reorder, add/remove municipios per day
+  - Guía selection (checkbox), filter by chofer
+  - "Cambiar a Carga de Mercancía" action
+  - "Optimizar Ruta" — plots selected guías' facturas on the map
+  - Layout: left column (cronograma, 2-column grid) + right column (guías + map)

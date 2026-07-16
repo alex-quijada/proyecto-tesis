@@ -22,11 +22,12 @@ import {
     Ruta,
     GUIAS_MOCK,
     RUTAS_MOCK,
-    MUNICIPIOS_NUEVA_ESPARTA,
     ESTADOS_FACTURA,
     ESTADOS_GUIA,
 } from './data/rutas-mock';
 import { AuthService } from '../../../auth/service/auth.service';
+import { RutaService } from './services/ruta.service';
+import { MunicipioService } from '../../services/municipio.service';
 
 @Component({
     selector: 'app-rutas',
@@ -55,9 +56,13 @@ export class RutasComponent implements OnInit {
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
     private authService = inject(AuthService);
+    private rutaService = inject(RutaService);
+    private municipioService = inject(MunicipioService);
 
     guias = signal<GuiaDespacho[]>([]);
     rutas = signal<Ruta[]>([]);
+    estadosFacturaMap = signal<Record<string, string>>({});
+    loading = signal(false);
 
     guiaDialogVisible = false;
     editingGuia: GuiaDespacho = {} as GuiaDespacho;
@@ -65,10 +70,20 @@ export class RutasComponent implements OnInit {
 
     filtroMunicipio: string | null = null;
 
-    municipioFiltros = [
-        { label: 'Todos los Municipios', value: null },
-        ...MUNICIPIOS_NUEVA_ESPARTA.map((m) => ({ label: m.label, value: m.value })),
-    ];
+    get municipioFiltros() {
+        return [
+            { label: 'Todos los Municipios', value: null },
+            ...this.municipioService.items().map((m) => ({ label: m.label, value: m.value })),
+        ];
+    }
+
+    get municipioMap(): Record<string, string> {
+        const map: Record<string, string> = {};
+        for (const m of this.municipioService.items()) {
+            map[m.value] = m.label;
+        }
+        return map;
+    }
 
     constructor() {
         const rawRole = this.authService.getUserRole();
@@ -84,9 +99,31 @@ export class RutasComponent implements OnInit {
         }
     }
 
-    ngOnInit() {
-        this.guias.set([...GUIAS_MOCK]);
-        this.rutas.set([...RUTAS_MOCK]);
+    async ngOnInit() {
+        this.loading.set(true);
+        await this.municipioService.obtenerTodos();
+        try {
+            const [guias, estados] = await Promise.all([
+                this.rutaService.obtenerGuias(),
+                this.rutaService.obtenerEstados(),
+            ]);
+            this.guias.set(guias);
+
+            const estadosMap: Record<string, string> = {};
+            for (const e of estados) {
+                estadosMap[e.nombre_estado] = e.nombre_estado;
+            }
+            this.estadosFacturaMap.set(estadosMap);
+        } catch (err) {
+            console.error('Error cargando guías:', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar las guías de despacho.',
+            });
+        } finally {
+            this.loading.set(false);
+        }
     }
 
     get guiasFiltradas(): GuiaDespacho[] {
@@ -97,20 +134,31 @@ export class RutasComponent implements OnInit {
         return list;
     }
 
+    getMunicipioLabel(id: string): string {
+        return this.municipioMap[id] || id;
+    }
+
     onRowExpand(event: any) {}
 
     onRowCollapse(event: any) {}
 
-    getEstadoFacturaLabel(idEstado: string): string {
-        const e = ESTADOS_FACTURA.find((ef) => ef.value === idEstado);
-        return e?.label || idEstado;
+    getEstadoFacturaLabel(estado: string): string {
+        const label = this.estadosFacturaMap()[estado];
+        if (label) return label.charAt(0).toUpperCase() + label.slice(1);
+        const e = ESTADOS_FACTURA.find((ef) => ef.value === estado);
+        return e?.label || estado;
     }
 
     getEstadoFacturaSeverity(
-        idEstado: string,
+        estado: string,
     ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const e = ESTADOS_FACTURA.find((ef) => ef.value === idEstado);
-        return (e?.severity as any) || 'info';
+        const dbValue = this.estadosFacturaMap()[estado];
+        if (dbValue) {
+            const e = ESTADOS_FACTURA.find((ef) => ef.value === dbValue);
+            if (e) return e.severity as any;
+        }
+        const ef = ESTADOS_FACTURA.find((ef) => ef.value === estado);
+        return (ef?.severity as any) || 'info';
     }
 
     getEstadoGuia(guia: GuiaDespacho): string {
@@ -146,11 +194,12 @@ export class RutasComponent implements OnInit {
     }
 
     editGuia(guia: GuiaDespacho) {
-        this.editingGuia = { ...guia };
+        const original = this.guias().find((g) => g.id === guia.id);
+        this.editingGuia = original ? { ...original } : { ...guia };
         this.guiaDialogVisible = true;
     }
 
-    onSaveGuia(guia: GuiaDespacho) {
+    async onSaveGuia(guia: GuiaDespacho) {
         if (!guia.facturas?.length) {
             this.messageService.add({
                 severity: 'error',
@@ -160,23 +209,19 @@ export class RutasComponent implements OnInit {
             return;
         }
 
-        const idx = this.guias().findIndex((g) => g.id === guia.id);
-        if (idx >= 0) {
-            const updated = [...this.guias()];
-            updated[idx] = { ...guia };
-            this.guias.set(updated);
+        try {
+            const guias = await this.rutaService.obtenerGuias();
+            this.guias.set(guias);
             this.messageService.add({
                 severity: 'success',
-                summary: 'Guía actualizada',
-                detail: `${guia.numeroGuia} modificada exitosamente.`,
+                summary: 'Guía guardada',
+                detail: `${guia.numeroGuia} procesada exitosamente.`,
             });
-        } else {
-            guia.id = `g-${Date.now()}`;
-            this.guias.set([guia, ...this.guias()]);
+        } catch (err: any) {
             this.messageService.add({
-                severity: 'success',
-                summary: 'Guía creada',
-                detail: `${guia.numeroGuia} registrada exitosamente.`,
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Error al recargar las guías.',
             });
         }
     }

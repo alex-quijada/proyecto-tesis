@@ -191,6 +191,7 @@ export class GuiaDialogComponent implements OnInit {
             observaciones: '',
         });
         this.facturas.clear();
+        this.addFactura();
     }
         });
     });
@@ -209,6 +210,30 @@ export class GuiaDialogComponent implements OnInit {
         this.municipios.set(municipios);
 
         await Promise.all([this.cargarChoferes(), this.cargarVehiculos(), this.cargarClientes()]);
+        this.syncFacturasConClientes();
+    }
+
+    private syncFacturasConClientes() {
+        for (let i = 0; i < this.facturas.length; i++) {
+            const group = this.facturas.at(i);
+            const idCliente = this.obtenerIdCliente(group.get('idCliente')?.value);
+            if (idCliente) {
+                const cliente = this.clientesSig().find((c) => c.id === idCliente);
+                if (cliente) {
+                    group.patchValue({
+                        nombreCliente: cliente.nombreComercial || '',
+                        rifCliente: cliente.documentoIdentidad
+                            ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
+                            : '',
+                        telefono: cliente.telefono || '',
+                        prioridad: cliente.prioridad || '',
+                        idCliente: { label: cliente.nombreComercial || '', value: idCliente },
+                    });
+                    this.cargarSucursalesCliente(idCliente);
+                    this.autoSelectSucursalSiUnica(idCliente, group);
+                }
+            }
+        }
     }
 
     private async cargarChoferes() {
@@ -264,6 +289,7 @@ export class GuiaDialogComponent implements OnInit {
             const clientesData = await this.clienteService.obtenerClientes();
             if (clientesData?.length) {
                 this.clientesSig.set(clientesData);
+                this.filteredClientesSig.set(this.clientesOptionsSig());
                 this.fuseClientes.setCollection(clientesData);
             }
         } catch {
@@ -286,11 +312,30 @@ export class GuiaDialogComponent implements OnInit {
 
             this.currentRutaPdf.set(datos.ruta || '');
 
-            this.form.patchValue({
-                empresa: datos.empresa || '',
-                codigoGuia: datos.codigoGuia || '',
-                pdfFuente: 'PDF',
-            });
+            if (datos.empresa) {
+                const empresaMatch = this.empresasOptions().find(
+                    (e) => e.label.toUpperCase() === datos.empresa!.toUpperCase(),
+                );
+                this.form.patchValue({
+                    empresa: empresaMatch?.value || datos.empresa || '',
+                    codigoGuia: datos.codigoGuia || '',
+                    pdfFuente: 'PDF',
+                });
+            } else {
+                this.form.patchValue({
+                    codigoGuia: datos.codigoGuia || '',
+                    pdfFuente: 'PDF',
+                });
+            }
+
+            if (datos.ruta) {
+                const municipioMatch = this.municipios().find(
+                    (m) => m.label.localeCompare(datos.ruta!, undefined, { sensitivity: 'base' }) === 0,
+                );
+                if (municipioMatch) {
+                    this.form.patchValue({ municipio: municipioMatch.value });
+                }
+            }
 
             if (datos.chofer) {
                 const match = this.choferesSig().find((ch) =>
@@ -407,7 +452,7 @@ export class GuiaDialogComponent implements OnInit {
 
     private createFacturaGroup(data?: Partial<FacturaGuia>): FormGroup {
         const group = this.fb.group({
-            idCliente: [data?.idCliente || '', Validators.required],
+            idCliente: [data?.idCliente ? this.optionCliente(data.idCliente) : '', Validators.required],
             idSucursal: [data?.idSucursal || ''],
             numeroFactura: [data?.numeroFactura || '', Validators.required],
             nombreCliente: [data?.nombreCliente || ''],
@@ -425,16 +470,15 @@ export class GuiaDialogComponent implements OnInit {
             const cliente = this.clientesSig().find((c) => c.id === data.idCliente);
             if (cliente) {
                 this.cargarSucursalesCliente(cliente.id!);
-                if (!data?.nombreCliente) {
-                    group.patchValue({
-                        nombreCliente: cliente.nombreComercial || '',
-                        rifCliente: cliente.documentoIdentidad
-                            ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
-                            : '',
-                        telefono: cliente.telefono || '',
-                        prioridad: cliente.prioridad || '',
-                    });
-                }
+                group.patchValue({
+                    idCliente: { label: cliente.nombreComercial || '', value: cliente.id || '' },
+                    nombreCliente: cliente.nombreComercial || '',
+                    rifCliente: cliente.documentoIdentidad
+                        ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
+                        : '',
+                    telefono: cliente.telefono || '',
+                    prioridad: cliente.prioridad || '',
+                });
             }
         }
 
@@ -454,6 +498,15 @@ export class GuiaDialogComponent implements OnInit {
         this.filteredClientesSig.set(this.clientesOptionsSig());
     }
 
+    obtenerIdCliente(raw: any): string {
+        return typeof raw === 'object' && raw !== null ? (raw.value ?? '') : (raw ?? '');
+    }
+
+    private optionCliente(id: string): { label: string; value: string } | string {
+        const c = this.clientesSig().find((c) => c.id === id);
+        return c ? { label: c.nombreComercial || '', value: c.id || '' } : id;
+    }
+
     filterClientes(event: AutoCompleteCompleteEvent) {
         const query = (event.query || '').toLowerCase().trim();
         queueMicrotask(() => {
@@ -469,7 +522,7 @@ export class GuiaDialogComponent implements OnInit {
 
     async onClienteChange(index: number) {
         const group = this.facturas.at(index);
-        const idCliente = group.get('idCliente')?.value;
+        const idCliente = this.obtenerIdCliente(group.get('idCliente')?.value);
         const cliente = this.clientesSig().find((c) => c.id === idCliente);
         if (cliente) {
             group.patchValue({
@@ -532,7 +585,7 @@ export class GuiaDialogComponent implements OnInit {
     onSucursalChange(index: number) {
         const group = this.facturas.at(index);
         const idSucursal = group.get('idSucursal')?.value;
-        const idCliente = group.get('idCliente')?.value;
+        const idCliente = this.obtenerIdCliente(group.get('idCliente')?.value);
         if (idCliente && idSucursal) {
             const sucs = this.sucursalesPorCliente()[idCliente] || [];
             const suc = sucs.find((s) => s.id === idSucursal);
@@ -601,7 +654,7 @@ export class GuiaDialogComponent implements OnInit {
         let idMunicipio = '';
         if (this.currentRutaPdf()) {
             const found = this.municipios().find(
-                (m) => m.label.toUpperCase() === this.currentRutaPdf().toUpperCase(),
+                (m) => m.label.localeCompare(this.currentRutaPdf(), undefined, { sensitivity: 'base' }) === 0,
             );
             idMunicipio = found?.value || this.currentRutaPdf();
         }
@@ -627,7 +680,7 @@ export class GuiaDialogComponent implements OnInit {
         if (index >= 0 && index < this.facturas.length) {
             const group = this.facturas.at(index);
             group.patchValue({
-                idCliente: id,
+                idCliente: { label: cliente.nombreComercial || '', value: id },
                 nombreCliente: cliente.nombreComercial || '',
                 rifCliente: cliente.documentoIdentidad
                     ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
@@ -643,6 +696,7 @@ export class GuiaDialogComponent implements OnInit {
             const clientesData = await this.clienteService.obtenerClientes();
             if (clientesData?.length) {
                 this.clientesSig.set(clientesData);
+                this.filteredClientesSig.set(this.clientesOptionsSig());
                 this.fuseClientes.setCollection(clientesData);
             }
         } catch {
@@ -650,7 +704,7 @@ export class GuiaDialogComponent implements OnInit {
         }
     }
 
-    save() {
+    async save() {
         this.submitted = true;
         this.errorMessage = '';
 
@@ -668,7 +722,8 @@ export class GuiaDialogComponent implements OnInit {
         const fechaCreacion = this.guiaData().fechaCreacion || this.formatDate(new Date());
 
         const facturas: FacturaGuia[] = raw.facturas.map((f: any, i: number) => {
-            const cliente = this.clientesSig().find((c) => c.id === f.idCliente);
+            const fIdCliente = this.obtenerIdCliente(f.idCliente);
+            const cliente = this.clientesSig().find((c) => c.id === fIdCliente);
             let reglas = undefined;
             if (f.reglasRecepcion) {
                 try {
@@ -680,7 +735,7 @@ export class GuiaDialogComponent implements OnInit {
             return {
                 id: this.guiaData().facturas?.[i]?.id || `fact-${Date.now()}-${i}`,
                 numeroFactura: f.numeroFactura,
-                idCliente: f.idCliente,
+                idCliente: fIdCliente,
                 nombreCliente: f.nombreCliente || cliente?.nombreComercial || '',
                 rifCliente: f.rifCliente || '',
                 telefono: f.telefono || cliente?.telefono || '',
@@ -717,7 +772,17 @@ export class GuiaDialogComponent implements OnInit {
             facturas,
         };
 
-        this.onSave.emit(guiaFinal);
-        this.visible.set(false);
+        try {
+            const esEdicion = !!this.guiaData().id;
+            const guardada = esEdicion
+                ? await this.rutaService.actualizarGuia(guiaFinal)
+                : await this.rutaService.crearGuia(guiaFinal);
+
+            this.onSave.emit(guardada);
+            this.visible.set(false);
+        } catch (error: any) {
+            console.error('Error al guardar guía:', error);
+            this.errorMessage = error?.message || 'Error al guardar la guía en la base de datos.';
+        }
     }
 }

@@ -58,7 +58,7 @@ export class MapaSucursalComponent implements OnDestroy {
 
     private mapEl = viewChild.required<ElementRef<HTMLDivElement>>('mapEl');
     private map: google.maps.Map | null = null;
-    private marker: google.maps.Marker | null = null;
+    private marker: google.maps.marker.AdvancedMarkerElement | null = null;
     private boundaryLayer: google.maps.Data | null = null;
 
     constructor() {
@@ -86,6 +86,7 @@ export class MapaSucursalComponent implements OnDestroy {
             mapTypeId: google.maps.MapTypeId.ROADMAP,
             streetViewControl: false,
             zoomControl: true,
+            mapId: 'sucursales',
         });
 
         this.boundaryLayer = new google.maps.Data({ map: this.map });
@@ -184,19 +185,32 @@ export class MapaSucursalComponent implements OnDestroy {
         if (!group) return;
 
         if (this.marker) {
-            this.marker.setPosition({ lat, lng });
+            this.marker.position = { lat, lng };
         } else {
-            this.marker = new google.maps.Marker({
+            const content = document.createElement('div');
+            content.style.cssText = `
+                width: 28px;
+                height: 28px;
+                background: #3b82f6;
+                border: 3px solid #fff;
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(0,0,0,.3);
+                cursor: grab;
+            `;
+
+            this.marker = new google.maps.marker.AdvancedMarkerElement({
                 position: { lat, lng },
                 map: this.map,
-                draggable: true,
+                gmpDraggable: true,
+                content,
             });
 
             this.marker.addListener('dragend', () => {
-                const pos = this.marker!.getPosition();
+                const pos = this.marker!.position;
                 if (!pos) return;
-                const newLat = pos.lat();
-                const newLng = pos.lng();
+                const latlng = pos as google.maps.LatLng;
+                const newLat = latlng.lat();
+                const newLng = latlng.lng();
                 group.patchValue({
                     latitud: newLat,
                     longitud: newLng,
@@ -212,7 +226,7 @@ export class MapaSucursalComponent implements OnDestroy {
     }
 
     ngOnDestroy() {
-        this.marker?.setMap(null);
+        if (this.marker) this.marker.map = null;
         this.marker = null;
         this.boundaryLayer?.setMap(null);
         this.boundaryLayer = null;

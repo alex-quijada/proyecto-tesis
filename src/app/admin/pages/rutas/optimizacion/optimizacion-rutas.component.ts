@@ -18,17 +18,17 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
-import * as mapboxgl from 'mapbox-gl';
+import { SkeletonModule } from 'primeng/skeleton';
+import { OrderListModule } from 'primeng/orderlist';
 import { environment } from '@/environments/environment';
-import {
-    GuiaDespacho,
-    Ruta,
-    GUIAS_MOCK,
-    RUTAS_MOCK,
-    MUNICIPIOS_NUEVA_ESPARTA,
-} from '../data/rutas-mock';
+import { GuiaDespacho, Ruta, RUTAS_MOCK } from '../data/rutas-mock';
+import { RutaService } from '../services/ruta.service';
+import { MunicipioService } from '@/app/admin/services/municipio.service';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
-import { MapboxOptimizationService, Waypoint } from '../../map/map/mapbox-optimization.service';
+import {
+    GoogleMapsOptimizationService,
+    Waypoint,
+} from '../../map/map/google-maps-optimization.service';
 
 interface DiaCronograma {
     dia: string;
@@ -63,38 +63,7 @@ const DIAS_LABEL: Record<string, string> = {
     DOMINGO: 'Domingo',
 };
 
-const CRONOGRAMA_DEFAULT: DiaCronograma[] = [
-    {
-        dia: 'LUNES',
-        label: 'Lunes',
-        municipios: ['MANEIRO', 'GARCIA', 'MARINO', 'MARCANO', 'TUBORES'],
-    },
-    {
-        dia: 'MARTES',
-        label: 'Martes',
-        municipios: ['MARCANO', 'GOMEZ', 'DIAZ', 'MARINO', 'ARISMENDI', 'ANTOLIN_DEL_CAMPO'],
-    },
-    {
-        dia: 'MIERCOLES',
-        label: 'Miércoles',
-        municipios: ['MANEIRO', 'GOMEZ', 'DIAZ', 'MARINO', 'ARISMENDI', 'ANTOLIN_DEL_CAMPO'],
-    },
-    {
-        dia: 'JUEVES',
-        label: 'Jueves',
-        municipios: ['MARCANO', 'GOMEZ', 'DIAZ', 'MARINO', 'ANTOLIN_DEL_CAMPO', 'ARISMENDI'],
-    },
-    {
-        dia: 'VIERNES',
-        label: 'Viernes',
-        municipios: ['MANEIRO', 'GARCIA', 'MARINO'],
-    },
-    {
-        dia: 'SABADO',
-        label: 'Sábado',
-        municipios: [],
-    },
-];
+const DIAS_SEMANA = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'] as const;
 
 const MAPA_DIA: Record<number, string> = {
     0: 'DOMINGO',
@@ -105,12 +74,6 @@ const MAPA_DIA: Record<number, string> = {
     5: 'VIERNES',
     6: 'SABADO',
 };
-
-const MUNICIPIOS_RESTANTES = (actual: string[]): { label: string; value: string }[] =>
-    MUNICIPIOS_NUEVA_ESPARTA.filter((m) => !actual.includes(m.value)).map((m) => ({
-        label: m.label,
-        value: m.value,
-    }));
 
 @Component({
     selector: 'app-optimizacion-rutas',
@@ -125,6 +88,8 @@ const MUNICIPIOS_RESTANTES = (actual: string[]): { label: string; value: string 
         TagModule,
         TooltipModule,
         DividerModule,
+        SkeletonModule,
+        OrderListModule,
     ],
     providers: [MessageService],
     templateUrl: './optimizacion-rutas.component.html',
@@ -132,19 +97,20 @@ const MUNICIPIOS_RESTANTES = (actual: string[]): { label: string; value: string 
 })
 export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     private messageService = inject(MessageService);
-    private optimizationService = inject(MapboxOptimizationService);
+    private googleOptimization = inject(GoogleMapsOptimizationService);
+    private rutaService = inject(RutaService);
+    private municipioService = inject(MunicipioService);
 
     private mapaEl = viewChild.required<ElementRef<HTMLDivElement>>('mapaElement');
 
-    mapa!: mapboxgl.Map;
-    private markers: mapboxgl.Marker[] = [];
-    private routeSourceId = 'opt-route';
-    private routeLayerId = 'opt-route-layer';
+    mapa!: google.maps.Map;
+    private markers: google.maps.marker.AdvancedMarkerElement[] = [];
+    private routePolyline: google.maps.Polyline | null = null;
+    private routePolylines: google.maps.Polyline[] = [];
+    private sedeMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
 
-    readonly municipios = MUNICIPIOS_NUEVA_ESPARTA;
-    readonly cronograma = signal<DiaCronograma[]>(
-        JSON.parse(JSON.stringify(CRONOGRAMA_DEFAULT)),
-    );
+    readonly municipios = this.municipioService.items;
+    readonly cronograma = signal<DiaCronograma[]>([]);
     readonly DIAS_LABEL = DIAS_LABEL;
     readonly esDomingo = new Date().getDay() === 0;
 
@@ -160,53 +126,98 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     selectedGuias = signal<Set<string>>(new Set());
     filtroChofer = signal<string | null>(null);
     optimizando = signal(false);
+    loadingCronograma = signal(true);
+    guardandoCronograma = signal(false);
+    mapaCargado = signal(false);
 
     diaEditando = signal<string | null>(null);
+    diaEditandoLista = signal<string[]>([]);
     municipioAgregar = signal<string>('');
-    dragIndex = signal<{ dia: string; idx: number } | null>(null);
 
     constructor() {
         afterNextRender(() => this.initMap());
     }
 
-    ngOnInit() {
-        this.guias.set([...GUIAS_MOCK]);
+    async ngOnInit() {
+        await this.municipioService.obtenerTodos();
+
+        try {
+            const guias = await this.rutaService.obtenerGuias();
+            this.guias.set(guias);
+        } catch (err) {
+            console.error('Error al cargar guías', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar las guías desde la base de datos.',
+            });
+        }
         this.rutasDisponibles.set([...RUTAS_MOCK]);
+
+        this.loadingCronograma.set(true);
+        try {
+            const cronograma = await this.rutaService.obtenerCronograma();
+            this.cronograma.set(
+                cronograma ??
+                    DIAS_SEMANA.map((dia) => ({
+                        dia,
+                        label: DIAS_LABEL[dia],
+                        municipios: [],
+                    })),
+            );
+        } catch (err) {
+            console.error('Error al cargar cronograma', err);
+            this.cronograma.set(
+                DIAS_SEMANA.map((dia) => ({
+                    dia,
+                    label: DIAS_LABEL[dia],
+                    municipios: [],
+                })),
+            );
+        }
+        this.loadingCronograma.set(false);
     }
 
     ngOnDestroy() {
         this.limpiarMapa();
-        if (this.mapa) this.mapa.remove();
+        if (this.mapa) {
+            google.maps.event.clearInstanceListeners(this.mapa);
+            this.mapa = undefined!;
+        }
     }
 
     get municipiosConteo(): MunicipioConteo[] {
         const hoyArr = this.cronograma().find((d) => d.dia === this.hoy)?.municipios || [];
-        const guiasNuevas = this.guias().filter((g) => !g.eventos?.length);
+        const guiasNuevas = this.guias().filter((g) =>
+            g.facturas?.some((f) => f.idEstado === 'nuevo'),
+        );
 
-        const conteos = MUNICIPIOS_NUEVA_ESPARTA.map((m) => {
-            const gDelMunicipio = guiasNuevas.filter((g) => g.municipio === m.value);
-            const alta = gDelMunicipio.filter((g) =>
-                g.facturas?.some((f) => f.prioridad === 'Alta'),
-            ).length;
-            const media = gDelMunicipio.filter((g) =>
-                g.facturas?.some((f) => f.prioridad === 'Media'),
-            ).length;
-            const baja = gDelMunicipio.filter((g) =>
-                g.facturas?.some((f) => f.prioridad === 'Baja'),
-            ).length;
-            const pos = hoyArr.indexOf(m.value);
-            return {
-                label: m.label,
-                value: m.value,
-                cantidad: gDelMunicipio.length,
-                alta,
-                media,
-                baja,
-                esHoy: pos >= 0,
-                ordenHoy: pos >= 0 ? pos : 999,
-                tieneAlta: alta > 0 && pos >= 0,
-            };
-        }).filter((m) => m.cantidad > 0);
+        const conteos = this.municipios()
+            .map((m) => {
+                const gDelMunicipio = guiasNuevas.filter((g) => g.municipio === m.value);
+                const alta = gDelMunicipio.filter((g) =>
+                    g.facturas?.some((f) => f.prioridad === 'Alta'),
+                ).length;
+                const media = gDelMunicipio.filter((g) =>
+                    g.facturas?.some((f) => f.prioridad === 'Media'),
+                ).length;
+                const baja = gDelMunicipio.filter((g) =>
+                    g.facturas?.some((f) => f.prioridad === 'Baja'),
+                ).length;
+                const pos = hoyArr.indexOf(m.value);
+                return {
+                    label: m.label,
+                    value: m.value,
+                    cantidad: gDelMunicipio.length,
+                    alta,
+                    media,
+                    baja,
+                    esHoy: pos >= 0,
+                    ordenHoy: pos >= 0 ? pos : 999,
+                    tieneAlta: alta > 0 && pos >= 0,
+                };
+            })
+            .filter((m) => m.cantidad > 0);
 
         conteos.sort((a, b) => {
             if (a.tieneAlta !== b.tieneAlta) return a.tieneAlta ? -1 : 1;
@@ -232,17 +243,14 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             },
             [],
         );
-        return [
-            { label: 'Todos los Choferes', value: null as any },
-            ...choferesEnMunicipio,
-        ];
+        return [{ label: 'Todos los Choferes', value: null as any }, ...choferesEnMunicipio];
     }
 
     get guiasDelMunicipio(): GuiaDespacho[] {
         const municipio = this.selectedMunicipio();
         if (!municipio) return [];
         let list = this.guias().filter(
-            (g) => g.municipio === municipio && !g.eventos?.length,
+            (g) => g.municipio === municipio && g.facturas?.some((f) => f.idEstado === 'nuevo'),
         );
         const chofer = this.filtroChofer();
         if (chofer) {
@@ -260,14 +268,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         return this.selectedGuias().size > 0;
     }
 
-    municipiosDisponiblesPara(dia: DiaCronograma): { label: string; value: string }[] {
-        return MUNICIPIOS_RESTANTES(dia.municipios);
-    }
-
     seleccionarMunicipio(value: string) {
         this.selectedMunicipio.set(value);
         this.selectedGuias.set(new Set());
         this.filtroChofer.set(null);
+        this.actualizarSedeMarkers();
     }
 
     toggleGuia(id: string) {
@@ -280,6 +285,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             }
             return nuevo;
         });
+        this.actualizarSedeMarkers();
     }
 
     toggleTodas() {
@@ -289,6 +295,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         } else {
             this.selectedGuias.set(new Set(guias.map((g) => g.id)));
         }
+        this.actualizarSedeMarkers();
     }
 
     cambiarACargaMercancia() {
@@ -328,6 +335,15 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         });
 
         this.selectedGuias.set(new Set());
+        this.actualizarSedeMarkers();
+    }
+
+    private get warehouseWp(): Waypoint {
+        return {
+            lat: environment.warehouseLat,
+            lng: environment.warehouseLng,
+            name: 'Almacén',
+        };
     }
 
     private notificarChofer(guia: GuiaDespacho) {
@@ -349,58 +365,54 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
 
         const guiasSel = this.guias().filter((g) => ids.includes(g.id));
 
-        const waypoints: Waypoint[] = guiasSel.map((g) => {
-            const cliente = g.facturas?.[0];
-            return {
-                lat: 10.96 + Math.random() * 0.1,
-                lng: -63.85 + Math.random() * 0.1,
-                name: cliente?.nombreCliente || g.numeroGuia,
-            };
-        });
+        const waypoints: Waypoint[] = guiasSel.flatMap((g) =>
+            g.facturas
+                .filter((f) => f.sucursalLat != null && f.sucursalLng != null)
+                .map((f) => ({
+                    lat: f.sucursalLat!,
+                    lng: f.sucursalLng!,
+                    name: `${f.nombreCliente} - Fact. ${f.numeroFactura}`,
+                })),
+        );
+
+        if (waypoints.length < 2) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Coordenadas insuficientes',
+                detail: 'Se necesitan al menos 2 facturas con ubicación para optimizar.',
+            });
+            this.optimizando.set(false);
+            return;
+        }
+
+        const warehouse = this.warehouseWp;
 
         try {
-            const result = await this.optimizationService.optimize(
-                waypoints,
-                environment.mapboxKey,
-            );
+            const result = await this.googleOptimization.optimize(waypoints, warehouse, warehouse);
 
             this.limpiarMapa();
 
-            if (result && result.trips?.length) {
-                const trip = result.trips[0];
-                const coordinates: [number, number][] = trip.geometry.coordinates as any;
-
-                this.mapa.addSource(this.routeSourceId, {
-                    type: 'geojson',
-                    data: {
-                        type: 'Feature',
-                        properties: {},
-                        geometry: { type: 'LineString', coordinates },
-                    },
+            if (result) {
+                this.routePolyline = new google.maps.Polyline({
+                    path: result.path,
+                    geodesic: true,
+                    strokeColor: '#22c55e',
+                    strokeOpacity: 0.85,
+                    strokeWeight: 5,
+                    map: this.mapa,
                 });
 
-                this.mapa.addLayer({
-                    id: this.routeLayerId,
-                    type: 'line',
-                    source: this.routeSourceId,
-                    layout: { 'line-join': 'round', 'line-cap': 'round' },
-                    paint: {
-                        'line-color': '#22c55e',
-                        'line-width': 5,
-                        'line-opacity': 0.85,
-                    },
-                });
+                const bounds = new google.maps.LatLngBounds();
+                result.path.forEach((p) => bounds.extend(p));
+                this.mapa.fitBounds(bounds, 80);
 
-                const bounds = new mapboxgl.LngLatBounds();
-                coordinates.forEach((c) => bounds.extend(c));
-                this.mapa.fitBounds(bounds, { padding: 80, duration: 800 });
-
-                waypoints.forEach((wp, i) =>
-                    this.agregarMarcador(i, wp, waypoints.length),
+                this.agregarMarcadorAlmacen(warehouse);
+                result.order.forEach((origIdx, i) =>
+                    this.agregarMarcadorEntrega(i, waypoints[origIdx]),
                 );
 
-                const distKm = (trip.distance / 1000).toFixed(1);
-                const durMin = Math.round(trip.duration / 60);
+                const distKm = (result.distance / 1000).toFixed(1);
+                const durMin = Math.round(result.duration / 60);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Ruta optimizada',
@@ -423,127 +435,127 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             detail: 'Mostrando ruta en orden de municipios.',
         });
 
-        const coordsOrdenadas = waypoints.map(
-            (wp) => [wp.lng, wp.lat] as [number, number],
-        );
+        const warehouse = this.warehouseWp;
+        const fullPath: google.maps.LatLngLiteral[] = [
+            warehouse,
+            ...waypoints.map((wp) => ({ lat: wp.lat, lng: wp.lng })),
+            warehouse,
+        ];
 
-        this.mapa.addSource(this.routeSourceId, {
-            type: 'geojson',
-            data: {
-                type: 'Feature',
-                properties: {},
-                geometry: { type: 'LineString', coordinates: coordsOrdenadas },
-            },
+        this.routePolyline = new google.maps.Polyline({
+            path: fullPath,
+            geodesic: true,
+            strokeColor: '#3b82f6',
+            strokeOpacity: 0.7,
+            strokeWeight: 4,
+            icons: [
+                {
+                    icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
+                    offset: '50%',
+                },
+            ],
+            map: this.mapa,
         });
 
-        this.mapa.addLayer({
-            id: this.routeLayerId,
-            type: 'line',
-            source: this.routeSourceId,
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: {
-                'line-color': '#3b82f6',
-                'line-width': 4,
-                'line-opacity': 0.7,
-                'line-dasharray': [2, 2],
-            },
-        });
+        const bounds = new google.maps.LatLngBounds();
+        fullPath.forEach((p) => bounds.extend(p));
+        this.mapa.fitBounds(bounds, 80);
 
-        const bounds = new mapboxgl.LngLatBounds();
-        coordsOrdenadas.forEach((c) => bounds.extend(c));
-        this.mapa.fitBounds(bounds, { padding: 80, duration: 800 });
-        waypoints.forEach((wp, i) => this.agregarMarcador(i, wp, waypoints.length));
+        this.agregarMarcadorAlmacen(warehouse);
+        waypoints.forEach((wp, i) => this.agregarMarcadorEntrega(i, wp));
     }
 
     // ─── Cronograma editing ───
+
+    get municipiosDisponiblesParaAgregar(): { label: string; value: string }[] {
+        const ocupados = this.diaEditandoLista();
+        return this.municipios().filter((m) => !ocupados.includes(m.value));
+    }
 
     toggleEditarDia(dia: string) {
         if (this.diaEditando() === dia) {
             this.diaEditando.set(null);
         } else {
+            const diaData = this.cronograma().find((d) => d.dia === dia);
+            this.diaEditandoLista.set(diaData ? [...diaData.municipios] : []);
             this.diaEditando.set(dia);
         }
         this.municipioAgregar.set('');
     }
 
-    agregarMunicipioADia(dia: DiaCronograma) {
-        if (!this.municipioAgregar()) return;
+    async guardarEdicion() {
+        const dia = this.diaEditando();
+        if (!dia) return;
         this.cronograma.update((lista) =>
             lista.map((d) => {
-                if (d.dia === dia.dia) {
-                    return {
-                        ...d,
-                        municipios: [...d.municipios, this.municipioAgregar()],
-                    };
+                if (d.dia === dia) {
+                    return { ...d, municipios: [...this.diaEditandoLista()] };
                 }
                 return d;
             }),
         );
+        this.diaEditando.set(null);
+        this.diaEditandoLista.set([]);
+        this.municipioAgregar.set('');
+        await this.guardarCronograma();
+    }
+
+    cancelarEdicion() {
+        this.diaEditando.set(null);
+        this.diaEditandoLista.set([]);
         this.municipioAgregar.set('');
     }
 
-    quitarMunicipioDeDia(dia: string, municipio: string) {
-        this.cronograma.update((lista) =>
-            lista.map((d) => {
-                if (d.dia === dia) {
-                    return {
-                        ...d,
-                        municipios: d.municipios.filter((m) => m !== municipio),
-                    };
-                }
-                return d;
-            }),
-        );
+    agregarMunicipioADia() {
+        const valor = this.municipioAgregar();
+        if (!valor) return;
+        this.diaEditandoLista.update((lista) => [...lista, valor]);
+        this.municipioAgregar.set('');
     }
 
-    onDragStart(dia: string, idx: number) {
-        this.dragIndex.set({ dia, idx });
+    quitarMunicipioDeDia(municipio: string) {
+        this.diaEditandoLista.update((lista) => lista.filter((m) => m !== municipio));
     }
 
-    onDragOver(event: DragEvent) {
-        event.preventDefault();
-    }
-
-    onDrop(event: DragEvent, dia: string, targetIdx: number) {
-        event.preventDefault();
-        const source = this.dragIndex();
-        if (!source || source.dia !== dia || source.idx === targetIdx) {
-            this.dragIndex.set(null);
-            return;
+    onReorderDiaEditando(event: any) {
+        // Verificamos que el evento traiga la lista ordenada en 'value'
+        if (event && event.value) {
+            this.diaEditandoLista.set([...event.value]);
         }
-
-        this.cronograma.update((lista) =>
-            lista.map((d) => {
-                if (d.dia === dia) {
-                    const arr = [...d.municipios];
-                    const [removed] = arr.splice(source.idx, 1);
-                    arr.splice(targetIdx, 0, removed);
-                    return { ...d, municipios: arr };
-                }
-                return d;
-            }),
-        );
-        this.dragIndex.set(null);
     }
 
-    onDragEnd() {
-        this.dragIndex.set(null);
+    async guardarCronograma() {
+        this.guardandoCronograma.set(true);
+        try {
+            await this.rutaService.guardarCronograma(
+                this.cronograma().map((d) => ({ dia: d.dia, municipios: d.municipios })),
+            );
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Cronograma guardado',
+                detail: 'La programación semanal se guardó correctamente.',
+            });
+        } catch (err) {
+            console.error('Error al guardar cronograma', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo guardar el cronograma.',
+            });
+        }
+        this.guardandoCronograma.set(false);
     }
 
     // ─── Map helpers ───
 
     private initMap() {
-        this.mapa = new mapboxgl.Map({
-            container: this.mapaEl().nativeElement,
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: [-63.85, 10.96],
+        this.mapa = new google.maps.Map(this.mapaEl().nativeElement, {
+            center: { lat: 10.96, lng: -63.85 },
             zoom: 10,
-            accessToken: environment.mapboxKey,
+            mapId: 'optimizacion-rutas',
         });
-
-        this.mapa.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        this.mapa.on('load', () => {
-            setTimeout(() => this.mapa.resize(), 100);
+        google.maps.event.addListenerOnce(this.mapa, 'idle', () => {
+            this.mapaCargado.set(true);
             this.dibujarRutasExistentes();
         });
     }
@@ -554,67 +566,109 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             const guias = this.guias().filter((g) => ruta.idsGuias.includes(g.id));
             if (guias.length < 2) continue;
 
-            const coords: [number, number][] = guias.map(() => [
-                -63.85 + Math.random() * 0.1,
-                10.96 + Math.random() * 0.1,
-            ]);
+            const path = guias.map(() => ({
+                lat: 10.96 + Math.random() * 0.1,
+                lng: -63.85 + Math.random() * 0.1,
+            }));
 
-            const srcId = `ruta-${ruta.id}`;
-            const lyrId = `ruta-layer-${ruta.id}`;
-
-            this.mapa.addSource(srcId, {
-                type: 'geojson',
-                data: {
-                    type: 'Feature',
-                    properties: {},
-                    geometry: { type: 'LineString', coordinates: coords },
-                },
+            const polyline = new google.maps.Polyline({
+                path,
+                geodesic: true,
+                strokeColor: '#a78bfa',
+                strokeOpacity: 0.5,
+                strokeWeight: 3,
+                icons: [
+                    {
+                        icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
+                        offset: '50%',
+                    },
+                ],
+                map: this.mapa,
             });
 
-            this.mapa.addLayer({
-                id: lyrId,
-                type: 'line',
-                source: srcId,
-                layout: { 'line-join': 'round', 'line-cap': 'round' },
-                paint: {
-                    'line-color': '#a78bfa',
-                    'line-width': 3,
-                    'line-opacity': 0.5,
-                    'line-dasharray': [4, 4],
-                },
-            });
+            this.routePolylines.push(polyline);
         }
     }
 
-    private agregarMarcador(index: number, wp: Waypoint, total: number) {
-        const el = document.createElement('div');
-        const isStart = index === 0;
-        const isEnd = index === total - 1;
+    private agregarMarcadorAlmacen(wp: Waypoint) {
+        const content = document.createElement('div');
+        content.innerHTML =
+            '<div style="width:28px;height:28px;background:#8b5cf6;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+            position: { lat: wp.lat, lng: wp.lng },
+            map: this.mapa,
+            content: content.firstElementChild as HTMLElement,
+            title: wp.name,
+        });
+        const infoWindow = new google.maps.InfoWindow({
+            content: `<strong>${wp.name}</strong><br><em>Salida y regreso</em>`,
+        });
+        marker.addListener('gmp-click', () => infoWindow.open(this.mapa, marker));
+        this.markers.push(marker);
+    }
 
-        el.textContent = isStart ? 'S' : isEnd ? 'L' : String(index + 1);
-        el.style.cssText = isStart
-            ? 'width:28px;height:28px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;border:2px solid #16a34a;'
-            : isEnd
-              ? 'width:28px;height:28px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;border:2px solid #dc2626;'
-              : 'width:26px;height:26px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;';
-
-        const popup = new mapboxgl.Popup({ offset: 20 }).setText(wp.name);
-        const marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([wp.lng, wp.lat])
-            .setPopup(popup)
-            .addTo(this.mapa);
-
+    private agregarMarcadorEntrega(index: number, wp: Waypoint) {
+        const content = document.createElement('div');
+        content.innerHTML = `<div style="width:24px;height:24px;background:#f59e0b;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff;">${index + 1}</div>`;
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+            position: { lat: wp.lat, lng: wp.lng },
+            map: this.mapa,
+            content: content.firstElementChild as HTMLElement,
+            title: wp.name,
+        });
+        const infoWindow = new google.maps.InfoWindow({ content: wp.name });
+        marker.addListener('gmp-click', () => infoWindow.open(this.mapa, marker));
         this.markers.push(marker);
     }
 
     private limpiarMapa() {
-        this.markers.forEach((m) => m.remove());
+        this.markers.forEach((m) => (m.map = null));
         this.markers = [];
-        if (this.mapa.getLayer(this.routeLayerId)) {
-            this.mapa.removeLayer(this.routeLayerId);
+        if (this.routePolyline) {
+            this.routePolyline.setMap(null);
+            this.routePolyline = null;
         }
-        if (this.mapa.getSource(this.routeSourceId)) {
-            this.mapa.removeSource(this.routeSourceId);
+        this.routePolylines.forEach((p) => p.setMap(null));
+        this.routePolylines = [];
+        this.limpiarSedeMarkers();
+    }
+
+    private limpiarSedeMarkers() {
+        this.sedeMarkers.forEach((m) => (m.map = null));
+        this.sedeMarkers = [];
+    }
+
+    private actualizarSedeMarkers() {
+        this.limpiarSedeMarkers();
+
+        for (const id of this.selectedGuias()) {
+            const guia = this.guias().find((g) => g.id === id);
+            if (!guia) continue;
+
+            for (const f of guia.facturas) {
+                if (f.sucursalLat == null || f.sucursalLng == null) continue;
+
+                const div = document.createElement('div');
+                div.innerHTML =
+                    '<div style="width:16px;height:16px;background:#3b82f6;border-radius:50%;border:2px solid #fff;"></div>';
+                const marker = new google.maps.marker.AdvancedMarkerElement({
+                    position: { lat: f.sucursalLat, lng: f.sucursalLng },
+                    map: this.mapa,
+                    content: div.firstElementChild as HTMLElement,
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div class="text-sm">
+                            <strong>${f.nombreCliente}</strong><br>
+                            ${f.direccionSucursal || ''}<br>
+                            Factura: ${f.numeroFactura}
+                        </div>
+                    `,
+                });
+                marker.addListener('gmp-click', () => infoWindow.open(this.mapa, marker));
+                this.sedeMarkers.push(marker);
+            }
         }
     }
 
@@ -624,10 +678,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.selectedMunicipio.set(null);
         this.selectedGuias.set(new Set());
         this.filtroChofer.set(null);
+        this.limpiarSedeMarkers();
     }
 
     getMunicipioLabel(value: string | null): string {
-        return this.municipios.find((m) => m.value === value)?.label || value || '';
+        return this.municipios().find((m) => m.value === value)?.label || value || '';
     }
 
     getSeverity(cantidad: number): 'info' | 'success' | 'warn' | 'danger' {
@@ -641,6 +696,6 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     }
 
     getMunicipioLabelFrom(value: string): string {
-        return this.municipios.find((m) => m.value === value)?.label || value;
+        return this.municipios().find((m) => m.value === value)?.label || value;
     }
 }

@@ -17,7 +17,7 @@ import { LayoutService } from '@/app/layout/service/layout.service';
             <div class="layout-main">
                 <router-outlet></router-outlet>
             </div>
-            <app-footer></app-footer>
+            <!-- <app-footer></app-footer> -->
         </div>
         <div class="layout-mask"></div>
     </div> `,

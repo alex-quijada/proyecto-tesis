@@ -47,6 +47,7 @@
             'placaVehiculo',
         ]"
         [tableStyle]="{ 'min-width': '90rem' }"
+        [loading]="loading()"
         styleClass="p-datatable-sm"
         [rowHover]="true"
         (onRowExpand)="onRowExpand($event)"
@@ -126,12 +127,15 @@
                         <span class="text-xs text-surface-400">{{ guia.camion }}</span>
                     </div>
                 </td>
-                <td>{{ guia.municipio }}</td>
+                <td>{{ getMunicipioLabel(guia.municipio) }}</td>
                 <td>
                     @if (guia.facturas.length === 0) {
                         <p-tag value="Sin facturas" severity="danger" styleClass="text-xs" />
                     } @else {
-                        <p-chip [label]="guia.facturas.length + ' factura(s)'" styleClass="text-xs" />
+                        <p-chip
+                            [label]="guia.facturas.length + ' factura(s)'"
+                            styleClass="text-xs"
+                        />
                     }
                 </td>
                 <td>
@@ -173,7 +177,9 @@
             <tr>
                 <td colspan="10">
                     <div class="p-4">
-                        <div class="text-sm font-semibold text-surface-400 uppercase mb-4 flex items-center gap-2">
+                        <div
+                            class="text-sm font-semibold text-surface-400 uppercase mb-4 flex items-center gap-2"
+                        >
                             <i class="pi pi-receipt"></i>
                             Facturas ({{ guia.facturas.length }})
                         </div>
@@ -193,7 +199,9 @@
                                     <div
                                         class="flex items-center justify-between px-4 py-2.5 bg-surface-50 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700"
                                     >
-                                        <span class="font-semibold text-sm text-primary flex items-center gap-2">
+                                        <span
+                                            class="font-semibold text-sm text-primary flex items-center gap-2"
+                                        >
                                             <i class="pi pi-receipt"></i>
                                             Factura #{{ i + 1 }} — {{ fact.numeroFactura }}
                                         </span>
@@ -205,7 +213,13 @@
                                             />
                                             <p-tag
                                                 [value]="fact.prioridad"
-                                                [severity]="fact.prioridad === 'Alta' ? 'danger' : fact.prioridad === 'Media' ? 'warn' : 'info'"
+                                                [severity]="
+                                                    fact.prioridad === 'Alta'
+                                                        ? 'danger'
+                                                        : fact.prioridad === 'Media'
+                                                          ? 'warn'
+                                                          : 'info'
+                                                "
                                                 styleClass="text-xs"
                                             />
                                         </div>
@@ -213,40 +227,67 @@
                                     <div class="p-4">
                                         <div class="grid grid-cols-12 gap-x-4 gap-y-3 text-sm">
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Cliente</div>
-                                                <div class="font-medium truncate">{{ fact.nombreCliente }}</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    Cliente
+                                                </div>
+                                                <div class="font-medium truncate">
+                                                    {{ fact.nombreCliente }}
+                                                </div>
                                             </div>
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">RIF / Cédula</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    RIF / Cédula
+                                                </div>
                                                 <div>{{ fact.rifCliente }}</div>
                                             </div>
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Teléfono</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    Teléfono
+                                                </div>
                                                 <div>{{ fact.telefono }}</div>
                                             </div>
+
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Dirección</div>
-                                                <div class="truncate">{{ fact.direccion }}</div>
-                                            </div>
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Total USD</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    Total USD
+                                                </div>
                                                 <div class="font-semibold text-primary">
-                                                    {{ fact.totalUSD | currency: 'USD': 'symbol': '1.2-2' }}
+                                                    {{
+                                                        fact.totalUSD
+                                                            | currency: 'USD' : 'symbol' : '1.2-2'
+                                                    }}
                                                 </div>
                                             </div>
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Total Bs.</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    Total Bs.
+                                                </div>
                                                 <div class="font-semibold">
-                                                    {{ fact.totalVES | currency: 'VES': 'symbol': '1.2-2' }}
+                                                    {{
+                                                        fact.totalVES
+                                                            | currency: 'VES' : 'symbol' : '1.2-2'
+                                                    }}
                                                 </div>
                                             </div>
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Sucursal</div>
-                                                <div>{{ fact.direccionSucursal || '—' }}</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    Sucursal
+                                                </div>
+                                                <div
+                                                    [pTooltip]="fact.direccionSucursal"
+                                                    [tooltipDisabled]="!fact.direccionSucursal || fact.direccionSucursal.length <= 50"
+                                                >{{ (fact.direccionSucursal | slice:0:50) || '—' }}{{ fact.direccionSucursal && fact.direccionSucursal.length > 50 ? '...' : '' }}</div>
                                             </div>
                                             <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">Reglas de Recepción</div>
-                                                <div>{{ fact.reglasRecepcion?.instrucciones || 'Estándar' }}</div>
+                                                <div class="text-xs text-surface-400 mb-0.5">
+                                                    Reglas de Recepción
+                                                </div>
+                                                <div>
+                                                    {{
+                                                        fact.reglasRecepcion?.instrucciones ||
+                                                            'Estándar'
+                                                    }}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -255,12 +296,16 @@
                         </div>
 
                         @if (guia.observaciones) {
-                            <div class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm border border-surface-200 dark:border-surface-700">
+                            <div
+                                class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm border border-surface-200 dark:border-surface-700"
+                            >
                                 <span class="font-semibold flex items-center gap-1 mb-1">
                                     <i class="pi pi-comment text-xs"></i>
                                     Observaciones
                                 </span>
-                                <p class="text-surface-600 dark:text-surface-300 m-0">{{ guia.observaciones }}</p>
+                                <p class="text-surface-600 dark:text-surface-300 m-0">
+                                    {{ guia.observaciones }}
+                                </p>
                             </div>
                         }
                     </div>
