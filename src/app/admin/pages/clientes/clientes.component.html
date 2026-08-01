@@ -39,8 +39,10 @@
 
     @if (loading()) {
         <div class="flex flex-col gap-3">
-            @for (_ of [1,2,3,4,5]; track $index) {
-                <div class="flex gap-4 p-4 border border-surface-200 dark:border-surface-700 rounded-lg">
+            @for (_ of [1, 2, 3, 4, 5]; track $index) {
+                <div
+                    class="flex gap-4 p-4 border border-surface-200 dark:border-surface-700 rounded-lg"
+                >
                     <p-skeleton width="2rem" height="1.5rem" />
                     <p-skeleton width="2rem" height="1.5rem" />
                     <p-skeleton width="16rem" height="1.5rem" />
@@ -78,258 +80,266 @@
             responsiveLayout="scroll"
             (onRowExpand)="onRowExpand($event)"
         >
-        <ng-template #caption>
-            <div class="flex items-center justify-between">
-                <h5 class="m-0">Clientes</h5>
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input
-                        pInputText
-                        type="text"
-                        (input)="onGlobalFilter($event)"
-                        placeholder="Buscar cliente..."
-                        class="w-64"
-                    />
-                </p-iconfield>
-            </div>
-        </ng-template>
-
-        <ng-template #header>
-            <tr>
-                <th style="width: 3rem">
-                    <p-tableHeaderCheckbox />
-                </th>
-                <th style="width: 2.5rem"></th>
-                <th pSortableColumn="nombreComercial" style="min-width: 16rem">
-                    Nombre Comercial <p-sortIcon field="nombreComercial" />
-                </th>
-                <th pSortableColumn="documentoIdentidad.numero" style="min-width: 10rem">
-                    RIF <p-sortIcon field="documentoIdentidad.numero" />
-                </th>
-                <th pSortableColumn="telefono" style="min-width: 10rem">
-                    Teléfono <p-sortIcon field="telefono" />
-                </th>
-                <th pSortableColumn="correo" style="min-width: 14rem">
-                    Correo <p-sortIcon field="correo" />
-                </th>
-                <th pSortableColumn="personaContacto" style="min-width: 13rem">
-                    Contacto <p-sortIcon field="personaContacto" />
-                </th>
-                <th pSortableColumn="prioridad" style="min-width: 7rem">
-                    Prioridad <p-sortIcon field="prioridad" />
-                </th>
-                <th style="width: 8rem">Acciones</th>
-            </tr>
-        </ng-template>
-
-        <ng-template #body let-cliente let-expanded="expanded">
-            <tr>
-                <td>
-                    <p-tableCheckbox [value]="cliente" />
-                </td>
-                <td class="text-center">
-                    <button
-                        type="button"
-                        pButton
-                        pRipple
-                        [pRowToggler]="cliente"
-                        [text]="true"
-                        [rounded]="true"
-                        [plain]="true"
-                        size="small"
-                        [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                        style="width: 1.5rem; height: 1.5rem"
-                    ></button>
-                </td>
-                <td class="font-medium">{{ cliente.nombreComercial }}</td>
-                <td class="text-surface-600 dark:text-surface-300">
-                    {{
-                        (cliente.documentoIdentidad?.prefijo || '') +
-                            '-' +
-                            (cliente.documentoIdentidad?.numero || '')
-                    }}
-                </td>
-                <td class="text-surface-600 dark:text-surface-300">{{ cliente.telefono }}</td>
-                <td class="text-surface-600 dark:text-surface-300">{{ cliente.correo }}</td>
-                <td class="text-surface-600 dark:text-surface-300">
-                    {{ cliente.personaContacto }}
-                </td>
-                <td>
-                    <p-tag
-                        [value]="cliente.prioridad | capitalize"
-                        [severity]="getPrioridadSeverity(cliente.prioridad)"
-                        [styleClass]="'text-xs px-2 py-0.5'"
-                    />
-                </td>
-                <td>
-                    <div class="flex gap-1">
-                        <p-button
-                            icon="pi pi-pencil"
-                            [rounded]="true"
-                            [outlined]="true"
-                            severity="info"
-                            size="small"
-                            pTooltip="Editar"
-                            tooltipPosition="top"
-                            (click)="editCliente(cliente)"
+            <ng-template #caption>
+                <div class="flex items-center justify-between">
+                    <h5 class="m-0">Clientes</h5>
+                    <p-iconfield>
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input
+                            pInputText
+                            type="text"
+                            (input)="onGlobalFilter($event)"
+                            placeholder="Buscar cliente..."
+                            class="w-64"
                         />
-                        <p-button
-                            icon="pi pi-trash"
-                            [rounded]="true"
-                            [outlined]="true"
-                            severity="danger"
-                            size="small"
-                            pTooltip="Eliminar"
-                            tooltipPosition="top"
-                            (click)="deleteCliente(cliente)"
-                        />
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
+                    </p-iconfield>
+                </div>
+            </ng-template>
 
-        <ng-template #expandedrow let-cliente>
-            <tr>
-                <td colspan="9">
-                    <div class="p-4">
-                        <div
-                            class="flex items-center justify-between mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium"
-                        >
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-map-marker text-primary"></i>
-                                {{
-                                    cliente.sucursales?.length || 0
-                                        | i18nPlural: pluralSucursalMapping
-                                }}
-                                de
-                                <span class="font-semibold text-surface-800 dark:text-surface-100">
-                                    {{ cliente.nombreComercial }}
-                                </span>
-                            </div>
+            <ng-template #header>
+                <tr>
+                    <th style="width: 3rem">
+                        <p-tableHeaderCheckbox />
+                    </th>
+                    <th style="width: 2.5rem"></th>
+                    <th pSortableColumn="nombreComercial" style="min-width: 16rem">
+                        Nombre Comercial <p-sortIcon field="nombreComercial" />
+                    </th>
+                    <th pSortableColumn="documentoIdentidad.numero" style="min-width: 10rem">
+                        RIF <p-sortIcon field="documentoIdentidad.numero" />
+                    </th>
+                    <th pSortableColumn="telefono" style="min-width: 10rem">
+                        Teléfono <p-sortIcon field="telefono" />
+                    </th>
+                    <th pSortableColumn="correo" style="min-width: 14rem">
+                        Correo <p-sortIcon field="correo" />
+                    </th>
+                    <th pSortableColumn="personaContacto" style="min-width: 13rem">
+                        Contacto <p-sortIcon field="personaContacto" />
+                    </th>
+                    <th pSortableColumn="prioridad" style="min-width: 7rem">
+                        Prioridad <p-sortIcon field="prioridad" />
+                    </th>
+                    <th style="width: 8rem">Acciones</th>
+                </tr>
+            </ng-template>
+
+            <ng-template #body let-cliente let-expanded="expanded">
+                <tr>
+                    <td>
+                        <p-tableCheckbox [value]="cliente" />
+                    </td>
+                    <td class="text-center">
+                        <button
+                            type="button"
+                            pButton
+                            pRipple
+                            [pRowToggler]="cliente"
+                            [text]="true"
+                            [rounded]="true"
+                            [plain]="true"
+                            size="small"
+                            [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                            style="width: 1.5rem; height: 1.5rem"
+                        ></button>
+                    </td>
+                    <td class="font-medium">{{ cliente.nombreComercial }}</td>
+                    <td class="text-surface-600 dark:text-surface-300">
+                        {{
+                            (cliente.documentoIdentidad?.prefijo || '') +
+                                '-' +
+                                (cliente.documentoIdentidad?.numero || '')
+                        }}
+                    </td>
+                    <td class="text-surface-600 dark:text-surface-300">{{ cliente.telefono }}</td>
+                    <td class="text-surface-600 dark:text-surface-300">{{ cliente.correo }}</td>
+                    <td class="text-surface-600 dark:text-surface-300">
+                        {{ cliente.personaContacto }}
+                    </td>
+                    <td>
+                        <p-tag
+                            [value]="cliente.prioridad | capitalize"
+                            [severity]="getPrioridadSeverity(cliente.prioridad)"
+                            [styleClass]="'text-xs px-2 py-0.5'"
+                        />
+                    </td>
+                    <td>
+                        <div class="flex gap-1">
                             <p-button
-                                icon="pi pi-plus"
-                                label="Agregar"
+                                icon="pi pi-pencil"
+                                [rounded]="true"
+                                [outlined]="true"
                                 severity="info"
-                                outlined
-                                rounded
                                 size="small"
-                                (onClick)="agregarSucursal(cliente)"
+                                pTooltip="Editar"
+                                tooltipPosition="top"
+                                (click)="editCliente(cliente)"
+                            />
+                            <p-button
+                                icon="pi pi-trash"
+                                [rounded]="true"
+                                [outlined]="true"
+                                severity="danger"
+                                size="small"
+                                pTooltip="Eliminar"
+                                tooltipPosition="top"
+                                (click)="deleteCliente(cliente)"
                             />
                         </div>
+                    </td>
+                </tr>
+            </ng-template>
 
-                        @let loading = loadingSucursales()[cliente.id!];
-                        @if (loading) {
-                            <div class="flex justify-center py-4">
-                                <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
-                            </div>
-                        } @else if (cliente.sucursales?.length) {
-                            <p-table
-                                [value]="cliente.sucursales!"
-                                dataKey="id"
-                                [tableStyle]="{ 'min-width': '50rem' }"
-                            >
-                                <ng-template #header>
-                                    <tr>
-                                        <th style="min-width: 12rem">Dirección</th>
-                                        <th style="min-width: 8rem">Referencia</th>
-                                        <th style="min-width: 8rem">Municipio</th>
-                                        <th style="min-width: 8rem">Contacto</th>
-                                        <th style="min-width: 6rem">Horario</th>
-                                        <th style="min-width: 8rem">Días</th>
-                                        <th style="min-width: 7rem">Cita</th>
-                                        <th style="width: 4rem"></th>
-                                    </tr>
-                                </ng-template>
-                                <ng-template #body let-sucursal>
-                                    <tr>
-                                        <td class="font-medium">{{ sucursal.direccion }}</td>
-                                        <td class="text-surface-500 text-sm">
-                                            {{ sucursal.puntoDeReferencia || '—' }}
-                                        </td>
-                                        <td>
-                                            {{
-                                                municipiosMap()[sucursal.idMunicipio!] ||
-                                                    sucursal.idMunicipio
-                                            }}
-                                        </td>
-                                        <td>
-                                            @if (sucursal.nombreContacto) {
-                                                <span class="block">{{
-                                                    sucursal.nombreContacto
-                                                }}</span>
-                                                <span class="text-surface-400 text-sm">{{
-                                                    sucursal.telefonoContacto
-                                                }}</span>
-                                            } @else {
-                                                <span class="text-surface-400">—</span>
-                                            }
-                                        </td>
-                                        <td>{{ sucursal.reglas?.horaEntrega || '—' }}</td>
-                                        <td class="text-sm">
-                                            {{ sucursal.reglas?.diasRecepcion?.join(', ') || '—' }}
-                                        </td>
-                                        <td>
-                                            @if (sucursal.reglas?.requiereCita) {
-                                                <p-tag
-                                                    value="Requiere cita"
-                                                    severity="warn"
-                                                    [styleClass]="'text-xs'"
-                                                />
-                                            } @else {
-                                                <p-tag
-                                                    value="Sin cita"
-                                                    severity="success"
-                                                    [styleClass]="'text-xs'"
-                                                />
-                                            }
-                                        </td>
-                                        <td>
-                                            <p-button
-                                                icon="pi pi-pencil"
-                                                [rounded]="true"
-                                                [text]="true"
-                                                severity="info"
-                                                size="small"
-                                                pTooltip="Editar sucursal"
-                                                tooltipPosition="top"
-                                                (click)="editarSucursal(sucursal, cliente)"
-                                            />
-                                        </td>
-                                    </tr>
-                                </ng-template>
-                                <ng-template #emptymessage>
-                                    <tr>
-                                        <td colspan="8" class="text-center py-4 text-surface-400">
-                                            No hay sucursales registradas.
-                                        </td>
-                                    </tr>
-                                </ng-template>
-                            </p-table>
-                        } @else {
+            <ng-template #expandedrow let-cliente>
+                <tr>
+                    <td colspan="9">
+                        <div class="p-4">
                             <div
-                                class="flex flex-col items-center justify-center py-8 text-surface-400"
+                                class="flex items-center justify-between mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium"
                             >
-                                <i class="pi pi-map-marker text-3xl mb-2"></i>
-                                <p class="text-sm">
-                                    No hay sucursales registradas para este cliente.
-                                </p>
+                                <div class="flex items-center gap-2">
+                                    <i class="pi pi-map-marker text-primary"></i>
+                                    {{
+                                        cliente.sucursales?.length || 0
+                                            | i18nPlural: pluralSucursalMapping
+                                    }}
+                                    de
+                                    <span
+                                        class="font-semibold text-surface-800 dark:text-surface-100"
+                                    >
+                                        {{ cliente.nombreComercial }}
+                                    </span>
+                                </div>
+                                <p-button
+                                    icon="pi pi-plus"
+                                    label="Agregar"
+                                    severity="info"
+                                    outlined
+                                    rounded
+                                    size="small"
+                                    (onClick)="agregarSucursal(cliente)"
+                                />
                             </div>
-                        }
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
 
-        <ng-template #emptymessage>
-            <tr>
-                <td colspan="9" class="text-center py-10 text-surface-400">
-                    <i class="pi pi-building" style="font-size: 3rem; opacity: 0.5"></i>
-                    <p class="mt-3 text-lg">No hay clientes registrados</p>
-                    <p class="text-sm">Presiona "Nuevo Cliente" para agregar uno.</p>
-                </td>
-            </tr>
-        </ng-template>
-    </p-table>
+                            @let loading = loadingSucursales()[cliente.id!];
+                            @if (loading) {
+                                <div class="flex justify-center py-4">
+                                    <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
+                                </div>
+                            } @else if (cliente.sucursales?.length) {
+                                <p-table
+                                    [value]="cliente.sucursales!"
+                                    dataKey="id"
+                                    [tableStyle]="{ 'min-width': '50rem' }"
+                                >
+                                    <ng-template #header>
+                                        <tr>
+                                            <th style="min-width: 12rem">Dirección</th>
+                                            <th style="min-width: 8rem">Referencia</th>
+                                            <th style="min-width: 8rem">Municipio</th>
+                                            <th style="min-width: 8rem">Contacto</th>
+                                            <th style="min-width: 6rem">Horario</th>
+                                            <th style="min-width: 8rem">Días</th>
+                                            <th style="min-width: 7rem">Cita</th>
+                                            <th style="width: 4rem"></th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template #body let-sucursal>
+                                        <tr>
+                                            <td class="font-medium">{{ sucursal.direccion }}</td>
+                                            <td class="text-surface-500 text-sm">
+                                                {{ sucursal.puntoDeReferencia || '—' }}
+                                            </td>
+                                            <td>
+                                                {{
+                                                    municipiosMap()[sucursal.idMunicipio!] ||
+                                                        sucursal.idMunicipio
+                                                }}
+                                            </td>
+                                            <td>
+                                                @if (sucursal.nombreContacto) {
+                                                    <span class="block">{{
+                                                        sucursal.nombreContacto
+                                                    }}</span>
+                                                    <span class="text-surface-400 text-sm">{{
+                                                        sucursal.telefonoContacto
+                                                    }}</span>
+                                                } @else {
+                                                    <span class="text-surface-400">—</span>
+                                                }
+                                            </td>
+                                            <td>{{ formatHoraIntervalo(sucursal.reglas) }}</td>
+                                            <td class="text-sm">
+                                                {{
+                                                    sucursal.reglas?.diasRecepcion?.join(', ') ||
+                                                        '—'
+                                                }}
+                                            </td>
+                                            <td>
+                                                @if (sucursal.reglas?.requiereCita) {
+                                                    <p-tag
+                                                        value="Requiere cita"
+                                                        severity="warn"
+                                                        [styleClass]="'text-xs'"
+                                                    />
+                                                } @else {
+                                                    <p-tag
+                                                        value="Sin cita"
+                                                        severity="success"
+                                                        [styleClass]="'text-xs'"
+                                                    />
+                                                }
+                                            </td>
+                                            <td>
+                                                <p-button
+                                                    icon="pi pi-pencil"
+                                                    [rounded]="true"
+                                                    [text]="true"
+                                                    severity="info"
+                                                    size="small"
+                                                    pTooltip="Editar sucursal"
+                                                    tooltipPosition="top"
+                                                    (click)="editarSucursal(sucursal, cliente)"
+                                                />
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template #emptymessage>
+                                        <tr>
+                                            <td
+                                                colspan="8"
+                                                class="text-center py-4 text-surface-400"
+                                            >
+                                                No hay sucursales registradas.
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
+                            } @else {
+                                <div
+                                    class="flex flex-col items-center justify-center py-8 text-surface-400"
+                                >
+                                    <i class="pi pi-map-marker text-3xl mb-2"></i>
+                                    <p class="text-sm">
+                                        No hay sucursales registradas para este cliente.
+                                    </p>
+                                </div>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="9" class="text-center py-10 text-surface-400">
+                        <i class="pi pi-building" style="font-size: 3rem; opacity: 0.5"></i>
+                        <p class="mt-3 text-lg">No hay clientes registrados</p>
+                        <p class="text-sm">Presiona "Nuevo Cliente" para agregar uno.</p>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     }
 </div>
 

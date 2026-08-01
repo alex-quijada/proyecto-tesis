@@ -1,4 +1,14 @@
-import { Component, input, output, model, effect, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import {
+    Component,
+    input,
+    output,
+    model,
+    effect,
+    inject,
+    signal,
+    OnInit,
+    OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -126,12 +136,27 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                         <div formGroupName="reglas">
                             <div class="grid grid-cols-12 gap-3 mt-2">
                                 <div class="col-span-4 flex flex-col gap-2">
-                                    <label for="horaEntrega" class="font-semibold text-sm"
-                                        >Hora de Entrega</label
+                                    <label for="horaDesde" class="font-semibold text-sm"
+                                        >Desde</label
                                     >
                                     <p-datepicker
-                                        id="horaEntrega"
-                                        formControlName="horaEntrega"
+                                        id="horaDesde"
+                                        formControlName="horaDesde"
+                                        timeOnly
+                                        hourFormat="24"
+                                        [showIcon]="true"
+                                        iconDisplay="input"
+                                        [icon]="'pi pi-clock'"
+                                        appendTo="body"
+                                    />
+                                </div>
+                                <div class="col-span-4 flex flex-col gap-2">
+                                    <label for="horaHasta" class="font-semibold text-sm"
+                                        >Hasta</label
+                                    >
+                                    <p-datepicker
+                                        id="horaHasta"
+                                        formControlName="horaHasta"
                                         timeOnly
                                         hourFormat="24"
                                         [showIcon]="true"
@@ -257,7 +282,8 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
         latitud: [null],
         longitud: [null],
         reglas: this.fb.group({
-            horaEntrega: [null],
+            horaDesde: [null],
+            horaHasta: [null],
             diasRecepcion: [[]],
             requiereCita: [false],
             instrucciones: [''],
@@ -284,8 +310,7 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
             .get('idMunicipio')
             ?.valueChanges.pipe(takeUntil(this.destroy$))
             .subscribe((id) => {
-                const nombre =
-                    this.municipios().find((m) => m.id_municipio === id)?.nombre || '';
+                const nombre = this.municipios().find((m) => m.id_municipio === id)?.nombre || '';
                 this.municipioNombre.set(nombre);
             });
     }
@@ -333,8 +358,11 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
             latitud: suc.latitud ?? null,
             longitud: suc.longitud ?? null,
             reglas: {
-                horaEntrega: suc.reglas?.horaEntrega
-                    ? this.horaStringToDate(suc.reglas.horaEntrega)
+                horaDesde: suc.reglas?.horaDesde
+                    ? this.horaStringToDate(suc.reglas.horaDesde)
+                    : null,
+                horaHasta: suc.reglas?.horaHasta
+                    ? this.horaStringToDate(suc.reglas.horaHasta)
                     : null,
                 diasRecepcion: suc.reglas?.diasRecepcion || [],
                 requiereCita: suc.reglas?.requiereCita ?? false,
@@ -353,7 +381,8 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
             latitud: null,
             longitud: null,
             reglas: {
-                horaEntrega: null,
+                horaDesde: null,
+                horaHasta: null,
                 diasRecepcion: [],
                 requiereCita: false,
                 instrucciones: '',
@@ -386,7 +415,8 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
             nombreContacto: raw.nombreContacto,
             telefonoContacto: raw.telefonoContacto,
             reglas: {
-                horaEntrega: this.horaDateToString(raw.reglas.horaEntrega),
+                horaDesde: this.horaDateToString(raw.reglas.horaDesde),
+                horaHasta: this.horaDateToString(raw.reglas.horaHasta),
                 diasRecepcion: raw.reglas.diasRecepcion,
                 requiereCita: raw.reglas.requiereCita,
                 instrucciones: raw.reglas.instrucciones,

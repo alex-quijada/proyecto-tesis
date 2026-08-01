@@ -178,15 +178,15 @@ export class ClienteDialogComponent implements OnInit {
 
     private crearSucursalGroup(s: SucursalCliente = {}): FormGroup {
         return this.fb.group({
+            id: [s.id || ''],
             idMunicipio: [s.idMunicipio || '', Validators.required],
             direccion: [s.direccion || '', Validators.required],
             puntoDeReferencia: [s.puntoDeReferencia || ''],
             latitud: [s.latitud ?? null],
             longitud: [s.longitud ?? null],
             reglas: this.fb.group({
-                horaEntrega: [
-                    s.reglas?.horaEntrega ? this.horaStringToDate(s.reglas.horaEntrega) : null,
-                ],
+                horaDesde: [s.reglas?.horaDesde ? this.horaStringToDate(s.reglas.horaDesde) : null],
+                horaHasta: [s.reglas?.horaHasta ? this.horaStringToDate(s.reglas.horaHasta) : null],
                 diasRecepcion: [s.reglas?.diasRecepcion || []],
                 requiereCita: [s.reglas?.requiereCita ?? false],
                 instrucciones: [s.reglas?.instrucciones || ''],
@@ -273,6 +273,7 @@ export class ClienteDialogComponent implements OnInit {
             sucursales: raw.sucursales
                 .filter((s: any) => s.direccion?.trim())
                 .map((s: any) => ({
+                    id: s.id || undefined,
                     idMunicipio: s.idMunicipio,
                     direccion: s.direccion,
                     puntoDeReferencia: s.puntoDeReferencia,
@@ -281,7 +282,8 @@ export class ClienteDialogComponent implements OnInit {
                     nombreContacto: s.nombreContacto,
                     telefonoContacto: s.telefonoContacto,
                     reglas: {
-                        horaEntrega: this.horaDateToString(s.reglas.horaEntrega),
+                        horaDesde: this.horaDateToString(s.reglas.horaDesde),
+                        horaHasta: this.horaDateToString(s.reglas.horaHasta),
                         diasRecepcion: s.reglas.diasRecepcion,
                         requiereCita: s.reglas.requiereCita,
                         instrucciones: s.reglas.instrucciones,

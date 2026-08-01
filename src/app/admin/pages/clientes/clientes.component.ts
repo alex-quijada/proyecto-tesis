@@ -18,7 +18,7 @@ import { RouterModule } from '@angular/router';
 
 import { ClienteDialogComponent } from './components/cliente-dialog.component';
 import { SucursalDialogComponent } from './components/sucursal-dialog.component';
-import { Cliente, SucursalCliente } from './clientes.types';
+import { Cliente, ReglasSucursal, SucursalCliente } from './clientes.types';
 import { ClienteService } from './service/cliente.service';
 import { CapitalizePipe } from './pipes/capitalize.pipe';
 
@@ -258,6 +258,13 @@ export class ClientesComponent implements OnInit {
             life: 3000,
         });
         this.cargarClientes();
+    }
+
+    formatHoraIntervalo(reglas: ReglasSucursal | undefined): string {
+        if (!reglas?.horaDesde && !reglas?.horaHasta) return '—';
+        if (reglas.horaDesde && reglas.horaHasta)
+            return `${reglas.horaDesde} - ${reglas.horaHasta}`;
+        return reglas.horaDesde || reglas.horaHasta || '—';
     }
 
     handleSaveCliente(clienteCapturado: Cliente) {

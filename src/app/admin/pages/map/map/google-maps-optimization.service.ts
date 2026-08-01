@@ -64,9 +64,10 @@ export class GoogleMapsOptimizationService {
                     route.overview_path?.map((p) => ({ lat: p.lat(), lng: p.lng() })) || [];
 
                 resolve({
-                    order: origin || destination
-                        ? route.waypoint_order
-                        : [0, ...route.waypoint_order.map((i) => i + 1), waypoints.length - 1],
+                    order:
+                        origin || destination
+                            ? route.waypoint_order
+                            : [0, ...route.waypoint_order.map((i) => i + 1), waypoints.length - 1],
                     distance: totalDistance,
                     duration: totalDuration,
                     path,

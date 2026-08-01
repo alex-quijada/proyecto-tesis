@@ -141,7 +141,9 @@
                             @if ($index === 0) {
                                 <span class="text-blue-500 font-bold">1º</span>
                             } @else if ($index === waypoints().length - 1) {
-                                <span class="text-red-500 font-bold">{{ waypoints().length }}º</span>
+                                <span class="text-red-500 font-bold"
+                                    >{{ waypoints().length }}º</span
+                                >
                             } @else {
                                 <span class="font-medium">{{ $index + 1 }}º</span>
                             }

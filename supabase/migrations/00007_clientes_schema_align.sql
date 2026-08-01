@@ -27,6 +27,7 @@ ON CONFLICT (prefijo) DO NOTHING;
 -- 2. CLIENTES: columnas faltantes
 -- ==========================================
 ALTER TABLE public.clientes
+    ADD COLUMN IF NOT EXISTS correo text,
     ADD COLUMN IF NOT EXISTS id_prefijo uuid REFERENCES public.prefijos_documento(id_prefijo) ON DELETE RESTRICT,
     ADD COLUMN IF NOT EXISTS telefono character varying(20),
     ADD COLUMN IF NOT EXISTS persona_contacto character varying(150),

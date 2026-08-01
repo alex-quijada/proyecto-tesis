@@ -49,7 +49,7 @@ export class RutaService {
         const { data } = await this.supabase
             .from('empresas')
             .select('id_empresa')
-            .eq('prefijo', valor)
+            .eq('empresa', valor)
             .maybeSingle();
         return data?.id_empresa || null;
     }
@@ -295,9 +295,7 @@ export class RutaService {
         }
     }
 
-    async guardarCronograma(
-        cronograma: { dia: string; municipios: string[] }[],
-    ): Promise<void> {
+    async guardarCronograma(cronograma: { dia: string; municipios: string[] }[]): Promise<void> {
         const { error: delErr } = await this.supabase
             .from('municipios_cronograma')
             .delete()
@@ -380,9 +378,7 @@ export class RutaService {
                 this.supabase.from('estados').select('id_estado, nombre_estado'),
                 this.supabase.rpc('obtener_clientes'),
                 this.supabase.rpc('obtener_prioridades_clientes'),
-                vehiculoIds.size
-                    ? this.supabase.rpc('obtener_vehiculos')
-                    : ({ data: [] } as any),
+                vehiculoIds.size ? this.supabase.rpc('obtener_vehiculos') : ({ data: [] } as any),
             ]);
 
         const usuariosMap = new Map(
@@ -398,16 +394,12 @@ export class RutaService {
         const clientesArr = (clientesRes.data || []) as any[];
         const prioridadesArr = (prioridadesRes.data || []) as any[];
 
-        const clientesMap = new Map(
-            clientesArr.map((c: any) => [c.id_cliente, c]),
-        );
+        const clientesMap = new Map(clientesArr.map((c: any) => [c.id_cliente, c]));
         const prioridadesMap = new Map(
             prioridadesArr.map((p: any) => [p.id_prioridad, p.nombre_prioridad]),
         );
 
-        const clienteIds = [
-            ...new Set(clientesArr.map((c: any) => c.id_cliente).filter(Boolean)),
-        ];
+        const clienteIds = [...new Set(clientesArr.map((c: any) => c.id_cliente).filter(Boolean))];
 
         const sucursalesRes = await Promise.all(
             clienteIds.map((id) =>
@@ -435,21 +427,18 @@ export class RutaService {
                 numeroFactura: f.num_factura,
                 idCliente: cliente?.id_cliente || '',
                 nombreCliente: cliente?.nombre_comercial || '',
-                rifCliente: cliente
-                    ? `${cliente.prefijo || ''}${cliente.numero_doc || ''}`
-                    : '',
+                rifCliente: cliente ? `${cliente.prefijo || ''}${cliente.numero_doc || ''}` : '',
                 telefono: cliente?.telefono || '',
                 direccion: '',
                 idSucursal: f.id_sucursal,
                 direccionSucursal: suc?.direccion || '',
                 sucursalLat: suc?.latitud ?? undefined,
                 sucursalLng: suc?.longitud ?? undefined,
+                reglasRecepcion: suc?.reglas,
                 totalUSD: Number(f.monto_dolares) || 0,
                 totalVES: Number(f.monto_bss) || 0,
                 prioridad:
-                    prioridadesMap.get(cliente?.id_prioridad) ||
-                    cliente?.nombre_prioridad ||
-                    '',
+                    prioridadesMap.get(cliente?.id_prioridad) || cliente?.nombre_prioridad || '',
                 idEstado: estadosMap.get(f.id_estado) || f.id_estado,
             };
 

@@ -46,21 +46,61 @@ export class ClienteService {
     }
 
     private readonly MUNICIPIOS_FALLBACK: MunicipioItem[] = [
-        { id_municipio: 'ca688dbd-e098-437f-a4dd-950d8e22715c', nombre: 'Antolín del Campo', capital: 'Paraguachí' },
-        { id_municipio: 'b296c432-4c47-4251-a38d-e8ac3cdafb63', nombre: 'Arismendi', capital: 'La Asunción' },
-        { id_municipio: '3b568ab8-1fc3-46ae-99b3-43d58fb4c4ad', nombre: 'Díaz', capital: 'San Juan Bautista' },
-        { id_municipio: '66f23356-6246-4c01-a6da-b7c59326c8f9', nombre: 'García', capital: 'El Valle del Espíritu Santo' },
-        { id_municipio: '020bff72-e966-4356-9664-e860ea9c1e41', nombre: 'Gómez', capital: 'Santa Ana' },
-        { id_municipio: 'a1f6d9e1-d999-4e04-a1b0-f80a32e072d3', nombre: 'Maneiro', capital: 'Pampatar' },
-        { id_municipio: 'bdc8027f-3d0f-4ec0-b4c3-45ca8637d6db', nombre: 'Marcano', capital: 'Juan Griego' },
-        { id_municipio: 'd1b9ed3e-d2d9-420e-9158-d01e35e79784', nombre: 'Mariño', capital: 'Porlamar' },
+        {
+            id_municipio: 'ca688dbd-e098-437f-a4dd-950d8e22715c',
+            nombre: 'Antolín del Campo',
+            capital: 'Paraguachí',
+        },
+        {
+            id_municipio: 'b296c432-4c47-4251-a38d-e8ac3cdafb63',
+            nombre: 'Arismendi',
+            capital: 'La Asunción',
+        },
+        {
+            id_municipio: '3b568ab8-1fc3-46ae-99b3-43d58fb4c4ad',
+            nombre: 'Díaz',
+            capital: 'San Juan Bautista',
+        },
+        {
+            id_municipio: '66f23356-6246-4c01-a6da-b7c59326c8f9',
+            nombre: 'García',
+            capital: 'El Valle del Espíritu Santo',
+        },
+        {
+            id_municipio: '020bff72-e966-4356-9664-e860ea9c1e41',
+            nombre: 'Gómez',
+            capital: 'Santa Ana',
+        },
+        {
+            id_municipio: 'a1f6d9e1-d999-4e04-a1b0-f80a32e072d3',
+            nombre: 'Maneiro',
+            capital: 'Pampatar',
+        },
+        {
+            id_municipio: 'bdc8027f-3d0f-4ec0-b4c3-45ca8637d6db',
+            nombre: 'Marcano',
+            capital: 'Juan Griego',
+        },
+        {
+            id_municipio: 'd1b9ed3e-d2d9-420e-9158-d01e35e79784',
+            nombre: 'Mariño',
+            capital: 'Porlamar',
+        },
         {
             id_municipio: 'dd76c370-a034-4fef-8046-7782b41832b1',
             nombre: 'Península de Macanao',
             capital: 'Boca de Río',
         },
-        { id_municipio: '40844c65-3bee-4d1f-a87e-588652a8cb82', nombre: 'Tubores', capital: 'Punta de Piedras' },
-        { id_municipio: '1d380be4-9b76-4230-a83c-67c796d6215c', nombre: 'Villalba', capital: 'San Pedro de Coche' },
+        {
+            id_municipio: '40844c65-3bee-4d1f-a87e-588652a8cb82',
+            nombre: 'Tubores',
+            capital: 'Punta de Piedras',
+        },
+        {
+            id_municipio: '1d380be4-9b76-4230-a83c-67c796d6215c',
+            nombre: 'Villalba',
+            capital: 'San Pedro de Coche',
+        },
     ];
 
     private readonly PRIORIDADES_FALLBACK: PrioridadItem[] = [
@@ -140,6 +180,7 @@ export class ClienteService {
         const sucursalesJson = sucursales
             .filter((s) => s.direccion?.trim())
             .map((s) => ({
+                id: s.id || '',
                 direccion: s.direccion,
                 punto_de_referencia: s.puntoDeReferencia || '',
                 id_municipio: s.idMunicipio || null,
@@ -148,7 +189,8 @@ export class ClienteService {
                 instruccion_nota: s.reglas?.instrucciones || '',
                 cita: s.reglas?.requiereCita ?? false,
                 dias_semana: s.reglas?.diasRecepcion?.join(',') || '',
-                hora_entrega: s.reglas?.horaEntrega || '',
+                hora_desde: s.reglas?.horaDesde || '',
+                hora_hasta: s.reglas?.horaHasta || '',
                 latitud: s.latitud != null ? String(s.latitud) : null,
                 longitud: s.longitud != null ? String(s.longitud) : null,
             }));
@@ -176,7 +218,8 @@ export class ClienteService {
             telefonoContacto: s.telefono_contacto,
             nombreContacto: s.nombre_contacto,
             reglas: {
-                horaEntrega: s.hora_entrega ? s.hora_entrega.substring(0, 5) : '',
+                horaDesde: s.hora_desde ? s.hora_desde.substring(0, 5) : '',
+                horaHasta: s.hora_hasta ? s.hora_hasta.substring(0, 5) : '',
                 diasRecepcion: s.dias_semana ? s.dias_semana.split(',') : [],
                 requiereCita: s.cita ?? false,
                 instrucciones: s.instruccion_nota || '',

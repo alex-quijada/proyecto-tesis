@@ -6,7 +6,8 @@ export interface DocumentoIdentidad {
 }
 
 export interface ReglasSucursal {
-    horaEntrega?: string;
+    horaDesde?: string;
+    horaHasta?: string;
     diasRecepcion?: string[];
     requiereCita?: boolean;
     instrucciones?: string;

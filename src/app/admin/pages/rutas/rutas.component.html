@@ -275,8 +275,21 @@
                                                 </div>
                                                 <div
                                                     [pTooltip]="fact.direccionSucursal"
-                                                    [tooltipDisabled]="!fact.direccionSucursal || fact.direccionSucursal.length <= 50"
-                                                >{{ (fact.direccionSucursal | slice:0:50) || '—' }}{{ fact.direccionSucursal && fact.direccionSucursal.length > 50 ? '...' : '' }}</div>
+                                                    [tooltipDisabled]="
+                                                        !fact.direccionSucursal ||
+                                                        fact.direccionSucursal.length <= 50
+                                                    "
+                                                >
+                                                    {{
+                                                        (fact.direccionSucursal | slice: 0 : 50) ||
+                                                            '—'
+                                                    }}{{
+                                                        fact.direccionSucursal &&
+                                                        fact.direccionSucursal.length > 50
+                                                            ? '...'
+                                                            : ''
+                                                    }}
+                                                </div>
                                             </div>
                                             <div class="col-span-3">
                                                 <div class="text-xs text-surface-400 mb-0.5">

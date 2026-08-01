@@ -12,9 +12,7 @@ export function puntoEnPoligono(
     return false;
 }
 
-function extractRings(
-    coordinates: number[][][][] | number[][][],
-): number[][][] {
+function extractRings(coordinates: number[][][][] | number[][][]): number[][][] {
     if (coordinates.length === 0) return [];
     if (Array.isArray(coordinates[0][0][0])) {
         return (coordinates as number[][][][]).map((p) => p[0]);

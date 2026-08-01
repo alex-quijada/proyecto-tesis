@@ -20,6 +20,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
 import { SkeletonModule } from 'primeng/skeleton';
 import { OrderListModule } from 'primeng/orderlist';
+import { DialogModule } from 'primeng/dialog';
+import { DatePickerModule } from 'primeng/datepicker';
 import { environment } from '@/environments/environment';
 import { GuiaDespacho, Ruta, RUTAS_MOCK } from '../data/rutas-mock';
 import { RutaService } from '../services/ruta.service';
@@ -29,6 +31,8 @@ import {
     GoogleMapsOptimizationService,
     Waypoint,
 } from '../../map/map/google-maps-optimization.service';
+import { ViajeService } from '@/app/services/viaje.service';
+import { ViajeGroup, CrearViajeResult } from '@/app/services/viaje.types';
 
 interface DiaCronograma {
     dia: string;
@@ -90,6 +94,8 @@ const MAPA_DIA: Record<number, string> = {
         DividerModule,
         SkeletonModule,
         OrderListModule,
+        DialogModule,
+        DatePickerModule,
     ],
     providers: [MessageService],
     templateUrl: './optimizacion-rutas.component.html',
@@ -100,6 +106,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private rutaService = inject(RutaService);
     private municipioService = inject(MunicipioService);
+    protected viajeService = inject(ViajeService);
 
     private mapaEl = viewChild.required<ElementRef<HTMLDivElement>>('mapaElement');
 
@@ -126,6 +133,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     selectedGuias = signal<Set<string>>(new Set());
     filtroChofer = signal<string | null>(null);
     optimizando = signal(false);
+    loadingGuias = signal(true);
     loadingCronograma = signal(true);
     guardandoCronograma = signal(false);
     mapaCargado = signal(false);
@@ -133,6 +141,13 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     diaEditando = signal<string | null>(null);
     diaEditandoLista = signal<string[]>([]);
     municipioAgregar = signal<string>('');
+
+    showConfirmDialog = signal(false);
+    viajeGroups = signal<ViajeGroup[]>([]);
+    creandoViaje = signal(false);
+    viajesResultados = signal<CrearViajeResult[]>([]);
+    ultimoOrdenFacturas = signal<string[]>([]);
+    fechaViaje = signal<Date>(new Date());
 
     constructor() {
         afterNextRender(() => this.initMap());
@@ -152,6 +167,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
                 detail: 'No se pudieron cargar las guías desde la base de datos.',
             });
         }
+        this.loadingGuias.set(false);
         this.rutasDisponibles.set([...RUTAS_MOCK]);
 
         this.loadingCronograma.set(true);
@@ -298,44 +314,119 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.actualizarSedeMarkers();
     }
 
-    cambiarACargaMercancia() {
+    iniciarViaje() {
         const ids = Array.from(this.selectedGuias());
         if (!ids.length) return;
+        console.log('[iniciarViaje] creandoViaje before:', this.creandoViaje());
 
-        this.guias.update((list) =>
-            list.map((g) => {
-                if (ids.includes(g.id)) {
-                    return {
-                        ...g,
-                        eventos: [
-                            ...(g.eventos || []),
-                            {
-                                id: `evt-${Date.now()}-${g.id}`,
-                                idGuia: g.id,
-                                tipo: 'SALIDA' as const,
-                                fecha: new Date().toISOString(),
-                                descripcion: 'Carga de mercancía asignada',
-                            },
-                        ],
-                    };
-                }
-                return g;
-            }),
-        );
-
-        const guiasActualizadas = this.guias().filter((g) => ids.includes(g.id));
-        for (const guia of guiasActualizadas) {
-            this.notificarChofer(guia);
+        const gruposMap = new Map<string, GuiaDespacho[]>();
+        for (const id of ids) {
+            const guia = this.guias().find((g) => g.id === id);
+            if (!guia) continue;
+            const arr = gruposMap.get(guia.idChofer) || [];
+            arr.push(guia);
+            gruposMap.set(guia.idChofer, arr);
         }
 
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Guías actualizadas',
-            detail: `${ids.length} guía(s) cambiada(s) a carga de mercancía.`,
-        });
+        const groups: ViajeGroup[] = [];
+        for (const [choferId, guias] of gruposMap) {
+            const vehiculos = new Set(guias.map((g) => g.idVehiculo));
+            if (vehiculos.size > 1) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Vehículo inconsistente',
+                    detail: `El chofer ${guias[0].nombreChofer} tiene guías con diferentes vehículos. Corrige antes de iniciar viaje.`,
+                });
+                return;
+            }
+            groups.push({
+                idChofer: choferId,
+                nombreChofer: guias[0].nombreChofer,
+                idVehiculo: guias[0].idVehiculo,
+                placaVehiculo: guias[0].placaVehiculo,
+                guias: guias.map((g) => ({
+                    id: g.id,
+                    numeroGuia: g.numeroGuia,
+                    facturaIds: g.facturas.filter((f) => f.idEstado === 'nuevo').map((f) => f.id),
+                })),
+            });
+        }
 
+        this.viajeGroups.set(groups);
+        this.showConfirmDialog.set(true);
+    }
+
+    async confirmarCrearViajes() {
+        this.creandoViaje.set(true);
+        const groups = this.viajeGroups();
+        const results: CrearViajeResult[] = [];
+        const ordenOptimoFacturas = this.ultimoOrdenFacturas();
+
+        for (const group of groups) {
+            const allFacturaIds = group.guias.flatMap((g) => g.facturaIds);
+            const ordered = [...allFacturaIds].sort((a, b) => {
+                const ia = ordenOptimoFacturas.indexOf(a);
+                const ib = ordenOptimoFacturas.indexOf(b);
+                if (ia >= 0 && ib >= 0) return ia - ib;
+                if (ia >= 0) return -1;
+                if (ib >= 0) return 1;
+                return 0;
+            });
+
+            const fechaStr = this.fechaViaje().toISOString().split('T')[0];
+
+            try {
+                const result = await this.viajeService.crearViaje({
+                    idChofer: group.idChofer,
+                    idVehiculo: group.idVehiculo,
+                    municipio: this.selectedMunicipio()!,
+                    fechaViaje: fechaStr,
+                    idsFacturas: ordered,
+                    distanciaTotalKm: this.viajeService.rutaDistanciaKm() || undefined,
+                    duracionTotalMin: this.viajeService.rutaDuracionMin() || undefined,
+                });
+                results.push(result);
+            } catch (err) {
+                console.error('Error al crear viaje', err);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: `No se pudo crear el viaje para ${group.nombreChofer}.`,
+                });
+                this.creandoViaje.set(false);
+                return;
+            }
+        }
+
+        this.viajesResultados.set(results);
+        this.creandoViaje.set(false);
+        this.showConfirmDialog.set(false);
+
+        this.limpiarMapa();
+        this.viajeService.rutaPath.set([]);
+        this.viajeService.rutaDistanciaKm.set(0);
+        this.viajeService.rutaDuracionMin.set(0);
+        this.ultimoOrdenFacturas.set([]);
         this.selectedGuias.set(new Set());
         this.actualizarSedeMarkers();
+
+        await this.recargarGuias();
+
+        const n = results.length;
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Viaje(s) creado(s)',
+            detail: `${n} ${n === 1 ? 'viaje creado' : 'viajes creados'} exitosamente.`,
+        });
+    }
+
+    private async recargarGuias() {
+        try {
+            const guias = await this.rutaService.obtenerGuias();
+            this.guias.set(guias);
+        } catch (err) {
+            console.error('Error al recargar guías', err);
+        }
     }
 
     private get warehouseWp(): Waypoint {
@@ -365,15 +456,20 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
 
         const guiasSel = this.guias().filter((g) => ids.includes(g.id));
 
-        const waypoints: Waypoint[] = guiasSel.flatMap((g) =>
-            g.facturas
-                .filter((f) => f.sucursalLat != null && f.sucursalLng != null)
-                .map((f) => ({
-                    lat: f.sucursalLat!,
-                    lng: f.sucursalLng!,
-                    name: `${f.nombreCliente} - Fact. ${f.numeroFactura}`,
-                })),
-        );
+        const waypointMetas: { guiaId: string; facturaId: string }[] = [];
+        const waypoints: Waypoint[] = [];
+        for (const g of guiasSel) {
+            for (const f of g.facturas) {
+                if (f.sucursalLat != null && f.sucursalLng != null && f.idEstado === 'nuevo') {
+                    waypointMetas.push({ guiaId: g.id, facturaId: f.id });
+                    waypoints.push({
+                        lat: f.sucursalLat!,
+                        lng: f.sucursalLng!,
+                        name: `${f.nombreCliente} - Fact. ${f.numeroFactura}`,
+                    });
+                }
+            }
+        }
 
         if (waypoints.length < 2) {
             this.messageService.add({
@@ -393,6 +489,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             this.limpiarMapa();
 
             if (result) {
+                const orderedFacturaIds: string[] = result.order.map(
+                    (idx) => waypointMetas[idx].facturaId,
+                );
+                this.ultimoOrdenFacturas.set(orderedFacturaIds);
+
                 this.routePolyline = new google.maps.Polyline({
                     path: result.path,
                     geodesic: true,
@@ -410,6 +511,10 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
                 result.order.forEach((origIdx, i) =>
                     this.agregarMarcadorEntrega(i, waypoints[origIdx]),
                 );
+
+                this.viajeService.rutaPath.set(result.path);
+                this.viajeService.rutaDistanciaKm.set(result.distance / 1000);
+                this.viajeService.rutaDuracionMin.set(Math.round(result.duration / 60));
 
                 const distKm = (result.distance / 1000).toFixed(1);
                 const durMin = Math.round(result.duration / 60);

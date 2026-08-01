@@ -235,7 +235,9 @@
                                             formControlName="idSucursal"
                                             [options]="
                                                 getSucursales(
-                                                    obtenerIdCliente(factura.get('idCliente')?.value)
+                                                    obtenerIdCliente(
+                                                        factura.get('idCliente')?.value
+                                                    )
                                                 )
                                             "
                                             optionLabel="label"

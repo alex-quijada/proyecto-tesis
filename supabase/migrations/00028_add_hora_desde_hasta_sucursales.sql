@@ -1,21 +1,18 @@
--- Guardar sucursales del cliente (reemplaza guardar_ubicaciones_cliente)
+-- Reemplaza hora_entrega por intervalo hora_desde / hora_hasta en sucursales_cliente
 
-CREATE TABLE IF NOT EXISTS public.sucursales_cliente (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    cliente_id uuid REFERENCES public.clientes(id_cliente) ON DELETE CASCADE,
-    direccion text NOT NULL,
-    punto_de_referencia character varying(100),
-    telefono_contacto character varying(20),
-    nombre_contacto text,
-    instruccion_nota text,
-    cita boolean DEFAULT false,
-    dias_semana text,
-    hora_entrega time without time zone,
-    CONSTRAINT sucursales_cliente_pkey PRIMARY KEY (id)
-);
+ALTER TABLE public.sucursales_cliente
+    ADD COLUMN IF NOT EXISTS hora_desde time without time zone,
+    ADD COLUMN IF NOT EXISTS hora_hasta time without time zone;
 
-DROP FUNCTION IF EXISTS public.guardar_ubicaciones_cliente(uuid, jsonb);
-DROP FUNCTION IF EXISTS public.obtener_ubicaciones_cliente(uuid);
+UPDATE public.sucursales_cliente
+    SET hora_desde = hora_entrega
+    WHERE hora_entrega IS NOT NULL;
+
+ALTER TABLE public.sucursales_cliente
+    DROP COLUMN IF EXISTS hora_entrega;
+
+DROP FUNCTION IF EXISTS public.guardar_sucursales_cliente(uuid, jsonb);
+DROP FUNCTION IF EXISTS public.obtener_sucursales_cliente(uuid);
 
 CREATE OR REPLACE FUNCTION public.guardar_sucursales_cliente(
     p_cliente_id uuid,
@@ -32,7 +29,9 @@ BEGIN
     INSERT INTO public.sucursales_cliente (
         cliente_id, direccion, punto_de_referencia,
         telefono_contacto, nombre_contacto,
-        instruccion_nota, cita, dias_semana, hora_entrega
+        instruccion_nota, cita, dias_semana,
+        hora_desde, hora_hasta,
+        id_municipio, latitud, longitud
     )
     SELECT
         p_cliente_id,
@@ -44,10 +43,18 @@ BEGIN
         COALESCE(s.cita, false),
         s.dias_semana,
         CASE
-            WHEN s.hora_entrega IS NOT NULL AND s.hora_entrega <> ''
-            THEN s.hora_entrega::time without time zone
+            WHEN s.hora_desde IS NOT NULL AND s.hora_desde <> ''
+            THEN s.hora_desde::time without time zone
             ELSE NULL
-        END
+        END,
+        CASE
+            WHEN s.hora_hasta IS NOT NULL AND s.hora_hasta <> ''
+            THEN s.hora_hasta::time without time zone
+            ELSE NULL
+        END,
+        s.id_municipio::uuid,
+        s.latitud::double precision,
+        s.longitud::double precision
     FROM jsonb_to_recordset(p_sucursales) AS s(
         direccion text,
         punto_de_referencia text,
@@ -56,7 +63,11 @@ BEGIN
         instruccion_nota text,
         cita boolean,
         dias_semana text,
-        hora_entrega text
+        hora_desde text,
+        hora_hasta text,
+        id_municipio text,
+        latitud text,
+        longitud text
     );
 END;
 $$;
@@ -71,7 +82,11 @@ RETURNS TABLE(
     instruccion_nota text,
     cita boolean,
     dias_semana text,
-    hora_entrega time without time zone
+    hora_desde time without time zone,
+    hora_hasta time without time zone,
+    id_municipio uuid,
+    latitud double precision,
+    longitud double precision
 )
 LANGUAGE sql
 STABLE
@@ -82,7 +97,8 @@ AS $$
         s.id, s.direccion, s.punto_de_referencia,
         s.telefono_contacto, s.nombre_contacto,
         s.instruccion_nota, s.cita, s.dias_semana,
-        s.hora_entrega
+        s.hora_desde, s.hora_hasta,
+        s.id_municipio, s.latitud, s.longitud
     FROM public.sucursales_cliente s
     WHERE s.cliente_id = p_cliente_id
     ORDER BY s.id;

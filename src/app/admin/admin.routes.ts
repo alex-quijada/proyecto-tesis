@@ -50,4 +50,11 @@ export default [
                 (m) => m.OptimizacionRutasComponent,
             ),
     },
+    {
+        path: 'map/comparacion',
+        loadComponent: () =>
+            import('./pages/map/comparacion/comparacion-optimizacion.component').then(
+                (m) => m.ComparacionOptimizacionComponent,
+            ),
+    },
 ] as Routes;

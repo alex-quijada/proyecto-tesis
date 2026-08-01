@@ -48,6 +48,11 @@ export class AppMenu {
                                 routerLink: ['/app/rutas/optimizacion'],
                             },
                             {
+                                label: 'Comparación de Algoritmos',
+                                icon: 'pi pi-fw pi-chart-bar',
+                                routerLink: ['/app/map/comparacion'],
+                            },
+                            {
                                 label: 'Monitoreo en Tiempo Real',
                                 icon: 'pi pi-fw pi-map-marker',
                                 routerLink: ['/app/rutas/seguimiento'],

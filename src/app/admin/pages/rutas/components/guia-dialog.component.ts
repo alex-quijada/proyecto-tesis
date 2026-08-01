@@ -167,34 +167,50 @@ export class GuiaDialogComponent implements OnInit {
                 this.submitted = false;
                 this.errorMessage = '';
 
-            if (data?.id) {
-                this.form.patchValue({
-                    empresa: data.empresa || '',
-                    codigoGuia: data.codigoGuia || '',
-                    idChofer: data.idChofer || '',
-                    idAyudante: data.idAyudante || '',
-                    idVehiculo: data.idVehiculo || '',
-                    municipio: data.municipio || '',
-                    pdfFuente: data.pdfFuente || 'MANUAL',
-                    observaciones: data.observaciones || '',
-                });
-                this.setFacturas(data.facturas || []);
-    } else {
-        this.form.reset({
-            empresa: '',
-            codigoGuia: '',
-            idChofer: '',
-            idAyudante: '',
-            idVehiculo: '',
-            municipio: '',
-            pdfFuente: 'MANUAL',
-            observaciones: '',
+                if (data?.id) {
+                    this.form.patchValue({
+                        empresa: data.empresa || '',
+                        codigoGuia: data.codigoGuia || '',
+                        idChofer: data.idChofer || '',
+                        idAyudante: data.idAyudante || '',
+                        idVehiculo: data.idVehiculo || '',
+                        municipio: data.municipio || '',
+                        pdfFuente: data.pdfFuente || 'MANUAL',
+                        observaciones: data.observaciones || '',
+                    });
+                    this.setFacturas(data.facturas || []);
+                } else {
+                    this.form.reset({
+                        empresa: '',
+                        codigoGuia: '',
+                        idChofer: '',
+                        idAyudante: '',
+                        idVehiculo: '',
+                        municipio: '',
+                        pdfFuente: 'MANUAL',
+                        observaciones: '',
+                    });
+                    this.facturas.clear();
+                    this.addFactura();
+                }
+            });
         });
-        this.facturas.clear();
-        this.addFactura();
-    }
+
+        effect(() => {
+            const data = this.guiaData();
+            const empresas = this.empresasOptions();
+
+            untracked(() => {
+                if (!data?.id || !empresas.length) return;
+                const actual = this.form.get('empresa')?.value;
+                if (!actual) return;
+                if (empresas.some((e) => e.value === actual)) return;
+                const match = empresas.find((e) => e.label.toUpperCase() === actual.toUpperCase());
+                if (match) {
+                    this.form.patchValue({ empresa: match.value });
+                }
+            });
         });
-    });
     }
 
     ngOnInit() {
@@ -330,7 +346,9 @@ export class GuiaDialogComponent implements OnInit {
 
             if (datos.ruta) {
                 const municipioMatch = this.municipios().find(
-                    (m) => m.label.localeCompare(datos.ruta!, undefined, { sensitivity: 'base' }) === 0,
+                    (m) =>
+                        m.label.localeCompare(datos.ruta!, undefined, { sensitivity: 'base' }) ===
+                        0,
                 );
                 if (municipioMatch) {
                     this.form.patchValue({ municipio: municipioMatch.value });
@@ -452,7 +470,10 @@ export class GuiaDialogComponent implements OnInit {
 
     private createFacturaGroup(data?: Partial<FacturaGuia>): FormGroup {
         const group = this.fb.group({
-            idCliente: [data?.idCliente ? this.optionCliente(data.idCliente) : '', Validators.required],
+            idCliente: [
+                data?.idCliente ? this.optionCliente(data.idCliente) : '',
+                Validators.required,
+            ],
             idSucursal: [data?.idSucursal || ''],
             numeroFactura: [data?.numeroFactura || '', Validators.required],
             nombreCliente: [data?.nombreCliente || ''],
@@ -469,7 +490,11 @@ export class GuiaDialogComponent implements OnInit {
         if (data?.idCliente) {
             const cliente = this.clientesSig().find((c) => c.id === data.idCliente);
             if (cliente) {
-                this.cargarSucursalesCliente(cliente.id!);
+                this.cargarSucursalesCliente(cliente.id!).then(() => {
+                    if (data.idSucursal) {
+                        this.aplicarSucursal(group, cliente.id!, data.idSucursal);
+                    }
+                });
                 group.patchValue({
                     idCliente: { label: cliente.nombreComercial || '', value: cliente.id || '' },
                     nombreCliente: cliente.nombreComercial || '',
@@ -483,6 +508,16 @@ export class GuiaDialogComponent implements OnInit {
         }
 
         return group;
+    }
+
+    private aplicarSucursal(group: AbstractControl, idCliente: string, idSucursal: string) {
+        const suc = this.sucursalesPorCliente()[idCliente]?.find((s) => s.id === idSucursal);
+        if (!suc) return;
+        group.patchValue({
+            direccion: suc.direccion || '',
+            telefono: suc.telefonoContacto || '',
+            reglasRecepcion: suc.reglas ? JSON.stringify(suc.reglas) : '',
+        });
     }
 
     addFactura() {
@@ -512,9 +547,7 @@ export class GuiaDialogComponent implements OnInit {
         queueMicrotask(() => {
             this.filteredClientesSig.set(
                 query
-                    ? this.clientesOptionsSig().filter((c) =>
-                          c.label.toLowerCase().includes(query),
-                      )
+                    ? this.clientesOptionsSig().filter((c) => c.label.toLowerCase().includes(query))
                     : [...this.clientesOptionsSig()],
             );
         });
@@ -624,7 +657,9 @@ export class GuiaDialogComponent implements OnInit {
                 };
                 partes.push(`Días: ${r.diasRecepcion.map((d: string) => dias[d] || d).join(', ')}`);
             }
-            if (r.horaEntrega) partes.push(`Hora: ${r.horaEntrega}`);
+            if (r.horaDesde && r.horaHasta) partes.push(`Horario: ${r.horaDesde} - ${r.horaHasta}`);
+            else if (r.horaDesde) partes.push(`Desde: ${r.horaDesde}`);
+            else if (r.horaHasta) partes.push(`Hasta: ${r.horaHasta}`);
             if (r.requiereCita) partes.push('Requiere cita');
             if (r.instrucciones) partes.push(`Nota: ${r.instrucciones}`);
             return partes.join(' | ') || 'Sin reglas específicas';
@@ -654,7 +689,10 @@ export class GuiaDialogComponent implements OnInit {
         let idMunicipio = '';
         if (this.currentRutaPdf()) {
             const found = this.municipios().find(
-                (m) => m.label.localeCompare(this.currentRutaPdf(), undefined, { sensitivity: 'base' }) === 0,
+                (m) =>
+                    m.label.localeCompare(this.currentRutaPdf(), undefined, {
+                        sensitivity: 'base',
+                    }) === 0,
             );
             idMunicipio = found?.value || this.currentRutaPdf();
         }
@@ -753,7 +791,7 @@ export class GuiaDialogComponent implements OnInit {
 
         const guiaFinal: GuiaDespacho = {
             ...this.guiaData(),
-            empresa: raw.empresa,
+            empresa: rawEmpresa?.label || raw.empresa,
             codigoGuia: raw.codigoGuia || undefined,
             numeroGuia: raw.codigoGuia || `G-${Date.now()}`,
             idChofer: raw.idChofer,

@@ -1,5 +1,13 @@
 import { environment } from '@/environments/environment';
-import { Component, ElementRef, OnDestroy, inject, signal, viewChild, afterNextRender } from '@angular/core';
+import {
+    Component,
+    ElementRef,
+    OnDestroy,
+    inject,
+    signal,
+    viewChild,
+    afterNextRender,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as mapboxgl from 'mapbox-gl';
 import { GoogleSearchService } from '@/app/admin/pages/clientes/service/google-search.service';
@@ -108,7 +116,7 @@ export class Map implements OnDestroy {
                 lng: detalle.lng,
                 name: sug.name || detalle.direccion,
             };
-            this.waypoints.update(wps => [...wps, wp]);
+            this.waypoints.update((wps) => [...wps, wp]);
             const idx = this.waypoints().length - 1;
             this.addMarker(idx, wp);
             this.addGoogleMarker(idx, wp, this.waypoints().length);
@@ -122,7 +130,7 @@ export class Map implements OnDestroy {
     }
 
     removeWaypoint(index: number) {
-        this.waypoints.update(wps => wps.filter((_, i) => i !== index));
+        this.waypoints.update((wps) => wps.filter((_, i) => i !== index));
         this.clearMarkers();
         this.clearGoogleMarkers();
         this.waypoints().forEach((wp, i) => {
@@ -340,10 +348,8 @@ export class Map implements OnDestroy {
     private addGoogleMarker(index: number, wp: Waypoint, total: number) {
         if (!this.googleMap) return;
 
-        const label =
-            index === 0 ? 'S' : index === total - 1 ? 'L' : String(index + 1);
-        const color =
-            index === 0 ? '#3b82f6' : index === total - 1 ? '#ef4444' : '#f59e0b';
+        const label = index === 0 ? 'S' : index === total - 1 ? 'L' : String(index + 1);
+        const color = index === 0 ? '#3b82f6' : index === total - 1 ? '#ef4444' : '#f59e0b';
 
         const markerContent = document.createElement('div');
         markerContent.textContent = label;
@@ -363,7 +369,9 @@ export class Map implements OnDestroy {
     }
 
     private clearGoogleMarkers() {
-        this.googleMarkers.forEach((m) => { m.map = null; });
+        this.googleMarkers.forEach((m) => {
+            m.map = null;
+        });
         this.googleMarkers = [];
     }
 
@@ -381,10 +389,8 @@ export class Map implements OnDestroy {
             const wp = this.waypoints()[origIdx];
             if (!wp || !this.googleMap) return;
 
-            const label =
-                optIdx === 0 ? 'S' : optIdx === total - 1 ? 'L' : String(optIdx + 1);
-            const color =
-                optIdx === 0 ? '#22c55e' : optIdx === total - 1 ? '#ef4444' : '#f59e0b';
+            const label = optIdx === 0 ? 'S' : optIdx === total - 1 ? 'L' : String(optIdx + 1);
+            const color = optIdx === 0 ? '#22c55e' : optIdx === total - 1 ? '#ef4444' : '#f59e0b';
 
             const markerContent = document.createElement('div');
             markerContent.textContent = label;
