@@ -20,10 +20,10 @@ import { MessageService } from 'primeng/api';
 import { Usuario, ROLES, PREFIJOS_DOCUMENTO, GRADOS_LICENCIA } from '../data/usuarios-mock';
 
 const ROL_MAP_TO_DB: Record<string, string> = {
-    ADMIN: 'administrador',
-    ANALISTA: 'analista',
-    CHOFER: 'chofer',
-    AYUDANTE: 'ayudante',
+    ADMIN: 'Administrador',
+    ANALISTA: 'Analista',
+    CHOFER: 'Chofer',
+    AYUDANTE: 'Ayudante',
 };
 
 @Component({

@@ -102,13 +102,17 @@ serve(async (req) => {
                 },
             );
         }
+        const ROLES_VALIDOS = ['Administrador', 'Coordinador', 'Analista', 'Chofer', 'Ayudante'];
+        const nombreRolNormalizado =
+            ROLES_VALIDOS.find((r) => r.toLowerCase() === String(nombre_rol).toLowerCase()) ??
+            String(nombre_rol);
         const { data: nuevoUsuario, error: createError } =
             await supabaseAdmin.auth.admin.createUser({
                 email: email,
                 password: password,
                 email_confirm: true,
                 user_metadata: {
-                    nombre_rol,
+                    nombre_rol: nombreRolNormalizado,
                     nombre_completo,
                     cedula,
                     prefijo_doc: prefijo_doc || 'V',

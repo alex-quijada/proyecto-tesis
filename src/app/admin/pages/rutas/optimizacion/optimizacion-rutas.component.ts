@@ -288,6 +288,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.selectedMunicipio.set(value);
         this.selectedGuias.set(new Set());
         this.filtroChofer.set(null);
+        this.limpiarRutaOptimizada();
         this.actualizarSedeMarkers();
     }
 
@@ -301,6 +302,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             }
             return nuevo;
         });
+        this.limpiarRutaOptimizada();
         this.actualizarSedeMarkers();
     }
 
@@ -311,6 +313,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         } else {
             this.selectedGuias.set(new Set(guias.map((g) => g.id)));
         }
+        this.limpiarRutaOptimizada();
         this.actualizarSedeMarkers();
     }
 
@@ -403,10 +406,6 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.showConfirmDialog.set(false);
 
         this.limpiarMapa();
-        this.viajeService.rutaPath.set([]);
-        this.viajeService.rutaDistanciaKm.set(0);
-        this.viajeService.rutaDuracionMin.set(0);
-        this.ultimoOrdenFacturas.set([]);
         this.selectedGuias.set(new Set());
         this.actualizarSedeMarkers();
 
@@ -443,11 +442,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
 
     async optimizarRuta() {
         const ids = Array.from(this.selectedGuias());
-        if (ids.length < 2) {
+        if (ids.length < 1) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Selecciona al menos 2 guías',
-                detail: 'Para optimizar la ruta necesitas seleccionar al menos 2 guías.',
+                summary: 'Selecciona al menos 1 guía',
+                detail: 'Para optimizar la ruta necesitas seleccionar al menos 1 guía.',
             });
             return;
         }
@@ -471,11 +470,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             }
         }
 
-        if (waypoints.length < 2) {
+        if (waypoints.length < 1) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Coordenadas insuficientes',
-                detail: 'Se necesitan al menos 2 facturas con ubicación para optimizar.',
+                detail: 'Se necesita al menos 1 factura con ubicación para optimizar.',
             });
             this.optimizando.set(false);
             return;
@@ -726,7 +725,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.markers.push(marker);
     }
 
-    private limpiarMapa() {
+    private limpiarRutaOptimizada() {
         this.markers.forEach((m) => (m.map = null));
         this.markers = [];
         if (this.routePolyline) {
@@ -735,6 +734,14 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         }
         this.routePolylines.forEach((p) => p.setMap(null));
         this.routePolylines = [];
+        this.viajeService.rutaPath.set([]);
+        this.viajeService.rutaDistanciaKm.set(0);
+        this.viajeService.rutaDuracionMin.set(0);
+        this.ultimoOrdenFacturas.set([]);
+    }
+
+    private limpiarMapa() {
+        this.limpiarRutaOptimizada();
         this.limpiarSedeMarkers();
     }
 
@@ -783,7 +790,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.selectedMunicipio.set(null);
         this.selectedGuias.set(new Set());
         this.filtroChofer.set(null);
-        this.limpiarSedeMarkers();
+        this.limpiarMapa();
     }
 
     getMunicipioLabel(value: string | null): string {

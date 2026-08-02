@@ -80,8 +80,13 @@ serve(async (req) => {
             });
         }
 
+        const ROLES_VALIDOS = ['Administrador', 'Coordinador', 'Analista', 'Chofer', 'Ayudante'];
+        const nombreRolNormalizado =
+            ROLES_VALIDOS.find((r) => r.toLowerCase() === String(nombre_rol).toLowerCase()) ??
+            String(nombre_rol);
+
         const userMetadata: Record<string, any> = {};
-        if (nombre_rol) userMetadata.nombre_rol = nombre_rol;
+        if (nombre_rol) userMetadata.nombre_rol = nombreRolNormalizado;
         if (nombre_completo) userMetadata.nombre_completo = nombre_completo;
         if (cedula) userMetadata.cedula = cedula;
         if (prefijo_doc) userMetadata.prefijo_doc = prefijo_doc;
@@ -107,7 +112,7 @@ serve(async (req) => {
         const { data: rolData } = await supabaseAdmin
             .from('roles')
             .select('id_rol')
-            .eq('nombre_rol', nombre_rol)
+            .ilike('nombre_rol', nombreRolNormalizado)
             .single();
 
         const { error: dbUpdateError } = await supabaseAdmin

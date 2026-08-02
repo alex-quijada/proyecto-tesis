@@ -10,7 +10,13 @@ import { environment } from '@/environments/environment';
     providedIn: 'root',
 })
 export class AuthService {
-    private supabaseClient = createClient(environment.supabaseUrl, environment.supabaseKey);
+    private supabaseClient = createClient(environment.supabaseUrl, environment.supabaseKey, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: false,
+        },
+    });
     private supabase: SupabaseClient = this.supabaseClient;
     private router = inject(Router);
 
@@ -26,9 +32,19 @@ export class AuthService {
     constructor() {
         this.initializationPromise = this.supabase.auth
             .getSession()
-            .then(({ data: { session } }) => {
+            .then(async ({ data: { session } }) => {
                 if (session?.user) {
                     this.userSubject.next(session.user);
+                }
+                if (
+                    session &&
+                    session.expires_at &&
+                    session.expires_at * 1000 <= Date.now() + 5000
+                ) {
+                    const { data } = await this.supabase.auth.refreshSession();
+                    if (data.session?.user) {
+                        this.userSubject.next(data.session.user);
+                    }
                 }
             });
 
@@ -37,6 +53,9 @@ export class AuthService {
                 this.userSubject.next(session.user);
             } else {
                 this.userSubject.next(null);
+            }
+            if ((event as string) === 'TOKEN_REFRESH_FAILED') {
+                this.cerrarSesionExpirada();
             }
         });
     }
@@ -81,6 +100,22 @@ export class AuthService {
             data: { session },
         } = await this.supabase.auth.getSession();
         return !!session;
+    }
+
+    // Asegurar una sesión vigente (refresca si el token ya venció)
+    async ensureSession(): Promise<boolean> {
+        const {
+            data: { session },
+        } = await this.supabase.auth.getSession();
+        if (!session) return false;
+        if (session.expires_at && session.expires_at * 1000 <= Date.now()) {
+            const { data } = await this.supabase.auth.refreshSession();
+            if (data.session?.user) {
+                this.userSubject.next(data.session.user);
+            }
+            return !!data.session;
+        }
+        return true;
     }
 
     // ==========================================
@@ -129,7 +164,7 @@ export class AuthService {
 
         return (data || []).map((row: any) => {
             const nombreRol: string = row.roles?.nombre_rol || 'Analista';
-            const dialogRol = this.ROL_MAP_TO_DIALOG[nombreRol] || 'ANALISTA';
+            const dialogRol = this.ROL_MAP_TO_DIALOG[nombreRol.toLowerCase()] || 'ANALISTA';
             const ad = adMap.get(row.id_usuario);
 
             return {
@@ -203,7 +238,7 @@ export class AuthService {
                 },
                 nombreCompleto: row.nombre_completo || '',
                 telefono: '',
-                rol: row.nombre_rol === 'chofer' ? 'Chofer' : 'Ayudante',
+                rol: String(row.nombre_rol).toLowerCase() === 'chofer' ? 'Chofer' : 'Ayudante',
                 fechaIngreso: '',
                 licencia: row.licencia_numero
                     ? {
