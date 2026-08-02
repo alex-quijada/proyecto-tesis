@@ -14,18 +14,23 @@ export const roleGuard: CanActivateFn = async (route, state) => {
         return router.parseUrl('/');
     }
 
-    const allowedRoles = route.data['roles'] as Array<string>;
+    const allowedRoles = (route.data['roles'] as Array<string>).map((r) => r.toLowerCase());
     const userRole = user.user_metadata?.['nombre_rol'];
+    const normalizedRole = userRole ? String(userRole).toLowerCase() : '';
 
-    if (allowedRoles && userRole && allowedRoles.includes(userRole)) {
+    if (allowedRoles && normalizedRole && allowedRoles.includes(normalizedRole)) {
         return true;
     }
 
-    if (userRole === 'Chofer') {
+    if (normalizedRole === 'chofer') {
         return router.parseUrl('/driver');
     }
 
-    if (userRole === 'Analista' || userRole === 'Administrador' || userRole === 'Coordinador') {
+    if (
+        normalizedRole === 'analista' ||
+        normalizedRole === 'administrador' ||
+        normalizedRole === 'coordinador'
+    ) {
         return router.parseUrl('/app');
     }
 

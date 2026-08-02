@@ -63,16 +63,13 @@ export class LoginPage implements OnInit {
             // 2. Extraemos el rol directamente del usuario retornado por la promesa de login
             // Esto evita problemas de sincronización con el BehaviorSubject
             const userRole = data.user?.user_metadata?.['nombre_rol'];
+            const role = userRole ? String(userRole).toLowerCase() : '';
 
             // 3. Redirección inteligente adaptada a tus rutas reales (appRoutes)
-            if (userRole === 'Chofer') {
+            if (role === 'chofer') {
                 // Redirige a la vista móvil del chofer
                 this.router.navigate(['/driver']);
-            } else if (
-                userRole === 'Analista' ||
-                userRole === 'Coordinador' ||
-                userRole === 'Administrador'
-            ) {
+            } else if (role === 'analista' || role === 'coordinador' || role === 'administrador') {
                 // Redirige al panel administrativo principal gestionado por AppLayout (dashboard)
                 this.router.navigate(['/app']);
             } else {
