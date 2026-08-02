@@ -15,9 +15,8 @@ import { RippleModule } from 'primeng/ripple';
 
 import { AuthService } from '../../../auth/service/auth.service';
 import { FirmaDialogComponent } from '../mi-ruta/components/firma-dialog/firma-dialog.component';
-import { GUIAS_MOCK, ESTADOS_GUIA } from '../../../admin/pages/rutas/data/rutas-mock';
-import { CHOFERES_MOCK } from '../../../admin/pages/choferes/data/choferes-mock';
-import { VEHICULOS_MOCK } from '../../../admin/pages/vehiculos/data/vehiculos-mock';
+import { ESTADOS_FACTURA } from '../../../admin/pages/rutas/data/rutas-mock';
+import { ChoferService, ChoferGuia, ChoferVehiculo } from '../../services/chofer.service';
 
 interface Incidencia {
     tipo: string;
@@ -27,15 +26,16 @@ interface Incidencia {
     foto?: string;
 }
 
-interface GuiaDisplay {
+interface Entrega {
     id: string;
+    idGuia: string;
     numeroGuia: string;
+    numeroFactura: string;
     empresaSuministro: string;
     cliente: string;
     ruta: string;
     direccion: string;
     rif: string;
-    pesoKg: number;
     precioCarga: number;
     estado: string;
     observaciones?: string;
@@ -43,6 +43,8 @@ interface GuiaDisplay {
     eventos: any[];
     incidencia?: Incidencia;
     fechaEntrega?: string;
+    latitud?: number;
+    longitud?: number;
 }
 
 interface DriverInfo {
@@ -63,136 +65,6 @@ interface DriverInfo {
     fechaIngreso?: string;
 }
 
-const EMPRESAS_SUMINISTRO: Record<string, string> = {
-    'g-1': 'Angelo',
-    'g-2': 'Metropol',
-    'g-3': 'Metropol',
-    'g-4': 'Guaao',
-    'g-5': 'Angelo',
-    'h-6': 'Angelo',
-    'h-7': 'Metropol',
-    'h-8': 'Guaao',
-    'h-9': 'Angelo',
-    'h-10': 'Metropol',
-};
-
-const CLIENTES_MOCK: Record<string, string> = {
-    'g-1': 'Distribuidora Polar C.A.',
-    'g-2': 'Cervecería Regional C.A.',
-    'g-3': 'Supermercado Central Madeirense',
-    'g-4': 'Farmatodo S.A.',
-    'g-5': "Automercado Plaza's",
-    'h-6': 'Pan de París',
-    'h-7': 'El fogón de los muchachos',
-    'h-8': 'Licorería El Barril',
-    'h-9': 'La Fe C.A.',
-    'h-10': 'Restaurant El Puerto',
-};
-
-const FECHAS_ENTREGA: Record<string, string> = {
-    'g-1': '2026-06-02',
-    'g-4': '2026-05-29',
-    'h-6': '2026-06-08',
-    'h-7': '2026-06-10',
-    'h-8': '2026-06-09',
-    'h-9': '2026-06-07',
-    'h-10': '2026-06-11',
-};
-
-const EXTRA_HISTORY: GuiaDisplay[] = [
-    {
-        id: 'h-6',
-        numeroGuia: 'G-2026-0006',
-        empresaSuministro: 'Angelo',
-        cliente: 'Pan de París',
-        ruta: 'Maneiro',
-        direccion: 'Calle 5, Sector Centro, Porlamar',
-        rif: 'J-111223344',
-        pesoKg: 120,
-        precioCarga: 350,
-        estado: 'CANCELADO',
-        tuvoDevolucion: false,
-        eventos: [],
-        observaciones: 'Cliente no disponible - se reprogramó entrega',
-        fechaEntrega: '2026-06-08',
-    },
-    {
-        id: 'h-7',
-        numeroGuia: 'G-2026-0007',
-        empresaSuministro: 'Metropol',
-        cliente: 'El fogón de los muchachos',
-        ruta: 'Mariño',
-        direccion: 'Av. Aldonza, Local 3, Porlamar',
-        rif: 'J-998877665',
-        pesoKg: 200,
-        precioCarga: 258,
-        estado: 'FINALIZADO',
-        tuvoDevolucion: true,
-        eventos: [],
-        incidencia: {
-            tipo: 'Devolución parcial',
-            numeroGuia: 'G-2026-0007',
-            descripcion:
-                'Se recibieron 2 cajas dañadas de las 5 enviadas. Se procedió a devolución parcial.',
-            horaReporte: '2026-06-10 14:30',
-        },
-        fechaEntrega: '2026-06-10',
-    },
-    {
-        id: 'h-8',
-        numeroGuia: 'G-2026-0008',
-        empresaSuministro: 'Guaao',
-        cliente: 'Licorería El Barril',
-        ruta: 'Mariño',
-        direccion: 'CC Sigo, Nivel PB, Local 8',
-        rif: 'J-554433221',
-        pesoKg: 450,
-        precioCarga: 1200,
-        estado: 'FINALIZADO',
-        tuvoDevolucion: false,
-        eventos: [],
-        fechaEntrega: '2026-06-09',
-    },
-    {
-        id: 'h-9',
-        numeroGuia: 'G-2026-0009',
-        empresaSuministro: 'Angelo',
-        cliente: 'La Fe C.A.',
-        ruta: 'García',
-        direccion: 'Zona Industrial, Calle 3, El Valle',
-        rif: 'J-776655443',
-        pesoKg: 3200,
-        precioCarga: 5600,
-        estado: 'CANCELADO',
-        tuvoDevolucion: false,
-        eventos: [],
-        observaciones: 'Cancelado por condiciones climáticas',
-        fechaEntrega: '2026-06-07',
-    },
-    {
-        id: 'h-10',
-        numeroGuia: 'G-2026-0010',
-        empresaSuministro: 'Metropol',
-        cliente: 'Restaurant El Puerto',
-        ruta: 'Peninsula de Macanao',
-        direccion: 'Vía Playa El Ángel, Sector Boca de Pozo',
-        rif: 'J-332211445',
-        pesoKg: 85,
-        precioCarga: 180,
-        estado: 'FINALIZADO',
-        tuvoDevolucion: true,
-        eventos: [],
-        incidencia: {
-            tipo: 'Mercancía faltante',
-            numeroGuia: 'G-2026-0010',
-            descripcion:
-                'Faltaron 3 kg de productos del mar según factura. Se reportó al supervisor.',
-            horaReporte: '2026-06-11 11:45',
-        },
-        fechaEntrega: '2026-06-11',
-    },
-];
-
 const ORDEN_MUNICIPIOS: Record<string, number> = {
     PENINSULA_DE_MACANAO: 1,
     TUBORES: 2,
@@ -206,6 +78,14 @@ const ORDEN_MUNICIPIOS: Record<string, number> = {
     ANTOLIN_DEL_CAMPO: 10,
     VILLALBA: 11,
 };
+
+function normalizarMunicipio(nombre: string): string {
+    return nombre
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_');
+}
 
 @Component({
     selector: 'app-home-page',
@@ -229,17 +109,18 @@ const ORDEN_MUNICIPIOS: Record<string, number> = {
 })
 export class HomePage implements OnInit, OnDestroy {
     private authService = inject(AuthService);
+    private choferService = inject(ChoferService);
     private messageService = inject(MessageService);
     private router = inject(Router);
 
     activeTab = signal<'inicio' | 'ruta' | 'historial' | 'perfil'>('inicio');
 
     driverInfo = signal<DriverInfo | null>(null);
-    guiasAsignadas = signal<GuiaDisplay[]>([]);
-    selectedGuia = signal<GuiaDisplay | null>(null);
-    selectedHistory = signal<GuiaDisplay | null>(null);
+    guiasAsignadas = signal<Entrega[]>([]);
+    selectedGuia = signal<Entrega | null>(null);
+    selectedHistory = signal<Entrega | null>(null);
     guiaActivaExpandida = signal<string | null>(null);
-    firmaGuia = signal<any | null>(null);
+    firmaGuia = signal<Entrega | null>(null);
     firmasMap = new Map<string, string>();
     historialFiltro = signal<'todas' | 'finalizadas' | 'canceladas' | 'incidencias'>('todas');
     municipioFiltro = signal<string>('todas');
@@ -248,15 +129,15 @@ export class HomePage implements OnInit, OnDestroy {
     private guiaStartTimes = new Map<string, Date>();
     private timerId: ReturnType<typeof setInterval> | null = null;
 
-    get guiasPendientes(): GuiaDisplay[] {
+    get guiasPendientes(): Entrega[] {
         return this.guiasAsignadas().filter(
-            (g) => g.estado !== 'FINALIZADO' && g.estado !== 'CANCELADO',
+            (g) => g.estado !== 'finalizado' && g.estado !== 'cancelado',
         );
     }
 
-    get guiasCompletadas(): GuiaDisplay[] {
+    get guiasCompletadas(): Entrega[] {
         return this.guiasAsignadas().filter(
-            (g) => g.estado === 'FINALIZADO' || g.estado === 'CANCELADO',
+            (g) => g.estado === 'finalizado' || g.estado === 'cancelado',
         );
     }
 
@@ -265,21 +146,21 @@ export class HomePage implements OnInit, OnDestroy {
         return ['todas', ...Array.from(municipios).sort()];
     }
 
-    get historialReciente(): GuiaDisplay[] {
+    get historialReciente(): Entrega[] {
         return this.guiasCompletadas.slice(0, 5);
     }
 
-    get historialFiltradas(): GuiaDisplay[] {
+    get historialFiltradas(): Entrega[] {
         const f = this.historialFiltro();
         const m = this.municipioFiltro();
         let lista = this.guiasCompletadas;
         if (m !== 'todas') lista = lista.filter((g) => g.ruta === m);
         switch (f) {
             case 'finalizadas':
-                lista = lista.filter((g) => g.estado === 'FINALIZADO');
+                lista = lista.filter((g) => g.estado === 'finalizado');
                 break;
             case 'canceladas':
-                lista = lista.filter((g) => g.estado === 'CANCELADO');
+                lista = lista.filter((g) => g.estado === 'cancelado');
                 break;
             case 'incidencias':
                 lista = lista.filter(
@@ -293,79 +174,45 @@ export class HomePage implements OnInit, OnDestroy {
     pendingCount = computed(() => this.guiasPendientes.length);
     completedCount = computed(() => this.guiasCompletadas.length);
 
-    ngOnInit() {
+    async ngOnInit() {
+        await this.authService.waitForInitialization();
         const user = this.authService.getCurrentUser();
-        const nombreCompleto = user?.user_metadata?.['nombre_completo'] || 'David Espinoza';
-        const email = user?.email || 'chofer@example.com';
+        if (!user) return;
 
-        const chofer =
-            CHOFERES_MOCK.find((ch: any) =>
-                ch.nombreCompleto
-                    ?.toLowerCase()
-                    .includes(nombreCompleto.toLowerCase().split(' ')[0]),
-            ) || CHOFERES_MOCK[0];
+        try {
+            const [guias, choferes, vehiculos] = await Promise.all([
+                this.choferService.obtenerGuias(),
+                this.choferService.obtenerChoferes(),
+                this.choferService.obtenerVehiculos(),
+            ]);
 
-        const guiasDelChofer: GuiaDisplay[] = GUIAS_MOCK.filter(
-            (g: any) => g.idChofer === chofer.id,
-        )
-            .sort((a: any, b: any) => ORDEN_MUNICIPIOS[a.municipio] - ORDEN_MUNICIPIOS[b.municipio])
-            .map((g: any) => ({
-                id: g.id,
-                numeroGuia: g.numeroGuia,
-                empresaSuministro: EMPRESAS_SUMINISTRO[g.id] || 'Angelo',
-                cliente: CLIENTES_MOCK[g.id] || g.nombreCliente,
-                ruta: g.municipio,
-                direccion: g.direccionEntrega,
-                rif: g.rifCliente,
-                pesoKg: g.pesoKg,
-                precioCarga: g.precioCarga,
-                estado: g.estado,
-                observaciones: g.observaciones,
-                tuvoDevolucion: g.tuvoDevolucion,
-                eventos: g.eventos || [],
-                fechaEntrega: FECHAS_ENTREGA[g.id] || undefined,
-            }));
+            const miChofer = choferes.find((ch: any) => ch.id === user.id) || choferes[0];
+            const nombreCompleto =
+                user.user_metadata?.['nombre_completo'] || miChofer?.nombreCompleto || 'Chofer';
 
-        const vehiculoIds = [
-            ...new Set(
-                guiasDelChofer
-                    .map((g: any) => GUIAS_MOCK.find((mock: any) => mock.id === g.id)?.idVehiculo)
-                    .filter(Boolean),
-            ),
-        ];
+            const vehiculosChofer = this.mapearVehiculos(guias, vehiculos);
 
-        const vehiculos = VEHICULOS_MOCK.filter((v: any) => vehiculoIds.includes(v.id));
-
-        this.guiasAsignadas.set([...guiasDelChofer, ...EXTRA_HISTORY]);
-        this.driverInfo.set({
-            nombre: chofer.nombreCompleto || nombreCompleto,
-            documento: `${chofer.documentoIdentidad?.prefijo || 'V'}-${chofer.documentoIdentidad?.numero || ''}`,
-            telefono: chofer.telefono || '+58 000-0000000',
-            email,
-            vehiculos: vehiculos.map((v: any) => ({
-                id: v.id!,
-                placa: v.placa!,
-                marca: v.marca!,
-                modelo: v.modelo!,
-                anio: v.anio!,
-                tipo: v.tipo || 'CARRO',
-            })),
-            licencia: chofer.licencia
-                ? {
-                      numero: chofer.licencia.numero,
-                      grado: chofer.licencia.grado,
-                      fechaVencimiento: chofer.licencia.fechaVencimiento,
-                  }
-                : undefined,
-            certificadoMedico: chofer.certificadoMedico
-                ? {
-                      numero: chofer.certificadoMedico.numero,
-                      fechaExpedicion: chofer.certificadoMedico.fechaExpedicion,
-                      fechaVencimiento: chofer.certificadoMedico.fechaVencimiento,
-                  }
-                : undefined,
-            fechaIngreso: chofer.fechaIngreso,
-        });
+            this.guiasAsignadas.set(this.mapearEntregas(guias));
+            this.driverInfo.set({
+                nombre: nombreCompleto,
+                documento: `${miChofer?.documentoIdentidad?.prefijo || user.user_metadata?.['prefijo_doc'] || 'V'}-${
+                    miChofer?.documentoIdentidad?.numero || user.user_metadata?.['cedula'] || ''
+                }`,
+                telefono: miChofer?.telefono || '',
+                email: user.email || '',
+                vehiculos: vehiculosChofer,
+                licencia: miChofer?.licencia,
+                certificadoMedico: miChofer?.certificadoMedico,
+                fechaIngreso: miChofer?.fechaIngreso,
+            });
+        } catch (err) {
+            console.error('Error cargando datos del chofer:', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar tus guías. Intenta de nuevo.',
+            });
+        }
 
         this.initTimer();
         this.initGuiaStartTimes();
@@ -375,11 +222,93 @@ export class HomePage implements OnInit, OnDestroy {
         if (this.timerId) clearInterval(this.timerId);
     }
 
+    private mapearEntregas(guias: ChoferGuia[]): Entrega[] {
+        const entregas: Entrega[] = [];
+        for (const guia of guias) {
+            const municipio = guia.nombre_municipio || guia.id_municipio || '';
+            for (const f of guia.facturas || []) {
+                const estado = f.nombre_estado || 'nuevo';
+                entregas.push({
+                    id: f.id_factura,
+                    idGuia: guia.id_guia,
+                    numeroGuia: guia.codigo_guia || guia.id_guia.substring(0, 8).toUpperCase(),
+                    numeroFactura: f.numero_factura || '',
+                    empresaSuministro: guia.nombre_empresa || '',
+                    cliente: f.nombre_cliente || 'Sin cliente',
+                    ruta: municipio,
+                    direccion: f.direccion_sucursal || '',
+                    rif: f.rif_cliente || '',
+                    precioCarga: Number(f.monto_dolares) || 0,
+                    estado,
+                    observaciones: guia.observaciones || undefined,
+                    tuvoDevolucion: false,
+                    eventos: [],
+                    fechaEntrega: estado === 'finalizado' ? guia.fecha_despacho : undefined,
+                    incidencia:
+                        estado === 'incidencia'
+                            ? {
+                                  tipo: 'Incidencia',
+                                  numeroGuia: guia.codigo_guia || '',
+                                  descripcion:
+                                      guia.observaciones ||
+                                      'Se reportó una incidencia en la entrega',
+                                  horaReporte: '',
+                              }
+                            : undefined,
+                    latitud: f.latitud ?? undefined,
+                    longitud: f.longitud ?? undefined,
+                });
+            }
+        }
+
+        entregas.sort((a, b) => {
+            const estadoA = a.estado === 'finalizado' ? 1 : 0;
+            const estadoB = b.estado === 'finalizado' ? 1 : 0;
+            if (estadoA !== estadoB) return estadoA - estadoB;
+            const rA = ORDEN_MUNICIPIOS[normalizarMunicipio(a.ruta)] ?? 99;
+            const rB = ORDEN_MUNICIPIOS[normalizarMunicipio(b.ruta)] ?? 99;
+            if (rA !== rB) return rA - rB;
+            return (a.numeroFactura || '').localeCompare(b.numeroFactura || '');
+        });
+
+        return entregas;
+    }
+
+    private mapearVehiculos(
+        guias: ChoferGuia[],
+        vehiculos: ChoferVehiculo[],
+    ): DriverInfo['vehiculos'] {
+        const vehiculoMap = new Map(vehiculos.map((v) => [v.id_vehiculo, v]));
+        const ids = [...new Set(guias.map((g) => g.id_vehiculo).filter(Boolean))];
+
+        return ids
+            .map((id) => {
+                const detalle = vehiculoMap.get(id!);
+                const deGuia = guias.find((g) => g.id_vehiculo === id);
+                return {
+                    id: id!,
+                    placa: detalle?.placa || deGuia?.placa_vehiculo || '',
+                    marca: detalle?.marca || deGuia?.marca_vehiculo || '',
+                    modelo: detalle?.modelo || deGuia?.modelo_vehiculo || '',
+                    anio: detalle?.anio || 0,
+                    tipo: detalle?.tipo_nombre || '',
+                };
+            })
+            .filter((v) => !!v.placa);
+    }
+
+    private async recargarGuias() {
+        const guias = await this.choferService.obtenerGuias();
+        this.guiasAsignadas.set(this.mapearEntregas(guias));
+        this.initGuiaStartTimes();
+    }
+
     private initTimer() {
         this.timerId = setInterval(() => this.now.set(new Date()), 30000);
     }
 
     private initGuiaStartTimes() {
+        this.guiaStartTimes.clear();
         this.guiasPendientes.forEach((g, i) => {
             this.guiaStartTimes.set(g.id, new Date(Date.now() - (7 + i * 12) * 60000));
         });
@@ -413,59 +342,55 @@ export class HomePage implements OnInit, OnDestroy {
     toggleGuiaActiva(id: string) {
         this.guiaActivaExpandida.set(this.guiaActivaExpandida() === id ? null : id);
     }
-    toggleSelectedGuia(g: GuiaDisplay) {
+    toggleSelectedGuia(g: Entrega) {
         this.selectedGuia.set(this.selectedGuia()?.id === g.id ? null : g);
     }
-    toggleHistory(g: GuiaDisplay) {
+    toggleHistory(g: Entrega) {
         this.selectedHistory.set(this.selectedHistory()?.id === g.id ? null : g);
     }
-    abrirFirma(guia: any) {
-        this.firmaGuia.set(guia);
+    abrirFirma(entrega: Entrega) {
+        this.firmaGuia.set(entrega);
     }
 
-    onFirmaConfirmada(event: { firma: string; observaciones: string }) {
-        const guia = this.firmaGuia();
-        if (!guia) return;
-        this.firmasMap.set(guia.id, event.firma);
-        const ahora = new Date();
-        const f = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-        const h = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
-        this.guiasAsignadas.update((list) =>
-            list.map((g) =>
-                g.id !== guia.id
-                    ? g
-                    : ({
-                          ...g,
-                          estado: 'FINALIZADO',
-                          fechaEntrega: f,
-                          eventos: [
-                              ...g.eventos,
-                              {
-                                  id: `ev-${Date.now()}`,
-                                  idGuia: g.id,
-                                  tipo: 'LLEGADA_CLIENTE',
-                                  fecha: `${f} ${h}`,
-                                  descripcion: 'Entrega completada con firma digital',
-                                  ubicacion: g.ruta,
-                              },
-                              {
-                                  id: `ev-${Date.now() + 1}`,
-                                  idGuia: g.id,
-                                  tipo: 'REGRESO_BASE',
-                                  fecha: `${f} ${h}`,
-                                  descripcion: 'Regreso a base',
-                                  ubicacion: 'Base',
-                              },
-                          ],
-                      } as GuiaDisplay),
-            ),
-        );
-        this.guiaActivaExpandida.set(null);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Entrega completada',
-            detail: `${guia.cliente} — ${guia.numeroGuia}`,
-        });
+    async onFirmaConfirmada(event: { firma: string; observaciones: string }) {
+        const entrega = this.firmaGuia();
+        if (!entrega) return;
+
+        try {
+            await this.choferService.finalizarEntrega(entrega.id, event.observaciones || null);
+            this.firmasMap.set(entrega.id, event.firma);
+
+            const hoy = this.fechaHoy();
+            this.guiasAsignadas.update((list) =>
+                list.map((g) =>
+                    g.id === entrega.id
+                        ? {
+                              ...g,
+                              estado: 'finalizado',
+                              fechaEntrega: hoy,
+                              observaciones: event.observaciones || g.observaciones,
+                          }
+                        : g,
+                ),
+            );
+
+            this.guiaActivaExpandida.set(null);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Entrega completada',
+                detail: `${entrega.cliente} — ${entrega.numeroFactura || entrega.numeroGuia}`,
+            });
+
+            await this.recargarGuias();
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo guardar la entrega.',
+            });
+        } finally {
+            this.firmaGuia.set(null);
+        }
     }
 
     onFirmaCancelada() {
@@ -476,31 +401,33 @@ export class HomePage implements OnInit, OnDestroy {
     }
 
     getEstadoLabel(e: string): string {
-        if (e === 'CANCELADO') return 'Cancelado';
-        const found = ESTADOS_GUIA.find((eg: any) => eg.value === e);
+        if (e === 'cancelado' || e === 'CANCELADO') return 'Cancelado';
+        const found = ESTADOS_FACTURA.find((ef) => ef.value === e);
         return found?.label || e;
     }
 
     getEstadoSeverity(
         e: string,
     ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        if (e === 'CANCELADO') return 'danger';
-        const found = ESTADOS_GUIA.find((eg: any) => eg.value === e);
+        if (e === 'cancelado' || e === 'CANCELADO') return 'danger';
+        const found = ESTADOS_FACTURA.find((ef) => ef.value === e);
         return (found?.severity as any) || 'info';
     }
 
     getColorBorde(e: string): string {
         switch (e) {
-            case 'EN_PROCESO':
-                return 'border-l-blue-500';
-            case 'CARGADO':
+            case 'nuevo':
+                return 'border-l-surface-300';
+            case 'embarque':
                 return 'border-l-yellow-500';
-            case 'EN_ESPERA':
+            case 'proceso':
+                return 'border-l-blue-500';
+            case 'espera':
                 return 'border-l-orange-500';
-            case 'FINALIZADO':
-                return 'border-l-green-500';
-            case 'CANCELADO':
+            case 'incidencia':
                 return 'border-l-red-500';
+            case 'finalizado':
+                return 'border-l-green-500';
             default:
                 return 'border-l-surface-300';
         }
@@ -516,6 +443,13 @@ export class HomePage implements OnInit, OnDestroy {
             month: 'long',
             year: 'numeric',
         });
+    }
+
+    private fechaHoy(): string {
+        const a = new Date();
+        return `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, '0')}-${String(
+            a.getDate(),
+        ).padStart(2, '0')}`;
     }
 
     vehiculoPrincipal() {

@@ -78,7 +78,9 @@
                                 />
                             </div>
                             <div class="text-right flex-shrink-0">
-                                <div class="text-sm text-surface-400">{{ guia.pesoKg }} Kg</div>
+                                <div class="text-sm text-surface-400 font-mono">
+                                    {{ guia.numeroFactura }}
+                                </div>
                                 <div class="text-base font-bold text-primary">
                                     {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}
                                 </div>
@@ -430,7 +432,7 @@
                                         ><i class="pi pi-map-marker"></i>{{ guia.ruta }}</span
                                     >
                                     <span class="flex items-center gap-1"
-                                        ><i class="pi pi-box"></i>{{ guia.pesoKg }} Kg</span
+                                        ><i class="pi pi-box"></i>{{ guia.numeroFactura }}</span
                                     >
                                     <span class="flex items-center gap-1"
                                         ><i class="pi pi-dollar"></i
@@ -479,13 +481,14 @@
                                     ><span>{{ guia.rif }}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-surface-400">Carga:</span
-                                    ><span
-                                        >{{ guia.pesoKg }} Kg —
-                                        {{
-                                            guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0'
-                                        }}</span
-                                    >
+                                    <span class="text-surface-400">Factura:</span
+                                    ><span class="font-mono">{{ guia.numeroFactura }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-surface-400">Monto:</span
+                                    ><span>{{
+                                        guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0'
+                                    }}</span>
                                 </div>
                                 @if (guia.observaciones) {
                                     <div
@@ -670,7 +673,8 @@
                                     >
                                 }
                                 <span class="flex items-center gap-1.5"
-                                    ><i class="pi pi-box text-base"></i>{{ guia.pesoKg }} Kg</span
+                                    ><i class="pi pi-box text-base"></i
+                                    >{{ guia.numeroFactura }}</span
                                 >
                             </div>
 

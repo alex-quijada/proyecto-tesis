@@ -56,7 +56,7 @@ import { DividerModule } from 'primeng/divider';
                     </div>
                     <div class="flex justify-between mb-1">
                         <span class="text-surface-400">Cliente:</span>
-                        <span class="font-semibold">{{ guia?.nombreCliente }}</span>
+                        <span class="font-semibold">{{ guia?.cliente }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-surface-400">Monto:</span>
