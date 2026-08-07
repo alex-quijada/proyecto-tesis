@@ -84,6 +84,23 @@ export class UsuarioDialogComponent {
         certMedicoExpedicion: [null],
     });
 
+    private defaultFormValues(): Record<string, any> {
+        return {
+            email: '',
+            password: '',
+            prefijoDoc: 'V',
+            numeroDoc: 0,
+            nombreCompleto: '',
+            rol: 'ANALISTA',
+            activo: true,
+            licenciaNumero: '',
+            licenciaGrado: '3ra',
+            licenciaExpedicion: null,
+            certMedicoNumero: '',
+            certMedicoExpedicion: null,
+        };
+    }
+
     get rolValue(): string {
         return this.form.get('rol')?.value || '';
     }
@@ -120,6 +137,8 @@ export class UsuarioDialogComponent {
                         data.certificadoMedico?.fechaExpedicion,
                     ),
                 });
+            } else {
+                this.form.reset(this.defaultFormValues());
             }
             this.ajustarValidadorPassword();
         });
@@ -129,8 +148,7 @@ export class UsuarioDialogComponent {
         this.visible.set(false);
         this.submitted = false;
         this.errorMessage = '';
-        this.form.markAsPristine();
-        this.form.markAsUntouched();
+        this.form.reset(this.defaultFormValues());
     }
 
     private formatDate(d: Date | null | undefined): string {
@@ -363,7 +381,6 @@ export class UsuarioDialogComponent {
         this.onSave.emit(usuarioFinal);
         this.visible.set(false);
         this.loading.set(false);
-        this.form.markAsPristine();
-        this.form.markAsUntouched();
+        this.form.reset(this.defaultFormValues());
     }
 }
