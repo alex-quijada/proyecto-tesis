@@ -118,13 +118,12 @@
                 <div class="grid grid-cols-12 gap-3 mt-2">
                     <div class="col-span-9 flex flex-col gap-2">
                         <label class="font-semibold"
-                            >Nombre Completo / Razón Social
-                            <span class="text-red-500">*</span></label
+                            >Nombre Completo <span class="text-red-500">*</span></label
                         >
                         <input
                             pInputText
                             formControlName="nombreCompleto"
-                            placeholder="Nombre completo o razón social"
+                            placeholder="Nombre completo"
                         />
                         <small
                             *ngIf="submitted && form.get('nombreCompleto')?.invalid"
@@ -280,6 +279,8 @@
         <p-button
             [label]="usuarioData().id ? 'Guardar Cambios' : 'Registrar Usuario'"
             icon="pi pi-check"
+            [loading]="loading()"
+            [disabled]="loading()"
             (onClick)="save()"
         />
     </ng-template>

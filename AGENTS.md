@@ -135,3 +135,7 @@ Most admin CRUD pages currently use mock data arrays. To move to real data, repl
 - `MiRutaComponent` (`src/app/driver/pages/mi-ruta/`) con datos reales vía `obtener_viaje_chofer`.
 - "Salir / Iniciar viaje": optimiza la ruta (`computeRoute`), llama `iniciar_viaje` con el orden óptimo y pasa al tab mapa (marcadores numerados + polyline).
 - Reordenar paradas (drag) y firma por entrega (`finalizar_entrega` en el futuro; hoy `FINALIZADO` local).
+
+### Conectividad / offline
+- `ConnectivityService` (`src/app/services/connectivity.service.ts`) — `isOnline` signal; escucha eventos `online`/`offline`, **envuelve `window.fetch`** global (marca offline ante `TypeError: Failed to fetch`, ignora `AbortError`) y hace health check cada 10s contra `supabaseUrl/rest/v1/` mientras está offline (`checkNow()` para reintentar).
+- `AppConnectivityBanner` (`src/app/layout/component/app.connectivity-banner.ts`) — banner fijo superior "Sin conexión a internet" con botón Reintentar + toast "Conexión restablecida" al volver online. Montado en `AppComponent` (visible en todas las rutas).
