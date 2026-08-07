@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '@/app/auth/service/auth.service';
-import { CrearViajeResult } from './viaje.types';
+import { CrearViajeResult, ViajeChofer, ViajeAdmin } from './viaje.types';
 
 @Injectable({ providedIn: 'root' })
 export class ViajeService {
@@ -18,7 +18,6 @@ export class ViajeService {
     async crearViaje(params: {
         idChofer: string;
         idVehiculo: string;
-        municipio: string;
         fechaViaje: string;
         idsFacturas: string[];
         distanciaTotalKm?: number;
@@ -27,7 +26,6 @@ export class ViajeService {
         const { data, error } = await this.supabase.rpc('crear_viaje', {
             p_id_chofer: params.idChofer,
             p_id_vehiculo: params.idVehiculo,
-            p_municipio: params.municipio,
             p_fecha_viaje: params.fechaViaje,
             p_ids_facturas: params.idsFacturas,
             p_distancia_total_km: params.distanciaTotalKm ?? null,
@@ -36,5 +34,29 @@ export class ViajeService {
 
         if (error) throw error;
         return data as CrearViajeResult;
+    }
+
+    async iniciarViaje(idViaje: string, idsFacturasOrdenadas: string[]): Promise<CrearViajeResult> {
+        const { data, error } = await this.supabase.rpc('iniciar_viaje', {
+            p_id_viaje: idViaje,
+            p_ids_facturas_ordenadas: idsFacturasOrdenadas,
+        });
+
+        if (error) throw error;
+        return data as CrearViajeResult;
+    }
+
+    async obtenerViajeChofer(): Promise<ViajeChofer[]> {
+        const { data, error } = await this.supabase.rpc('obtener_viaje_chofer');
+
+        if (error) throw error;
+        return (data as ViajeChofer[]) || [];
+    }
+
+    async obtenerViajes(): Promise<ViajeAdmin[]> {
+        const { data, error } = await this.supabase.rpc('obtener_viajes');
+
+        if (error) throw error;
+        return (data as ViajeAdmin[]) || [];
     }
 }

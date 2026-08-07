@@ -15,6 +15,62 @@ export interface GoogleOptimizationResult {
 
 @Injectable({ providedIn: 'root' })
 export class GoogleMapsOptimizationService {
+    /**
+     * Calcula la ruta en el orden dado (sin optimizar). Útil para dibujar
+     * el itinerario persistido de un viaje ya cerrado.
+     */
+    async computeRoute(
+        waypoints: Waypoint[],
+        origin?: Waypoint,
+        destination?: Waypoint,
+    ): Promise<GoogleOptimizationResult | null> {
+        if (waypoints.length < 1) return null;
+        if (typeof google === 'undefined' || !google.maps) return null;
+
+        const directionsService = new google.maps.DirectionsService();
+        const request: google.maps.DirectionsRequest = {
+            origin: origin
+                ? new google.maps.LatLng(origin.lat, origin.lng)
+                : new google.maps.LatLng(waypoints[0].lat, waypoints[0].lng),
+            destination: destination
+                ? new google.maps.LatLng(destination.lat, destination.lng)
+                : new google.maps.LatLng(
+                      waypoints[waypoints.length - 1].lat,
+                      waypoints[waypoints.length - 1].lng,
+                  ),
+            waypoints: waypoints.map((wp) => ({
+                location: new google.maps.LatLng(wp.lat, wp.lng),
+                stopover: true,
+            })),
+            optimizeWaypoints: false,
+            travelMode: google.maps.TravelMode.DRIVING,
+        };
+
+        return new Promise((resolve) => {
+            directionsService.route(request, (result, status) => {
+                if (status !== google.maps.DirectionsStatus.OK || !result?.routes?.length) {
+                    resolve(null);
+                    return;
+                }
+                const route = result.routes[0];
+                const totalDistance = route.legs.reduce(
+                    (sum, leg) => sum + (leg.distance?.value || 0),
+                    0,
+                );
+                const totalDuration = route.legs.reduce(
+                    (sum, leg) => sum + (leg.duration?.value || 0),
+                    0,
+                );
+                resolve({
+                    order: waypoints.map((_, i) => i),
+                    distance: totalDistance,
+                    duration: totalDuration,
+                    path: route.overview_path?.map((p) => ({ lat: p.lat(), lng: p.lng() })) || [],
+                });
+            });
+        });
+    }
+
     async optimize(
         waypoints: Waypoint[],
         origin?: Waypoint,

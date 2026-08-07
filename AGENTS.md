@@ -102,8 +102,11 @@ Most admin CRUD pages currently use mock data arrays. To move to real data, repl
 - Migration `00027`: `obtener_cronograma_semanal` RPC.
 - `CronogramaService` (`src/app/admin/services/cronograma.service.ts`) — loads/saves cronograma from DB.
 - `MunicipioService` (`src/app/admin/services/municipio.service.ts`) — fetches distinct municipios via `obtener_municipios` RPC.
-- Migrations `00026` and `00027` pushed to remote Supabase project.
 - `CRONOGRAMA_DEFAULT` seeded with real UUIDs from `obtener_municipios` output.
+- **Viajes acumulables** (pushed to remote): ciclo `programado` (abierto/reutilizable, facturas→`embarque`) → `proceso` (cerrado al "Salir" del chofer, facturas→`proceso`) → `finalizado`/`cancelado`. El admin **agrega guías** a un viaje abierto del chofer; la ruta optimizada solo se calcula al cerrarlo.
+- Migrations pushed: `00033_fix_roles_case_sensitive.sql` (roles PascalCase + RLS case-insensitive), `00034_viajes_acumular_estados.sql` (DROP `viajes.municipio`; RPCs `crear_viaje` sin municipio/fechas, `iniciar_viaje`, `obtener_viaje_chofer`, `obtener_viajes`; `historial_estados_factura` en ambos), `00035_obtener_guias_chofer.sql` (RPCs móvil chofer; **renombrada de `00034` para evitar colisión de versión**), `00036_align_viajes_id_vehiculo_uuid.sql` (remoto tenía `viajes.id_vehiculo` uuid con FK a `vehiculos`; se estandariza a uuid + casts `::uuid` en RPCs), `00037_ensure_viajes_columns.sql` (remoto no tenía `fecha_creacion`/`created_at` en `viajes`; se agregan con `ADD COLUMN IF NOT EXISTS`).
+- **Drift local/remoto detectado**: el remoto fue creado manualmente con `viajes.id_vehiculo` uuid (+ FK) y sin `fecha_creacion`; local (00030) lo tenía TEXT con `fecha_creacion`. Los RPCs de 00034 asumían TEXT y reventaban (`operator text = uuid`). Verificado vía PostgREST: `obtener_viajes`, `obtener_viaje_chofer`, `crear_viaje`, `iniciar_viaje` responden correctamente.
+- RPCs de viajes exponen facturas con `latitud`/`longitud` (JOIN `sucursales_cliente`) y `monto_dolares`, más `chofer`/`placa_vehiculo`.
 
 ### Google Maps integration
 - Replaced Mapbox GL JS with **Google Maps JavaScript API** (`@googlemaps/js-api-loader`).
@@ -113,6 +116,7 @@ Most admin CRUD pages currently use mock data arrays. To move to real data, repl
 - Marker system: warehouse marker (brown home icon) + numbered markers for deliveries.
 - All markers turn blue when guías are selected; single route polyline shown.
 - **Optimize Route** button calls `computeRoute()` (not Directions API optimizeWaypoints) to show a single polyline connecting waypoints in order.
+- `computeRoute()` also used by `mi-ruta` (chofer) y `verRutaViaje` (admin) para dibujar la ruta optimizada persistida de un viaje cerrado.
 - Environment config: replaced `mapboxKey` with `googleMapsKey` + `WH_COORDS` in both `environment.ts` and `environment.development.ts`.
 
 ### Optimization page component
@@ -120,6 +124,12 @@ Most admin CRUD pages currently use mock data arrays. To move to real data, repl
   - Loads cronograma, municipios, guías pendientes on init
   - Day editing: drag-and-drop reorder, add/remove municipios per day
   - Guía selection (checkbox), filter by chofer
-  - "Cambiar a Carga de Mercancía" action
+  - "Agregar a viaje" — `confirmarCrearViajes` acumula facturas en un viaje `programado` abierto del chofer (crea o reutiliza vía `crear_viaje`, que devuelve `{ nuevo, viaje }`)
+  - Panel "Viajes" con estado + conteos de facturas y "Ver ruta" (`verRutaViaje`) solo cuando el viaje está cerrado (`facturas_proceso > 0`)
   - "Optimizar Ruta" — plots selected guías' facturas on the map
   - Layout: left column (cronograma, 2-column grid) + right column (guías + map)
+
+### Chofer — `mi-ruta`
+- `MiRutaComponent` (`src/app/driver/pages/mi-ruta/`) con datos reales vía `obtener_viaje_chofer`.
+- "Salir / Iniciar viaje": optimiza la ruta (`computeRoute`), llama `iniciar_viaje` con el orden óptimo y pasa al tab mapa (marcadores numerados + polyline).
+- Reordenar paradas (drag) y firma por entrega (`finalizar_entrega` en el futuro; hoy `FINALIZADO` local).

@@ -146,14 +146,27 @@
                 (onClick)="toggleReordering()"
                 styleClass="flex-1 text-sm"
             />
-            <p-button
-                icon="pi pi-route"
-                label="Optimizar Ruta"
-                severity="info"
-                (onClick)="optimizarRuta()"
-                styleClass="flex-1 text-sm"
-            />
+            @if (viajeAbierto) {
+                <p-button
+                    icon="pi pi-truck"
+                    label="Salir / Iniciar viaje"
+                    severity="success"
+                    [loading]="saliendo()"
+                    (onClick)="salir()"
+                    styleClass="flex-1 text-sm"
+                />
+            }
         </div>
+
+        @if (viajeEnProceso) {
+            <div class="mx-4 mt-3">
+                <p-tag
+                    value="Viaje en proceso — ruta optimizada"
+                    severity="warn"
+                    icon="pi pi-route"
+                />
+            </div>
+        }
 
         <div class="flex items-center justify-between mx-4 mt-3">
             <span class="text-xs text-surface-400">
@@ -334,47 +347,39 @@
     }
 
     <!-- ============================================================ -->
-    <!-- TAB: MAPA (placeholder Mapbox)                               -->
+    <!-- TAB: MAPA                                                     -->
     <!-- ============================================================ -->
     @if (activeTab() === 'mapa') {
         <div class="mx-4 mt-4 pb-28">
             <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm overflow-hidden">
-                <!-- Map placeholder -->
                 <div
-                    class="relative bg-surface-100 dark:bg-surface-700 h-72 flex items-center justify-center"
-                >
-                    <div class="text-center">
-                        <i
-                            class="pi pi-map text-5xl text-surface-300 dark:text-surface-500 block mb-3"
-                        ></i>
-                        <p class="text-surface-400 font-semibold">Mapa de ruta</p>
-                        <p class="text-xs text-surface-400 mt-1">
-                            Integración con Mapbox próximamente
-                        </p>
-                    </div>
-                    @if (guiasPendientes.length > 0) {
+                    #mapaElement
+                    class="w-full bg-surface-100 dark:bg-surface-700"
+                    style="height: 340px"
+                ></div>
+
+                @if (guiasPendientes.length > 0) {
+                    <div class="p-3">
                         <div
-                            class="absolute bottom-3 left-3 right-3 bg-white/90 dark:bg-surface-800/90 backdrop-blur rounded-lg p-3 text-xs"
+                            class="font-semibold text-surface-600 dark:text-surface-300 mb-2 text-xs"
                         >
-                            <div class="font-semibold text-surface-600 dark:text-surface-300 mb-2">
-                                Paradas en ruta
-                            </div>
-                            @for (guia of guiasPendientes; track guia.id; let i = $index) {
-                                <div class="flex items-center gap-2 mb-1.5 last:mb-0">
-                                    <div
-                                        class="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0"
-                                    >
-                                        {{ i + 1 }}
-                                    </div>
-                                    <span class="truncate">{{ guia.nombreCliente }}</span>
-                                    <span class="text-surface-400 ml-auto flex-shrink-0">{{
-                                        guia.municipio
-                                    }}</span>
-                                </div>
-                            }
+                            Paradas en ruta
                         </div>
-                    }
-                </div>
+                        @for (p of guiasPendientes; track p.id; let i = $index) {
+                            <div class="flex items-center gap-2 mb-1.5 last:mb-0 text-xs">
+                                <div
+                                    class="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                                >
+                                    {{ i + 1 }}
+                                </div>
+                                <span class="truncate">{{ p.nombreCliente }}</span>
+                                <span class="text-surface-400 ml-auto flex-shrink-0">{{
+                                    p.numeroGuia
+                                }}</span>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
 
             <!-- Vehicle info card -->

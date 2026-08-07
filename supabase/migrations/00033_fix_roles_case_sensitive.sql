@@ -21,8 +21,9 @@ WHERE raw_user_meta_data ? 'nombre_rol';
 UPDATE public.usuarios u
 SET id_rol = r.id_rol
 FROM public.roles r
-JOIN auth.users au ON au.id = u.id_usuario
-WHERE LOWER(r.nombre_rol) = LOWER(COALESCE(au.raw_user_meta_data ->> 'nombre_rol', 'Chofer'))
+WHERE LOWER(r.nombre_rol) = LOWER(COALESCE(
+        (SELECT au.raw_user_meta_data ->> 'nombre_rol' FROM auth.users au WHERE au.id = u.id_usuario),
+        'Chofer'))
   AND (u.id_rol IS NULL OR u.id_rol <> r.id_rol);
 
 -- 3) Trigger handle_new_user: lookup case-insensitive

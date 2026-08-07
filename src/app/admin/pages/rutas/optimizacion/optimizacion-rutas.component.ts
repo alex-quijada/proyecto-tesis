@@ -32,7 +32,7 @@ import {
     Waypoint,
 } from '../../map/map/google-maps-optimization.service';
 import { ViajeService } from '@/app/services/viaje.service';
-import { ViajeGroup, CrearViajeResult } from '@/app/services/viaje.types';
+import { ViajeGroup, CrearViajeResult, ViajeAdmin } from '@/app/services/viaje.types';
 
 interface DiaCronograma {
     dia: string;
@@ -148,6 +148,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     viajesResultados = signal<CrearViajeResult[]>([]);
     ultimoOrdenFacturas = signal<string[]>([]);
     fechaViaje = signal<Date>(new Date());
+    viajes = signal<ViajeAdmin[]>([]);
 
     constructor() {
         afterNextRender(() => this.initMap());
@@ -192,6 +193,13 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             );
         }
         this.loadingCronograma.set(false);
+
+        try {
+            const viajes = await this.viajeService.obtenerViajes();
+            this.viajes.set(viajes);
+        } catch (err) {
+            console.error('Error al cargar viajes', err);
+        }
     }
 
     ngOnDestroy() {
@@ -382,11 +390,8 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
                 const result = await this.viajeService.crearViaje({
                     idChofer: group.idChofer,
                     idVehiculo: group.idVehiculo,
-                    municipio: this.selectedMunicipio()!,
                     fechaViaje: fechaStr,
                     idsFacturas: ordered,
-                    distanciaTotalKm: this.viajeService.rutaDistanciaKm() || undefined,
-                    duracionTotalMin: this.viajeService.rutaDuracionMin() || undefined,
                 });
                 results.push(result);
             } catch (err) {
@@ -394,7 +399,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: `No se pudo crear el viaje para ${group.nombreChofer}.`,
+                    detail: `No se pudo agregar el viaje para ${group.nombreChofer}.`,
                 });
                 this.creandoViaje.set(false);
                 return;
@@ -411,11 +416,25 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
 
         await this.recargarGuias();
 
-        const n = results.length;
+        try {
+            this.viajes.set(await this.viajeService.obtenerViajes());
+        } catch {
+            /* ignora */
+        }
+
+        const creados = results.filter((r) => r.nuevo).length;
+        const agregados = results.length - creados;
+        const partes: string[] = [];
+        if (creados > 0)
+            partes.push(`${creados} ${creados === 1 ? 'viaje creado' : 'viajes creados'}`);
+        if (agregados > 0)
+            partes.push(
+                `${agregados} ${agregados === 1 ? 'viaje actualizado' : 'viajes actualizados'}`,
+            );
         this.messageService.add({
             severity: 'success',
-            summary: 'Viaje(s) creado(s)',
-            detail: `${n} ${n === 1 ? 'viaje creado' : 'viajes creados'} exitosamente.`,
+            summary: 'Guías agregadas al viaje',
+            detail: `${partes.join(' · ')}. Las facturas quedaron en estado embarque.`,
         });
     }
 
@@ -425,6 +444,72 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             this.guias.set(guias);
         } catch (err) {
             console.error('Error al recargar guías', err);
+        }
+    }
+
+    async verRutaViaje(viaje: ViajeAdmin) {
+        const paradas = (viaje.paradas || [])
+            .filter((p) => p.latitud != null && p.longitud != null)
+            .sort((a, b) => a.orden_visita - b.orden_visita);
+
+        if (paradas.length < 1) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Sin coordenadas',
+                detail: 'El viaje no tiene paradas con ubicación.',
+            });
+            return;
+        }
+
+        const waypoints: Waypoint[] = paradas.map((p) => ({
+            lat: p.latitud!,
+            lng: p.longitud!,
+            name: `${p.nombre_cliente || ''} - Fact. ${p.numero_factura}`,
+        }));
+
+        this.optimizando.set(true);
+        this.limpiarMapa();
+        const warehouse = this.warehouseWp;
+        try {
+            const result = await this.googleOptimization.computeRoute(
+                waypoints,
+                warehouse,
+                warehouse,
+            );
+            if (result) {
+                this.routePolyline = new google.maps.Polyline({
+                    path: result.path,
+                    geodesic: true,
+                    strokeColor: '#22c55e',
+                    strokeOpacity: 0.85,
+                    strokeWeight: 5,
+                    map: this.mapa,
+                });
+                const bounds = new google.maps.LatLngBounds();
+                result.path.forEach((p) => bounds.extend(p));
+                this.mapa.fitBounds(bounds, 80);
+                this.agregarMarcadorAlmacen(warehouse);
+                result.order.forEach((idx, i) => this.agregarMarcadorEntrega(i, waypoints[idx]));
+            } else {
+                this.mostrarRutaEstimada(waypoints);
+            }
+        } catch {
+            this.mostrarRutaEstimada(waypoints);
+        } finally {
+            this.optimizando.set(false);
+        }
+    }
+
+    getEstadoViajeSeverity(estado: string): 'info' | 'success' | 'warn' | 'secondary' {
+        switch (estado) {
+            case 'programado':
+                return 'info';
+            case 'proceso':
+                return 'warn';
+            case 'finalizado':
+                return 'success';
+            default:
+                return 'secondary';
         }
     }
 
