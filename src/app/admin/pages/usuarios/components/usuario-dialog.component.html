@@ -209,20 +209,15 @@
                                 >
                             </div>
                             <div class="col-span-3 flex flex-col gap-2">
-                                <label class="font-semibold"
-                                    >Vencimiento <span class="text-red-500">*</span></label
+                                <label class="font-semibold">Vencimiento</label>
+                                <div
+                                    class="flex items-center h-10 px-3 rounded-md bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 text-sm"
                                 >
-                                <p-datepicker
-                                    formControlName="licenciaVencimiento"
-                                    dateFormat="dd/mm/yy"
-                                    placeholder="dd/mm/aaaa"
-                                    appendTo="body"
-                                />
-                                <small
-                                    *ngIf="submitted && form.get('licenciaVencimiento')?.invalid"
-                                    class="text-red-500"
-                                    >Requerido</small
-                                >
+                                    {{
+                                        licenciaVencimientoCalculado ||
+                                            'Se calcula automáticamente (10 años)'
+                                    }}
+                                </div>
                             </div>
                         </div>
                     </ng-container>
@@ -264,20 +259,15 @@
                             >
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
-                            <label class="font-semibold"
-                                >Vencimiento <span class="text-red-500">*</span></label
+                            <label class="font-semibold">Vencimiento</label>
+                            <div
+                                class="flex items-center h-10 px-3 rounded-md bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 text-sm"
                             >
-                            <p-datepicker
-                                formControlName="certMedicoVencimiento"
-                                dateFormat="dd/mm/yy"
-                                placeholder="dd/mm/aaaa"
-                                appendTo="body"
-                            />
-                            <small
-                                *ngIf="submitted && form.get('certMedicoVencimiento')?.invalid"
-                                class="text-red-500"
-                                >Requerido</small
-                            >
+                                {{
+                                    certMedicoVencimientoCalculado ||
+                                        'Se calcula automáticamente (5 años)'
+                                }}
+                            </div>
                         </div>
                     </div>
                 </p-fluid>

@@ -80,10 +80,8 @@ export class UsuarioDialogComponent {
         licenciaNumero: [''],
         licenciaGrado: ['3ra'],
         licenciaExpedicion: [null],
-        licenciaVencimiento: [null],
         certMedicoNumero: [''],
         certMedicoExpedicion: [null],
-        certMedicoVencimiento: [null],
     });
 
     get rolValue(): string {
@@ -117,13 +115,9 @@ export class UsuarioDialogComponent {
                     licenciaNumero: data.licencia?.numero || '',
                     licenciaGrado: data.licencia?.grado || '',
                     licenciaExpedicion: this.parseLocalDate(data.licencia?.fechaExpedicion),
-                    licenciaVencimiento: this.parseLocalDate(data.licencia?.fechaVencimiento),
                     certMedicoNumero: data.certificadoMedico?.numero || '',
                     certMedicoExpedicion: this.parseLocalDate(
                         data.certificadoMedico?.fechaExpedicion,
-                    ),
-                    certMedicoVencimiento: this.parseLocalDate(
-                        data.certificadoMedico?.fechaVencimiento,
                     ),
                 });
             }
@@ -172,10 +166,8 @@ export class UsuarioDialogComponent {
         setReq('licenciaNumero', esChofer);
         setReq('licenciaGrado', esChofer);
         setReq('licenciaExpedicion', esChofer);
-        setReq('licenciaVencimiento', esChofer);
         setReq('certMedicoNumero', esChoferOAyudante);
         setReq('certMedicoExpedicion', esChoferOAyudante);
-        setReq('certMedicoVencimiento', esChoferOAyudante);
     }
 
     private ajustarValidadorPassword() {
@@ -191,6 +183,23 @@ export class UsuarioDialogComponent {
 
     onRolChange() {
         this.actualizarValidaciones();
+    }
+
+    get licenciaVencimientoCalculado(): string {
+        return this.calcularVencimiento(this.form.get('licenciaExpedicion')?.value, 10);
+    }
+
+    get certMedicoVencimientoCalculado(): string {
+        return this.calcularVencimiento(this.form.get('certMedicoExpedicion')?.value, 5);
+    }
+
+    private calcularVencimiento(d: Date | null | undefined, years: number): string {
+        if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '';
+        const fecha = new Date(d);
+        fecha.setFullYear(fecha.getFullYear() + years);
+        const lastDay = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+        if (fecha.getDate() > lastDay) fecha.setDate(lastDay);
+        return this.formatDate(fecha);
     }
 
     private buildUsuarioFromForm(): Usuario {
@@ -212,9 +221,7 @@ export class UsuarioDialogComponent {
                           fechaExpedicion: raw.licenciaExpedicion
                               ? this.formatDate(raw.licenciaExpedicion)
                               : '',
-                          fechaVencimiento: raw.licenciaVencimiento
-                              ? this.formatDate(raw.licenciaVencimiento)
-                              : '',
+                          fechaVencimiento: this.licenciaVencimientoCalculado,
                       }
                     : undefined,
             certificadoMedico:
@@ -224,9 +231,7 @@ export class UsuarioDialogComponent {
                           fechaExpedicion: raw.certMedicoExpedicion
                               ? this.formatDate(raw.certMedicoExpedicion)
                               : '',
-                          fechaVencimiento: raw.certMedicoVencimiento
-                              ? this.formatDate(raw.certMedicoVencimiento)
-                              : '',
+                          fechaVencimiento: this.certMedicoVencimientoCalculado,
                       }
                     : undefined,
         };
@@ -290,14 +295,12 @@ export class UsuarioDialogComponent {
         if (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE') {
             payload.certificado_numero = raw.certMedicoNumero;
             payload.certificado_expedicion = this.formatDate(raw.certMedicoExpedicion);
-            payload.certificado_vencimiento = this.formatDate(raw.certMedicoVencimiento);
         }
 
         if (raw.rol === 'CHOFER') {
             payload.licencia_numero = raw.licenciaNumero;
             payload.licencia_grado = raw.licenciaGrado;
             payload.licencia_expedicion = this.formatDate(raw.licenciaExpedicion);
-            payload.licencia_vencimiento = this.formatDate(raw.licenciaVencimiento);
         }
 
         await this.authService.registrarUsuarioPorRol(payload);
@@ -336,14 +339,12 @@ export class UsuarioDialogComponent {
         if (raw.rol === 'CHOFER' || raw.rol === 'AYUDANTE') {
             payload.certificado_numero = raw.certMedicoNumero;
             payload.certificado_expedicion = this.formatDate(raw.certMedicoExpedicion);
-            payload.certificado_vencimiento = this.formatDate(raw.certMedicoVencimiento);
         }
 
         if (raw.rol === 'CHOFER') {
             payload.licencia_numero = raw.licenciaNumero;
             payload.licencia_grado = raw.licenciaGrado;
             payload.licencia_expedicion = this.formatDate(raw.licenciaExpedicion);
-            payload.licencia_vencimiento = this.formatDate(raw.licenciaVencimiento);
         }
 
         await this.authService.actualizarUsuarioPorRol(payload);

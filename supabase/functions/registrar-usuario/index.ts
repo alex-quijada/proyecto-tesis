@@ -148,18 +148,15 @@ serve(async (req) => {
             );
         }
 
-        const { certificado_numero, certificado_expedicion, certificado_vencimiento } =
-            datosAdicionales;
-        const { licencia_numero, licencia_grado, licencia_expedicion, licencia_vencimiento } =
-            datosAdicionales;
+        const { certificado_numero, certificado_expedicion } = datosAdicionales;
+        const { licencia_numero, licencia_grado, licencia_expedicion } = datosAdicionales;
 
-        if (certificado_numero && certificado_vencimiento) {
+        if (certificado_numero) {
             const { error: e } = await supabaseAdmin.from('certificados_medicos').upsert(
                 {
                     usuario_id: nuevoId,
                     certificado_numero,
                     certificado_expedicion: certificado_expedicion || null,
-                    certificado_vencimiento,
                 },
                 { onConflict: 'usuario_id' },
             );
@@ -168,14 +165,13 @@ serve(async (req) => {
             }
         }
 
-        if (licencia_numero && licencia_grado && licencia_vencimiento) {
+        if (licencia_numero && licencia_grado) {
             const { error: e } = await supabaseAdmin.from('licencias_conducir').upsert(
                 {
                     usuario_id: nuevoId,
                     licencia_numero,
                     licencia_grado,
                     licencia_expedicion: licencia_expedicion || null,
-                    licencia_vencimiento,
                 },
                 { onConflict: 'usuario_id' },
             );

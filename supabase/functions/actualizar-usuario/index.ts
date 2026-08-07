@@ -66,11 +66,9 @@ serve(async (req) => {
             prefijo_doc,
             certificado_numero,
             certificado_expedicion,
-            certificado_vencimiento,
             licencia_numero,
             licencia_grado,
             licencia_expedicion,
-            licencia_vencimiento,
         } = body;
 
         if (!user_id) {
@@ -138,13 +136,12 @@ serve(async (req) => {
             );
         }
 
-        if (certificado_numero && certificado_vencimiento) {
+        if (certificado_numero) {
             const { error: e } = await supabaseAdmin.from('certificados_medicos').upsert(
                 {
                     usuario_id: user_id,
                     certificado_numero,
                     certificado_expedicion: certificado_expedicion || null,
-                    certificado_vencimiento,
                 },
                 { onConflict: 'usuario_id' },
             );
@@ -159,14 +156,13 @@ serve(async (req) => {
             }
         }
 
-        if (licencia_numero && licencia_grado && licencia_vencimiento) {
+        if (licencia_numero && licencia_grado) {
             const { error: e } = await supabaseAdmin.from('licencias_conducir').upsert(
                 {
                     usuario_id: user_id,
                     licencia_numero,
                     licencia_grado,
                     licencia_expedicion: licencia_expedicion || null,
-                    licencia_vencimiento,
                 },
                 { onConflict: 'usuario_id' },
             );

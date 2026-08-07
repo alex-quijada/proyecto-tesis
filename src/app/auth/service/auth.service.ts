@@ -320,26 +320,20 @@ export class AuthService {
             if (e) throw new Error(`Error al guardar en ${table}: ${e.message}`);
         };
 
-        if (datosFormulario.certificado_numero && datosFormulario.certificado_vencimiento) {
+        if (datosFormulario.certificado_numero) {
             await doInsert('certificados_medicos', {
                 usuario_id: usuarioId,
                 certificado_numero: datosFormulario.certificado_numero,
                 certificado_expedicion: datosFormulario.certificado_expedicion || null,
-                certificado_vencimiento: datosFormulario.certificado_vencimiento,
             });
         }
 
-        if (
-            datosFormulario.licencia_numero &&
-            datosFormulario.licencia_grado &&
-            datosFormulario.licencia_vencimiento
-        ) {
+        if (datosFormulario.licencia_numero && datosFormulario.licencia_grado) {
             await doInsert('licencias_conducir', {
                 usuario_id: usuarioId,
                 licencia_numero: datosFormulario.licencia_numero,
                 licencia_grado: datosFormulario.licencia_grado,
                 licencia_expedicion: datosFormulario.licencia_expedicion || null,
-                licencia_vencimiento: datosFormulario.licencia_vencimiento,
             });
         }
 
@@ -371,11 +365,9 @@ export class AuthService {
                 prefijo_doc: datosFormulario.prefijo_doc || 'V',
                 certificado_numero: datosFormulario.certificado_numero,
                 certificado_expedicion: datosFormulario.certificado_expedicion,
-                certificado_vencimiento: datosFormulario.certificado_vencimiento,
                 licencia_numero: datosFormulario.licencia_numero,
                 licencia_grado: datosFormulario.licencia_grado,
                 licencia_expedicion: datosFormulario.licencia_expedicion,
-                licencia_vencimiento: datosFormulario.licencia_vencimiento,
             },
             headers: { Authorization: `Bearer ${token}` },
         });
