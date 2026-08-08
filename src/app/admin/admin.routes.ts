@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { roleGuard } from '../auth/guards/role.guard';
 
 export default [
     {
@@ -38,6 +39,8 @@ export default [
         path: 'usuarios',
         loadComponent: () =>
             import('./pages/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['Administrador'] },
     },
     {
         path: 'rutas/carga',

@@ -58,7 +58,10 @@ export class UsuariosComponent implements OnInit {
 
     rolFiltros = [
         { label: 'Todos los Roles', value: null },
-        ...ROLES.map((r) => ({ label: r.label, value: r.value })),
+        ...ROLES.filter((r) => r.value !== 'CLIENTE').map((r) => ({
+            label: r.label,
+            value: r.value,
+        })),
     ];
 
     rolLabels: Record<string, string> = {};

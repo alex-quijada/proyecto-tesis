@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
+import { AuthService } from '@/app/auth/service/auth.service';
 
 @Component({
     selector: 'app-menu',
@@ -19,10 +20,15 @@ import { AppMenuitem } from './app.menuitem';
     </ul> `,
 })
 export class AppMenu {
+    private authService = inject(AuthService);
+
     model: MenuItem[] = [];
 
     ngOnInit() {
-        this.model = [
+        const esAdmin =
+            String(this.authService.getUserRole() || '').toLowerCase() === 'administrador';
+
+        const model: MenuItem[] = [
             {
                 label: 'Principal',
                 path: '/principal',
@@ -117,7 +123,10 @@ export class AppMenu {
                     },
                 ],
             },
-            {
+        ];
+
+        if (esAdmin) {
+            model.push({
                 label: 'Administración de Acceso',
                 icon: 'pi pi-fw pi-lock',
                 path: '/admin',
@@ -128,9 +137,12 @@ export class AppMenu {
                         routerLink: ['/app/usuarios'],
                     },
                 ],
-            },
-            /*
-            // CÓDIGO ORIGINAL DE LA PLANTILLA SAKAI (COMENTADO)
+            });
+        }
+
+        this.model = model;
+        /*
+        // CÓDIGO ORIGINAL DE LA PLANTILLA SAKAI (COMENTADO)
             {
                 label: 'Home',
                 items: [{ label: 'Inico', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
@@ -228,6 +240,5 @@ export class AppMenu {
                 ]
             }
             */
-        ];
     }
 }

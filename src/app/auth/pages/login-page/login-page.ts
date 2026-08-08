@@ -30,11 +30,18 @@ export class LoginPage implements OnInit {
 
     hasError = signal(false);
     sesionExpirada = signal(false);
+    motivoCierre = signal('');
     isPosting = signal(false);
 
     ngOnInit() {
         if (this.route.snapshot.queryParams['sesionExpirada'] === 'true') {
             this.sesionExpirada.set(true);
+            try {
+                const motivo = sessionStorage.getItem('ultimo_cierre_sesion');
+                if (motivo) this.motivoCierre.set(motivo);
+            } catch {
+                /* ignora */
+            }
         }
     }
 

@@ -69,7 +69,6 @@ export class ChoferesComponent implements OnInit {
         this.loading.set(true);
         try {
             const data = await this.authService.obtenerChoferes();
-            console.log('Choferes cargados:', data);
             this.choferes.set(data);
         } catch (error: any) {
             console.error('Error cargando choferes:', error);

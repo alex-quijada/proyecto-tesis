@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { SupabaseClient, User, FunctionsHttpError, createClient } from '@supabase/supabase-js';
+import { SupabaseClient, User, Session, FunctionsHttpError, createClient } from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
 import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
 import { Chofer } from '../../admin/pages/choferes/data/choferes-mock';
@@ -34,6 +34,7 @@ export class AuthService {
         this.initializationPromise = this.supabase.auth
             .getSession()
             .then(async ({ data: { session } }) => {
+                this.logSessionTtl(session);
                 if (session?.user) {
                     this.userSubject.next(session.user);
                 }
@@ -50,13 +51,14 @@ export class AuthService {
             });
 
         this.supabase.auth.onAuthStateChange((event, session) => {
+            this.logAuthEvent(event, session);
             if (session?.user) {
                 this.userSubject.next(session.user);
             } else {
                 this.userSubject.next(null);
             }
             if ((event as string) === 'TOKEN_REFRESH_FAILED') {
-                this.cerrarSesionExpirada();
+                void this.recuperarSesionOExpirar();
             }
         });
     }
@@ -291,12 +293,72 @@ export class AuthService {
         );
     }
 
-    private cerrarSesionExpirada() {
+    private cerrarSesionExpirada(reason = 'expiración del token') {
+        console.warn(`[Auth] Sesión cerrada por: ${reason}`);
+        try {
+            sessionStorage.setItem('ultimo_cierre_sesion', reason);
+        } catch {
+            /* ignora */
+        }
         this.supabase.auth.signOut();
         this.userSubject.next(null);
         this.router.navigate(['/'], {
             queryParams: { sesionExpirada: 'true' },
         });
+    }
+
+    private logAuthEvent(event: string, session: Session | null) {
+        const expira = session?.expires_at
+            ? new Date(session.expires_at * 1000).toLocaleString()
+            : 'n/a';
+        console.log(`[Auth] ${new Date().toLocaleString()} | ${event} | expira: ${expira}`);
+    }
+
+    private logSessionTtl(session: Session | null) {
+        if (!session?.access_token) return;
+        try {
+            const payload = JSON.parse(atob(session.access_token.split('.')[1]));
+            const ttlMin = Math.round((payload.exp - payload.iat) / 60);
+            console.log(
+                `[Auth] Access token: TTL=${ttlMin} min | emitido: ${new Date(
+                    payload.iat * 1000,
+                ).toLocaleString()} | expira: ${new Date(payload.exp * 1000).toLocaleString()}`,
+            );
+        } catch {
+            /* token no decodificable */
+        }
+    }
+
+    private async recuperarSesionOExpirar() {
+        console.warn('[Auth] TOKEN_REFRESH_FAILED: reintentando refresh...');
+        try {
+            const { data } = await this.supabase.auth.refreshSession();
+            if (data.session?.access_token) {
+                console.info('[Auth] Refresh reintentado OK.');
+                if (data.session.user) this.userSubject.next(data.session.user);
+                return;
+            }
+        } catch (err) {
+            console.warn('[Auth] Reintento de refresh falló:', err);
+        }
+
+        try {
+            const { data } = await this.supabase.auth.getSession();
+            const sesion = data.session;
+            if (
+                sesion?.access_token &&
+                sesion.expires_at &&
+                sesion.expires_at * 1000 > Date.now()
+            ) {
+                console.info('[Auth] Sesión vigente recuperada del storage.');
+                if (sesion.user) this.userSubject.next(sesion.user);
+                return;
+            }
+        } catch {
+            /* ignora */
+        }
+
+        this.cerrarSesionExpirada('falló el refresh y no hay sesión vigente');
     }
 
     private traducirErrorUsuario(funcMsg: string): string {

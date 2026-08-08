@@ -125,6 +125,9 @@
                             class="p-3 border-round bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-sm transition-all duration-300 animate-fadein"
                         >
                             Tu sesión ha expirado. Inicia sesión nuevamente.
+                            @if (motivoCierre()) {
+                                <div class="text-xs opacity-70 mt-1">Motivo: {{ motivoCierre() }}</div>
+                            }
                         </div>
                     }
                     @if (hasError()) {
