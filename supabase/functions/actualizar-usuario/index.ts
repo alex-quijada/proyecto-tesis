@@ -100,8 +100,13 @@ serve(async (req) => {
         if (updateError) {
             const err = updateError as any;
             const dbMsg = err.error || err.details || err.hint || err.message;
+            const texto = `${err.message || ''} ${dbMsg || ''}`;
+            let msg = `Error al actualizar: ${dbMsg}`;
+            if (/(already been registered|email_exists)/i.test(texto)) {
+                msg = 'El email ya está registrado.';
+            }
             console.error('updateUserById error:', updateError);
-            return new Response(JSON.stringify({ error: `Error al actualizar: ${dbMsg}` }), {
+            return new Response(JSON.stringify({ error: msg }), {
                 status: 400,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -125,9 +130,16 @@ serve(async (req) => {
             .eq('id_usuario', user_id);
 
         if (dbUpdateError) {
+            const texto = `${dbUpdateError.message || ''} ${dbUpdateError.details || ''}`;
+            let msg = `Error al actualizar usuario en BD: ${dbUpdateError.message}`;
+            if (/(usuarios_cedula_key|cedula)/i.test(texto) && /(duplicate|already exists)/i.test(texto)) {
+                msg = 'La cédula ya está registrada.';
+            } else if (/(usuarios_email_key|already been registered)/i.test(texto)) {
+                msg = 'El email ya está registrado.';
+            }
             return new Response(
                 JSON.stringify({
-                    error: `Error al actualizar usuario en BD: ${dbUpdateError.message}`,
+                    error: msg,
                 }),
                 {
                     status: 400,
@@ -167,8 +179,16 @@ serve(async (req) => {
                 { onConflict: 'usuario_id' },
             );
             if (e) {
+                const texto = `${e.message || ''} ${e.details || ''}`;
+                let msg = `Error al guardar licencia: ${e.message}`;
+                if (
+                    /(licencias_conducir_licencia_numero_key|licencia_numero)/i.test(texto) &&
+                    /(duplicate|already exists)/i.test(texto)
+                ) {
+                    msg = 'El número de licencia ya está registrado.';
+                }
                 return new Response(
-                    JSON.stringify({ error: `Error al guardar licencia: ${e.message}` }),
+                    JSON.stringify({ error: msg }),
                     {
                         status: 400,
                         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

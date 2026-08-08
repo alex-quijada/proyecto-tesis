@@ -7,9 +7,9 @@
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
             <p-message
-                *ngIf="errorMessage"
+                *ngIf="errorMessage()"
                 severity="error"
-                [text]="errorMessage"
+                [text]="errorMessage()"
                 class="mb-2"
             ></p-message>
 
@@ -28,10 +28,11 @@
                         <input
                             pInputText
                             formControlName="email"
-                            placeholder="correo@ejemplo.com"
+                            placeholder="correo@brandia.com"
+                            (blur)="onBlurDominio()"
                         />
                         <small *ngIf="submitted && form.get('email')?.invalid" class="text-red-500"
-                            >Correo inválido o requerido</small
+                            >Correo requerido y debe terminar en @brandia.com</small
                         >
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">

@@ -14,11 +14,11 @@
             <div class="flex gap-2 items-center">
                 <p-button
                     *ngIf="usuariosSelected().length > 0"
-                    label="Eliminar Seleccionados"
-                    icon="pi pi-trash"
+                    label="Desactivar Seleccionados"
+                    icon="pi pi-user-minus"
                     severity="danger"
                     size="small"
-                    (onClick)="deleteSelectedUsuarios()"
+                    (onClick)="desactivarSelectedUsuarios()"
                 />
 
                 <p-select
@@ -124,7 +124,7 @@
                     </div>
                 </td>
                 <td class="font-bold text-surface-900 dark:text-surface-0">
-                    {{ u.nombreCompleto }}
+                    {{ u.nombreCompleto | titlecase }}
                 </td>
                 <td>
                     <span
@@ -159,13 +159,24 @@
                             (onClick)="editUsuario(u)"
                         />
                         <p-button
-                            icon="pi pi-trash"
+                            *ngIf="u.activo"
+                            icon="pi pi-ban"
                             severity="danger"
                             text
                             size="small"
-                            pTooltip="Eliminar"
+                            pTooltip="Desactivar"
                             tooltipPosition="top"
-                            (onClick)="deleteUsuario(u)"
+                            (onClick)="toggleEstadoUsuario(u)"
+                        />
+                        <p-button
+                            *ngIf="!u.activo"
+                            icon="pi pi-check-circle"
+                            severity="success"
+                            text
+                            size="small"
+                            pTooltip="Reactivar"
+                            tooltipPosition="top"
+                            (onClick)="toggleEstadoUsuario(u)"
                         />
                     </div>
                 </td>

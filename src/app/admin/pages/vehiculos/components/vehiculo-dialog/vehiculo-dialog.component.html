@@ -11,9 +11,9 @@
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
             <p-message
-                *ngIf="errorMessage"
+                *ngIf="errorMessage()"
                 severity="error"
-                [text]="errorMessage"
+                [text]="errorMessage()"
                 class="mb-2"
             ></p-message>
 
@@ -229,7 +229,7 @@
             icon="pi pi-times"
             text
             (onClick)="hideDialog()"
-            [disabled]="loading"
+            [disabled]="loading()"
         />
         <p-button
             [label]="
@@ -238,7 +238,7 @@
                     : 'Registrar Unidad'
             "
             icon="pi pi-check"
-            [loading]="loading"
+            [loading]="loading()"
             (onClick)="save()"
         />
     </ng-template>

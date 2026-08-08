@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '@/app/auth/service/auth.service';
+import { traducirErrorDuplicado } from '@/app/services/errores.util';
 import { Vehiculo } from '../data/vehiculos-mock';
 
 @Injectable({
@@ -51,6 +52,16 @@ export class VehiculoService {
         };
     }
 
+    private formatearError(contexto: string, err: any): Error {
+        const duplicado = traducirErrorDuplicado(
+            err,
+            { placa: 'La placa ya está registrada.' },
+            'Ya existe un registro con ese valor.',
+        );
+        if (duplicado) return new Error(duplicado);
+        return new Error(`${contexto}: ${err?.message}`);
+    }
+
     async crearVehiculo(vehiculo: Vehiculo): Promise<string> {
         const { data, error } = await this.supabase.rpc('crear_vehiculo', {
             p_placa: vehiculo.placa || '',
@@ -64,7 +75,7 @@ export class VehiculoService {
             p_estado_nombre: vehiculo.estado || 'OPERATIVO',
         });
 
-        if (error) throw new Error(`Error al crear vehículo: ${error.message}`);
+        if (error) throw this.formatearError('Error al crear vehículo', error);
         return data;
     }
 
@@ -82,7 +93,7 @@ export class VehiculoService {
             p_estado_nombre: vehiculo.estado || 'OPERATIVO',
         });
 
-        if (error) throw new Error(`Error al actualizar vehículo: ${error.message}`);
+        if (error) throw this.formatearError('Error al actualizar vehículo', error);
     }
 
     async eliminarVehiculo(id: string): Promise<void> {
@@ -90,6 +101,6 @@ export class VehiculoService {
             p_id_vehiculo: id,
         });
 
-        if (error) throw new Error(`Error al eliminar vehículo: ${error.message}`);
+        if (error) throw this.formatearError('Error al eliminar vehículo', error);
     }
 }

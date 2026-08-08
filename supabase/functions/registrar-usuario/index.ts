@@ -106,6 +106,26 @@ serve(async (req) => {
         const nombreRolNormalizado =
             ROLES_VALIDOS.find((r) => r.toLowerCase() === String(nombre_rol).toLowerCase()) ??
             String(nombre_rol);
+        const licenciaPrevia = (datosAdicionales as any).licencia_numero;
+        if (licenciaPrevia && String(licenciaPrevia).trim() !== '') {
+            const { data: licExistente } = await supabaseAdmin
+                .from('licencias_conducir')
+                .select('usuario_id')
+                .eq('licencia_numero', licenciaPrevia)
+                .maybeSingle();
+            if (licExistente) {
+                return new Response(
+                    JSON.stringify({ error: 'El número de licencia ya está registrado.' }),
+                    {
+                        status: 400,
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json',
+                        },
+                    },
+                );
+            }
+        }
         const { data: nuevoUsuario, error: createError } =
             await supabaseAdmin.auth.admin.createUser({
                 email: email,
@@ -122,10 +142,20 @@ serve(async (req) => {
         if (createError) {
             const err = createError as any;
             const dbMsg = err.error || err.details || err.hint || err.message;
+            const texto = `${err.message || ''} ${dbMsg || ''}`;
+            let msg = `Error en Base de Datos: ${dbMsg}`;
+            if (/(already been registered|email_exists)/i.test(texto)) {
+                msg = 'El email ya está registrado.';
+            } else if (
+                /(usuarios_cedula_key|cedula)/i.test(texto) &&
+                /(duplicate|already exists)/i.test(texto)
+            ) {
+                msg = 'La cédula ya está registrada.';
+            }
             console.error('createUser error:', createError);
             return new Response(
                 JSON.stringify({
-                    error: `Error en Base de Datos: ${dbMsg}`,
+                    error: msg,
                 }),
                 {
                     status: 400,

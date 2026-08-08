@@ -56,8 +56,8 @@ export class VehiculoDialogComponent {
     onSave = output<Vehiculo>();
 
     submitted = false;
-    errorMessage = '';
-    loading = false;
+    errorMessage = signal('');
+    loading = signal(false);
 
     anioMaximo = new Date().getFullYear() + 1;
 
@@ -97,7 +97,7 @@ export class VehiculoDialogComponent {
         effect(() => {
             const data = this.vehiculoData();
             this.submitted = false;
-            this.errorMessage = '';
+            this.errorMessage.set('');
             this.form.markAsPristine();
             this.form.markAsUntouched();
 
@@ -206,7 +206,7 @@ export class VehiculoDialogComponent {
     hideDialog() {
         this.visible.set(false);
         this.submitted = false;
-        this.errorMessage = '';
+        this.errorMessage.set('');
         this.form.markAsPristine();
         this.form.markAsUntouched();
     }
@@ -217,7 +217,7 @@ export class VehiculoDialogComponent {
         this.form.get('placa')?.setValue(placa);
 
         if (placa.length !== 7) {
-            this.errorMessage = 'La placa debe tener exactamente 7 caracteres (ej: AB123CD).';
+            this.errorMessage.set('La placa debe tener exactamente 7 caracteres (ej: AB123CD).');
             return false;
         }
 
@@ -225,8 +225,9 @@ export class VehiculoDialogComponent {
         const numeros = (placa.match(/[0-9]/g) || []).length;
 
         if (letras !== 4 || numeros !== 3) {
-            this.errorMessage =
-                'La placa venezolana debe contener 4 letras y 3 números (ej: AB123CD).';
+            this.errorMessage.set(
+                'La placa venezolana debe contener 4 letras y 3 números (ej: AB123CD).',
+            );
             return false;
         }
 
@@ -238,13 +239,15 @@ export class VehiculoDialogComponent {
         const peso = this.form.get('pesoMaximo')?.value;
 
         if (tipo === 'MOTO' && peso > 350) {
-            this.errorMessage =
-                'El peso máximo para una motocicleta no debería exceder los 350 Kg.';
+            this.errorMessage.set(
+                'El peso máximo para una motocicleta no debería exceder los 350 Kg.',
+            );
             return false;
         }
         if (tipo === 'CARRO' && peso > 2500) {
-            this.errorMessage =
-                'El peso máximo para un automóvil/pickup no debería exceder los 2,500 Kg.';
+            this.errorMessage.set(
+                'El peso máximo para un automóvil/pickup no debería exceder los 2,500 Kg.',
+            );
             return false;
         }
 
@@ -253,10 +256,10 @@ export class VehiculoDialogComponent {
 
     async save() {
         this.submitted = true;
-        this.errorMessage = '';
+        this.errorMessage.set('');
 
         if (this.form.invalid) {
-            this.errorMessage = 'Corrija los campos señalados en rojo.';
+            this.errorMessage.set('Corrija los campos señalados en rojo.');
             return;
         }
 
@@ -279,7 +282,7 @@ export class VehiculoDialogComponent {
             estado: raw.estado,
         };
 
-        this.loading = true;
+        this.loading.set(true);
         try {
             const esEdicion = !!(vehiculoFinal.id_vehiculo || vehiculoFinal.id);
 
@@ -306,9 +309,9 @@ export class VehiculoDialogComponent {
             this.onSave.emit(vehiculoFinal);
             this.visible.set(false);
         } catch (error: any) {
-            this.errorMessage = error.message || 'Error al procesar la solicitud.';
+            this.errorMessage.set(error.message || 'Error al procesar la solicitud.');
         } finally {
-            this.loading = false;
+            this.loading.set(false);
         }
     }
 }

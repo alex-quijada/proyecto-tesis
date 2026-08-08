@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '@/app/auth/service/auth.service';
+import { traducirErrorDuplicado } from '@/app/services/errores.util';
 import { PrefijoDoc } from '../../rutas/models/pdf-data.model';
 import { Cliente, SucursalCliente } from '../clientes.types';
 
@@ -142,6 +143,15 @@ export class ClienteService {
 
     private formatearError(contexto: string, err: any): Error {
         console.error(`[${contexto}]`, JSON.stringify(err, null, 2));
+        const duplicado = traducirErrorDuplicado(
+            err,
+            {
+                numero_doc: 'El número de documento ya existe.',
+                correo: 'El correo ya existe.',
+            },
+            'Ya existe un registro con ese valor.',
+        );
+        if (duplicado) return new Error(duplicado);
         const msg = err?.details || err?.hint || err?.message || err?.code || JSON.stringify(err);
         return new Error(`${contexto}: ${msg}`);
     }

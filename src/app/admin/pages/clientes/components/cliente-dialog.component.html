@@ -7,9 +7,9 @@
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
             <p-message
-                *ngIf="errorMessage"
+                *ngIf="errorMessage()"
                 severity="error"
-                [text]="errorMessage"
+                [text]="errorMessage()"
                 class="mb-2"
             ></p-message>
 
@@ -431,8 +431,8 @@
         <p-button
             [label]="clienteData().id ? 'Guardar Cambios' : 'Registrar Cliente'"
             icon="pi pi-check"
-            [loading]="saving"
-            [disabled]="saving"
+            [loading]="saving()"
+            [disabled]="saving()"
             (onClick)="save()"
         />
     </ng-template>

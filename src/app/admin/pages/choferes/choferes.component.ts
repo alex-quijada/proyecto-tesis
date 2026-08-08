@@ -131,11 +131,11 @@ export class ChoferesComponent implements OnInit {
     async deleteChofer(chofer: Chofer) {
         const confirmed = await new Promise<boolean>((resolve) => {
             this.confirmationService.confirm({
-                message: `¿Estás seguro de eliminar a "${chofer.nombreCompleto}"?`,
-                header: 'Confirmar Eliminación',
+                message: `¿Desactivar a "${chofer.nombreCompleto}"? No podrá iniciar sesión hasta que lo actives de nuevo.`,
+                header: 'Confirmar Desactivación',
                 icon: 'pi pi-exclamation-triangle',
                 rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-                acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
+                acceptButtonProps: { label: 'Desactivar', severity: 'danger' },
                 accept: () => resolve(true),
                 reject: () => resolve(false),
             });
@@ -144,12 +144,12 @@ export class ChoferesComponent implements OnInit {
         if (!confirmed || !chofer.id) return;
 
         try {
-            await this.authService.eliminarUsuario(chofer.id);
+            await this.authService.desactivarUsuario(chofer.id);
             await this.cargarChoferes();
             this.messageService.add({
                 severity: 'success',
                 summary: 'Completado',
-                detail: 'Registro eliminado',
+                detail: 'Chofer desactivado',
                 life: 3000,
             });
         } catch (error: any) {
@@ -165,11 +165,11 @@ export class ChoferesComponent implements OnInit {
     async deleteSelectedChoferes() {
         const confirmed = await new Promise<boolean>((resolve) => {
             this.confirmationService.confirm({
-                message: '¿Estás seguro de eliminar los registros seleccionados?',
-                header: 'Eliminación Masiva',
+                message: '¿Desactivar los registros seleccionados?',
+                header: 'Desactivación Masiva',
                 icon: 'pi pi-exclamation-triangle',
                 rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-                acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
+                acceptButtonProps: { label: 'Desactivar Todo', severity: 'danger' },
                 accept: () => resolve(true),
                 reject: () => resolve(false),
             });
@@ -179,14 +179,14 @@ export class ChoferesComponent implements OnInit {
 
         try {
             for (const c of this.choferSelected()) {
-                if (c.id) await this.authService.eliminarUsuario(c.id);
+                if (c.id) await this.authService.desactivarUsuario(c.id);
             }
             this.choferSelected.set([]);
             await this.cargarChoferes();
             this.messageService.add({
                 severity: 'success',
                 summary: 'Completado',
-                detail: 'Registros eliminados',
+                detail: 'Choferes desactivados',
                 life: 3000,
             });
         } catch (error: any) {

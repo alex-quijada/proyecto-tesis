@@ -145,56 +145,74 @@ export class UsuariosComponent implements OnInit {
         this.cargarUsuarios();
     }
 
-    deleteUsuario(usuario: Usuario) {
+    toggleEstadoUsuario(usuario: Usuario) {
+        const desactivando = usuario.activo;
         this.confirmationService.confirm({
-            message: `¿Está seguro de eliminar a <strong>${usuario.nombreCompleto}</strong>?`,
-            header: 'Confirmar Eliminación',
+            message: desactivando
+                ? `¿Desactivar a <strong>${usuario.nombreCompleto}</strong>? No podrá iniciar sesión hasta que lo actives de nuevo.`
+                : `¿Reactivar a <strong>${usuario.nombreCompleto}</strong>? Podrá iniciar sesión nuevamente.`,
+            header: desactivando ? 'Confirmar Desactivación' : 'Confirmar Reactivación',
             icon: 'pi pi-exclamation-triangle',
             accept: async () => {
                 try {
-                    await this.authService.eliminarUsuario(usuario.id!);
+                    if (desactivando) {
+                        await this.authService.desactivarUsuario(usuario.id!);
+                    } else {
+                        await this.authService.reactivarUsuario(usuario.id!);
+                    }
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Eliminado',
-                        detail: `${usuario.nombreCompleto} eliminado.`,
+                        summary: desactivando ? 'Desactivado' : 'Reactivado',
+                        detail: `${usuario.nombreCompleto} ${
+                            desactivando ? 'desactivado.' : 'reactivado.'
+                        }`,
                     });
                     await this.cargarUsuarios();
                 } catch (error: any) {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: error.message || 'No se pudo eliminar el usuario.',
+                        detail:
+                            error.message ||
+                            `No se pudo ${desactivando ? 'desactivar' : 'reactivar'} el usuario.`,
                     });
                 }
             },
         });
     }
 
-    deleteSelectedUsuarios() {
-        const selected = this.usuariosSelected();
-        if (!selected.length) return;
+    desactivarSelectedUsuarios() {
+        const selected = this.usuariosSelected().filter((u) => u.activo);
+        if (!selected.length) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Sin cambios',
+                detail: 'No hay usuarios activos seleccionados.',
+            });
+            return;
+        }
 
         this.confirmationService.confirm({
-            message: `¿Eliminar ${selected.length} usuario(s) seleccionados?`,
-            header: 'Confirmar Eliminación Masiva',
+            message: `¿Desactivar ${selected.length} usuario(s) seleccionados?`,
+            header: 'Confirmar Desactivación Masiva',
             icon: 'pi pi-exclamation-triangle',
             accept: async () => {
                 try {
                     for (const u of selected) {
-                        await this.authService.eliminarUsuario(u.id!);
+                        await this.authService.desactivarUsuario(u.id!);
                     }
                     this.usuariosSelected.set([]);
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Eliminados',
-                        detail: `${selected.length} usuario(s) eliminados.`,
+                        summary: 'Desactivados',
+                        detail: `${selected.length} usuario(s) desactivados.`,
                     });
                     await this.cargarUsuarios();
                 } catch (error: any) {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: error.message || 'Error al eliminar usuarios.',
+                        detail: error.message || 'Error al desactivar usuarios.',
                     });
                 }
             },

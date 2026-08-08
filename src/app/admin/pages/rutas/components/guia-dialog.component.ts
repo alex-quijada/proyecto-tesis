@@ -106,7 +106,7 @@ export class GuiaDialogComponent implements OnInit {
     onSave = output<GuiaDespacho>();
 
     submitted = false;
-    errorMessage = '';
+    errorMessage = signal('');
     cargandoPDF = signal(false);
     clienteDialogVisible = signal(false);
     clientePendiente = signal<Cliente>({});
@@ -165,7 +165,7 @@ export class GuiaDialogComponent implements OnInit {
 
             untracked(() => {
                 this.submitted = false;
-                this.errorMessage = '';
+                this.errorMessage.set('');
 
                 if (data?.id) {
                     this.form.patchValue({
@@ -402,7 +402,7 @@ export class GuiaDialogComponent implements OnInit {
             this.setFacturas(pdfFacturas);
         } catch (error) {
             console.error('Error al procesar el PDF:', error);
-            this.errorMessage = 'No se pudo procesar el archivo PDF.';
+            this.errorMessage.set('No se pudo procesar el archivo PDF.');
         } finally {
             this.cargandoPDF.set(false);
         }
@@ -671,7 +671,7 @@ export class GuiaDialogComponent implements OnInit {
     hideDialog() {
         this.visible.set(false);
         this.submitted = false;
-        this.errorMessage = '';
+        this.errorMessage.set('');
     }
 
     private formatDate(d: Date): string {
@@ -744,10 +744,10 @@ export class GuiaDialogComponent implements OnInit {
 
     async save() {
         this.submitted = true;
-        this.errorMessage = '';
+        this.errorMessage.set('');
 
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            this.errorMessage.set('Complete todos los campos obligatorios marcados con *.');
             return;
         }
 
@@ -820,7 +820,9 @@ export class GuiaDialogComponent implements OnInit {
             this.visible.set(false);
         } catch (error: any) {
             console.error('Error al guardar guía:', error);
-            this.errorMessage = error?.message || 'Error al guardar la guía en la base de datos.';
+            this.errorMessage.set(
+                error?.message || 'Error al guardar la guía en la base de datos.',
+            );
         }
     }
 }

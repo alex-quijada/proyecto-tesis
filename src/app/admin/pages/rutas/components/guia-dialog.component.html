@@ -21,8 +21,8 @@
             </div>
         } @else {
             <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-                @if (errorMessage) {
-                    <p-message severity="error" [text]="errorMessage" class="mb-2"></p-message>
+                @if (errorMessage()) {
+                    <p-message severity="error" [text]="errorMessage()" class="mb-2"></p-message>
                 }
 
                 <div

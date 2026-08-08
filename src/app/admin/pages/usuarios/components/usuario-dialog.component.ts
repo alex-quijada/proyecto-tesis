@@ -1,6 +1,6 @@
 import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -57,7 +57,7 @@ export class UsuarioDialogComponent {
     onSave = output<Usuario>();
 
     submitted = false;
-    errorMessage = '';
+    errorMessage = signal('');
     loading = signal(false);
 
     roles = ROLES.filter((r) => r.value !== 'CLIENTE');
@@ -70,7 +70,20 @@ export class UsuarioDialogComponent {
     ];
 
     form: FormGroup = this.fb.group({
-        email: ['', [Validators.required, Validators.email]],
+        email: [
+            '',
+            [
+                Validators.required,
+                Validators.email,
+                (c: AbstractControl) => {
+                    const v = (c.value || '').trim();
+                    if (!v) return null;
+                    return v.includes('@') && v.endsWith('@brandia.com')
+                        ? null
+                        : { dominioBrandia: true };
+                },
+            ],
+        ],
         password: ['', [Validators.minLength(6)]],
         prefijoDoc: ['V', Validators.required],
         numeroDoc: [0, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
@@ -114,7 +127,7 @@ export class UsuarioDialogComponent {
         effect(() => {
             const data = this.usuarioData();
             this.submitted = false;
-            this.errorMessage = '';
+            this.errorMessage.set('');
             this.form.markAsPristine();
             this.form.markAsUntouched();
 
@@ -147,7 +160,7 @@ export class UsuarioDialogComponent {
     hideDialog() {
         this.visible.set(false);
         this.submitted = false;
-        this.errorMessage = '';
+        this.errorMessage.set('');
         this.form.reset(this.defaultFormValues());
     }
 
@@ -203,6 +216,14 @@ export class UsuarioDialogComponent {
         this.actualizarValidaciones();
     }
 
+    onBlurDominio() {
+        const c = this.form.get('email');
+        const v = (c?.value ?? '').trim();
+        if (!v) return;
+        c?.setValue(`${v.split('@')[0]}@brandia.com`);
+        c?.updateValueAndValidity();
+    }
+
     get licenciaVencimientoCalculado(): string {
         return this.calcularVencimiento(this.form.get('licenciaExpedicion')?.value, 10);
     }
@@ -222,10 +243,11 @@ export class UsuarioDialogComponent {
 
     private buildUsuarioFromForm(): Usuario {
         const raw = this.form.getRawValue();
+        const emailFinal = `${(raw.email || '').split('@')[0]}@brandia.com`;
 
         return {
             ...this.usuarioData(),
-            email: raw.email,
+            email: emailFinal,
             documentoIdentidad: { prefijo: raw.prefijoDoc, numero: String(raw.numeroDoc) },
             nombreCompleto: raw.nombreCompleto,
             rol: raw.rol,
@@ -257,7 +279,7 @@ export class UsuarioDialogComponent {
 
     async save() {
         this.submitted = true;
-        this.errorMessage = '';
+        this.errorMessage.set('');
         this.loading.set(true);
         this.actualizarValidaciones();
         this.form.updateValueAndValidity();
@@ -269,7 +291,7 @@ export class UsuarioDialogComponent {
                 if (c?.invalid) errores[key] = c.errors;
             });
             console.log('Errores del formulario:', errores);
-            this.errorMessage = 'Complete todos los campos obligatorios.';
+            this.errorMessage.set('Complete todos los campos obligatorios.');
             this.loading.set(false);
             return;
         }
@@ -282,27 +304,27 @@ export class UsuarioDialogComponent {
                 await this.crearUsuario(raw);
             }
         } catch (error: any) {
-            this.errorMessage = error.message || 'Error al procesar la solicitud.';
+            this.errorMessage.set(error.message || 'Error al procesar la solicitud.');
             this.loading.set(false);
         }
     }
 
     private async crearUsuario(raw: any) {
         if (!raw.password) {
-            this.errorMessage = 'La contraseña es obligatoria.';
+            this.errorMessage.set('La contraseña es obligatoria.');
             this.loading.set(false);
             return;
         }
 
         const dbRole = ROL_MAP_TO_DB[raw.rol];
         if (!dbRole) {
-            this.errorMessage = `Rol "${raw.rol}" no válido.`;
+            this.errorMessage.set(`Rol "${raw.rol}" no válido.`);
             this.loading.set(false);
             return;
         }
 
         const payload: any = {
-            email: raw.email,
+            email: `${(raw.email || '').split('@')[0]}@brandia.com`,
             password: raw.password,
             nombre_completo: raw.nombreCompleto,
             cedula: Number(raw.numeroDoc),
@@ -336,14 +358,14 @@ export class UsuarioDialogComponent {
         const id = this.usuarioData().id!;
         const dbRole = ROL_MAP_TO_DB[raw.rol];
         if (!dbRole) {
-            this.errorMessage = `Rol "${raw.rol}" no válido.`;
+            this.errorMessage.set(`Rol "${raw.rol}" no válido.`);
             this.loading.set(false);
             return;
         }
 
         const payload: any = {
             user_id: id,
-            email: raw.email,
+            email: `${(raw.email || '').split('@')[0]}@brandia.com`,
             nombre_completo: raw.nombreCompleto,
             cedula: Number(raw.numeroDoc),
             nombre_rol: dbRole,

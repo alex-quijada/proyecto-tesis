@@ -58,9 +58,9 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
             <ng-template #content>
                 <form [formGroup]="form" class="flex flex-col gap-3 pt-2">
                     <p-message
-                        *ngIf="errorMessage"
+                        *ngIf="errorMessage()"
                         severity="error"
-                        [text]="errorMessage"
+                        [text]="errorMessage()"
                         class="mb-1"
                     />
 
@@ -246,8 +246,8 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                 <p-button
                     label="Guardar"
                     icon="pi pi-check"
-                    [loading]="saving"
-                    [disabled]="saving"
+                    [loading]="saving()"
+                    [disabled]="saving()"
                     (onClick)="save()"
                 />
             </ng-template>
@@ -266,8 +266,8 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
 
     submitted = false;
-    saving = false;
-    errorMessage = '';
+    saving = signal(false);
+    errorMessage = signal('');
 
     municipios = signal<MunicipioItem[]>([]);
     diasSemana = DIAS_RECEPCION;
@@ -327,7 +327,7 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
     hideDialog() {
         this.visible.set(false);
         this.submitted = false;
-        this.errorMessage = '';
+        this.errorMessage.set('');
         this.form.markAsPristine();
         this.form.markAsUntouched();
     }
@@ -395,14 +395,14 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
 
     async save() {
         this.submitted = true;
-        this.errorMessage = '';
+        this.errorMessage.set('');
 
-        if (this.saving) return;
+        if (this.saving()) return;
         if (this.form.invalid) {
-            this.errorMessage = 'Complete los campos obligatorios marcados con *.';
+            this.errorMessage.set('Complete los campos obligatorios marcados con *.');
             return;
         }
-        this.saving = true;
+        this.saving.set(true);
 
         const raw = this.form.getRawValue();
         const sucursalFinal: SucursalCliente = {
@@ -441,10 +441,10 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
             await this.clienteService.guardarSucursales(this.clienteId(), actuales);
             this.onSave.emit();
             this.visible.set(false);
-            this.saving = false;
+            this.saving.set(false);
         } catch (e: any) {
-            this.errorMessage = e.message || 'Error al guardar la sucursal';
-            this.saving = false;
+            this.errorMessage.set(e.message || 'Error al guardar la sucursal');
+            this.saving.set(false);
         }
     }
 

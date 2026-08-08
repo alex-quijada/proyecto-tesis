@@ -184,24 +184,18 @@ export class VehiculosComponent implements OnInit {
         }
     }
 
-    getEstadoClass(estado: string): string {
-        return (estado || '').toUpperCase() === 'MANTENIMIENTO'
-            ? '!bg-purple-500 !text-white !border-purple-500'
-            : '';
-    }
-
     getEstadoLabel(estado: string): string {
         if (!estado) return '';
         return estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
     }
     getSeverityCaja(tipo: string) {
         switch (tipo) {
-            case 'REFRIGERADO':
-                return 'info';
             case 'SECA':
                 return 'secondary';
             case 'PLATAFORMA':
                 return 'warn';
+            case 'REFRIGERADO':
+                return 'secondary';
             case 'ARTICULADO':
                 return 'secondary';
             default:

@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
 import { Chofer } from '../../admin/pages/choferes/data/choferes-mock';
 import { environment } from '@/environments/environment';
+import { esErrorDuplicado } from '@/app/services/errores.util';
 
 @Injectable({
     providedIn: 'root',
@@ -75,6 +76,28 @@ export class AuthService {
             password,
         });
         if (error) throw error;
+
+        const userId = data.user?.id;
+        if (userId) {
+            try {
+                const { data: u } = await this.supabase
+                    .from('usuarios')
+                    .select('activo')
+                    .eq('id_usuario', userId)
+                    .maybeSingle();
+                if (u && u.activo === false) {
+                    await this.supabase.auth.signOut();
+                    this.userSubject.next(null);
+                    throw new Error(
+                        'Tu usuario está desactivado. Contacta al administrador para activarlo.',
+                    );
+                }
+            } catch (loginError: any) {
+                if (loginError?.message?.includes('desactivado')) throw loginError;
+                console.warn('No se pudo validar el estado del usuario:', loginError);
+            }
+        }
+
         return data;
     }
 
@@ -140,6 +163,7 @@ export class AuthService {
                 nombre_completo,
                 cedula,
                 prefijo_doc,
+                activo,
                 roles ( nombre_rol )
             `,
             )
@@ -177,8 +201,9 @@ export class AuthService {
                 },
                 nombreCompleto: row.nombre_completo || '',
                 rol: dialogRol,
-                activo: true,
+                activo: row.activo !== false,
                 fechaCreacion: '',
+                ultimoAcceso: ad?.ultimo_acceso || '',
                 licencia: ad?.licencia_numero
                     ? {
                           numero: ad.licencia_numero || '',
@@ -218,10 +243,16 @@ export class AuthService {
         return data;
     }
 
-    async eliminarUsuario(id: string): Promise<void> {
-        const { error } = await this.supabase.from('usuarios').delete().eq('id_usuario', id);
+    async desactivarUsuario(id: string): Promise<void> {
+        const { error } = await this.supabase.rpc('desactivar_usuario', { p_id: id });
 
-        if (error) throw new Error(`Error al eliminar usuario: ${error.message}`);
+        if (error) throw new Error(`Error al desactivar usuario: ${error.message}`);
+    }
+
+    async reactivarUsuario(id: string): Promise<void> {
+        const { error } = await this.supabase.rpc('reactivar_usuario', { p_id: id });
+
+        if (error) throw new Error(`Error al reactivar usuario: ${error.message}`);
     }
 
     async obtenerChoferes(): Promise<Chofer[]> {
@@ -267,6 +298,26 @@ export class AuthService {
         });
     }
 
+    private traducirErrorUsuario(funcMsg: string): string {
+        const msg = funcMsg || '';
+        if (
+            /(usuarios_cedula_key|cedula)/i.test(msg) &&
+            /(duplicate|already exists|unique)/i.test(msg)
+        ) {
+            return 'La cédula ya está registrada.';
+        }
+        if (
+            /(licencias_conducir_licencia_numero_key|licencia_numero)/i.test(msg) &&
+            /(duplicate|already exists|unique)/i.test(msg)
+        ) {
+            return 'El número de licencia ya está registrado.';
+        }
+        if (/(already been registered|email_exists|already registered)/i.test(msg)) {
+            return 'El email ya está registrado.';
+        }
+        return funcMsg;
+    }
+
     async registrarUsuarioPorRol(datosFormulario: any): Promise<any> {
         let token: string | undefined;
         try {
@@ -309,7 +360,7 @@ export class AuthService {
                 throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
             }
             console.error('registrar-usuario error:', funcMsg);
-            throw new Error(funcMsg);
+            throw new Error(this.traducirErrorUsuario(funcMsg));
         }
 
         const usuarioId = data?.user?.id;
@@ -317,7 +368,7 @@ export class AuthService {
 
         const doInsert = async (table: string, row: any) => {
             const { error: e } = await this.supabase.from(table).insert(row);
-            if (e) throw new Error(`Error al guardar en ${table}: ${e.message}`);
+            if (e) throw new Error(this.traducirErrorUsuario(`Error al guardar en ${table}: ${e.message}`));
         };
 
         if (datosFormulario.certificado_numero) {
@@ -388,7 +439,7 @@ export class AuthService {
                 this.cerrarSesionExpirada();
                 throw new Error('Tu sesión ha expirado. Inicia sesión nuevamente.');
             }
-            throw new Error(funcMsg);
+            throw new Error(this.traducirErrorUsuario(funcMsg));
         }
 
         return data;

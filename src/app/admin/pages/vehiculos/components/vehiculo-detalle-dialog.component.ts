@@ -48,12 +48,6 @@ export class VehiculoDetalleDialogComponent {
         }
     }
 
-    getEstadoClass(estado?: string): string {
-        return (estado || '').toUpperCase() === 'MANTENIMIENTO'
-            ? '!bg-purple-400 !text-white !border-purple-400'
-            : '';
-    }
-
     getEstadoLabel(estado?: string): string {
         if (!estado) return '';
         return estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
@@ -75,12 +69,12 @@ export class VehiculoDetalleDialogComponent {
 
     getSeverityCaja(tipo?: string) {
         switch (tipo) {
-            case 'REFRIGERADO':
-                return 'info';
             case 'SECA':
                 return 'secondary';
             case 'PLATAFORMA':
                 return 'warn';
+            case 'REFRIGERADO':
+                return 'secondary';
             case 'ARTICULADO':
                 return 'secondary';
             default:

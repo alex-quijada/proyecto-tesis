@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '@/app/auth/service/auth.service';
+import { traducirErrorDuplicado } from '@/app/services/errores.util';
 import { MUNICIPIOS_NUEVA_ESPARTA, GuiaDespacho, FacturaGuia } from '../data/rutas-mock';
 
 interface EmpresaItem {
@@ -63,6 +64,12 @@ export class RutaService {
         return data?.id_estado;
     }
 
+    private traducirError(err: any, mensajeDuplicado: string, contexto: string): Error {
+        const duplicado = traducirErrorDuplicado(err, {}, mensajeDuplicado);
+        if (duplicado) return new Error(duplicado);
+        return new Error(`${contexto}: ${err?.message || JSON.stringify(err)}`);
+    }
+
     async crearGuia(guia: GuiaDespacho): Promise<GuiaDespacho> {
         const user = this.authService.getCurrentUser();
         if (!user) throw new Error('Usuario no autenticado');
@@ -87,7 +94,12 @@ export class RutaService {
             .select('id_guia')
             .single();
 
-        if (errGuia) throw errGuia;
+        if (errGuia)
+            throw this.traducirError(
+                errGuia,
+                'El código de guía ya existe.',
+                'Error al crear la guía',
+            );
 
         if (guia.facturas?.length) {
             const facturasDb = guia.facturas.map((f) => ({
@@ -104,7 +116,12 @@ export class RutaService {
                 .insert(facturasDb)
                 .select('id_factura');
 
-            if (errFacturas) throw errFacturas;
+            if (errFacturas)
+                throw this.traducirError(
+                    errFacturas,
+                    'El número de factura ya existe.',
+                    'Error al guardar las facturas',
+                );
 
             if (facturasCreadas?.length) {
                 await Promise.all(
@@ -148,7 +165,12 @@ export class RutaService {
             })
             .eq('id_guia', guia.id);
 
-        if (errGuia) throw errGuia;
+        if (errGuia)
+            throw this.traducirError(
+                errGuia,
+                'El código de guía ya existe.',
+                'Error al actualizar la guía',
+            );
 
         // Load existing facturas for this guia
         const { data: facturasExistentes } = await this.supabase
@@ -178,7 +200,7 @@ export class RutaService {
                     })
                     .eq('id_factura', f.id);
             } else {
-                const { data: nuevaFactura } = await this.supabase
+                const { data: nuevaFactura, error: errFactura } = await this.supabase
                     .from('facturas')
                     .insert({
                         id_guia: guia.id,
@@ -190,6 +212,13 @@ export class RutaService {
                     })
                     .select('id_factura')
                     .single();
+
+                if (errFactura)
+                    throw this.traducirError(
+                        errFactura,
+                        'El número de factura ya existe.',
+                        'Error al guardar factura',
+                    );
 
                 if (nuevaFactura?.id_factura) {
                     await this.supabase.from('historial_estados_factura').insert({

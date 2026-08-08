@@ -68,8 +68,8 @@ export class ClienteDialogComponent implements OnInit {
     onSave = output<Cliente>();
 
     submitted = false;
-    saving = false;
-    errorMessage = '';
+    saving = signal(false);
+    errorMessage = signal('');
 
     prefijos = signal<PrefijoItem[]>([]);
     municipios = signal<MunicipioItem[]>([]);
@@ -125,7 +125,7 @@ export class ClienteDialogComponent implements OnInit {
         effect(() => {
             const data = this.clienteData();
             this.submitted = false;
-            this.errorMessage = '';
+            this.errorMessage.set('');
 
             this.form.markAsPristine();
             this.form.markAsUntouched();
@@ -221,7 +221,7 @@ export class ClienteDialogComponent implements OnInit {
     hideDialog() {
         this.visible.set(false);
         this.submitted = false;
-        this.errorMessage = '';
+        this.errorMessage.set('');
         this.form.markAsPristine();
         this.form.markAsUntouched();
     }
@@ -232,11 +232,11 @@ export class ClienteDialogComponent implements OnInit {
 
     async save() {
         this.submitted = true;
-        this.errorMessage = '';
+        this.errorMessage.set('');
 
-        if (this.saving) return;
+        if (this.saving()) return;
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            this.errorMessage.set('Complete todos los campos obligatorios marcados con *.');
             return;
         }
 
@@ -244,11 +244,12 @@ export class ClienteDialogComponent implements OnInit {
             .getRawValue()
             .sucursales.filter((s: any) => s.direccion?.trim());
         if (!sucursalesValidas.length) {
-            this.errorMessage =
-                'Debe agregar al menos una sucursal con dirección para registrar el cliente.';
+            this.errorMessage.set(
+                'Debe agregar al menos una sucursal con dirección para registrar el cliente.',
+            );
             return;
         }
-        this.saving = true;
+        this.saving.set(true);
 
         const raw = this.form.getRawValue();
         const prioridadLabel =
@@ -308,10 +309,10 @@ export class ClienteDialogComponent implements OnInit {
             clienteFinal.idCliente = clienteId;
             this.onSave.emit(clienteFinal);
             this.visible.set(false);
-            this.saving = false;
+            this.saving.set(false);
         } catch (e: any) {
-            this.errorMessage = e.message || 'Error al guardar el cliente';
-            this.saving = false;
+            this.errorMessage.set(e.message || 'Error al guardar el cliente');
+            this.saving.set(false);
         }
     }
 }
