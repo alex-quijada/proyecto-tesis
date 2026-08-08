@@ -126,6 +126,25 @@ serve(async (req) => {
                 );
             }
         }
+
+        const { data: cedulaExistente } = await supabaseAdmin
+            .from('usuarios')
+            .select('id_usuario')
+            .eq('cedula', Number(cedula))
+            .maybeSingle();
+        if (cedulaExistente) {
+            return new Response(
+                JSON.stringify({ error: 'La cédula ya está registrada.' }),
+                {
+                    status: 400,
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json',
+                    },
+                },
+            );
+        }
+
         const { data: nuevoUsuario, error: createError } =
             await supabaseAdmin.auth.admin.createUser({
                 email: email,

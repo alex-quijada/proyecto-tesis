@@ -29,14 +29,7 @@
             </div>
         </ng-template>
 
-        <ng-template #end>
-            <p-button
-                label="Nuevo Registro"
-                icon="pi pi-plus"
-                severity="success"
-                (onClick)="openNew()"
-            />
-        </ng-template>
+        <ng-template #end> </ng-template>
     </p-toolbar>
 
     <p-table
@@ -83,7 +76,6 @@
                 <th pSortableColumn="rol" style="min-width: 7rem">
                     Rol <p-sortIcon field="rol" />
                 </th>
-                <th style="min-width: 10rem">Teléfono</th>
                 <th style="min-width: 16rem">Licencia de Conducir</th>
                 <th style="min-width: 14rem">Certificado Médico Vial</th>
                 <th style="min-width: 8rem">Acciones</th>
@@ -106,7 +98,6 @@
                 <td>
                     <p-tag [value]="chofer.rol" [severity]="getRolSeverity(chofer.rol || '')" />
                 </td>
-                <td class="text-sm">{{ chofer.telefono || '-' }}</td>
                 <td>
                     <div *ngIf="chofer.licencia" class="text-sm flex flex-col gap-1">
                         <span class="font-medium">{{ chofer.licencia.numero }}</span>

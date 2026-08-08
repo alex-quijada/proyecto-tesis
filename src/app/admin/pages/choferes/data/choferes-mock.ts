@@ -18,6 +18,7 @@ export interface CertificadoMedico {
 
 export interface Chofer {
     id?: string;
+    email?: string;
     documentoIdentidad?: DocumentoIdentidad;
     nombreCompleto?: string;
     telefono?: string;
@@ -28,12 +29,10 @@ export interface Chofer {
 }
 
 export const GRADOS_LICENCIA = [
-    { label: 'Grado A - Motos', value: 'A' },
-    { label: 'Grado B - Automóvil (hasta 3500kg)', value: 'B' },
-    { label: 'Grado C - Transporte público / Pasajeros', value: 'C' },
-    { label: 'Grado D - Carga pesada', value: 'D' },
-    { label: 'Grado E - Articulados / Remolques', value: 'E' },
-    { label: 'Grado G - Emergencia', value: 'G' },
+    { label: '2do Grado - Motos y vehículos livianos', value: '2da' },
+    { label: '3er Grado - Automóvil (hasta 3500kg)', value: '3ra' },
+    { label: '4to Grado - Transporte público / Carga', value: '4ta' },
+    { label: '5to Grado - Articulados / Remolques', value: '5ta' },
 ];
 
 export const PREFIJOS_CEDULA = [

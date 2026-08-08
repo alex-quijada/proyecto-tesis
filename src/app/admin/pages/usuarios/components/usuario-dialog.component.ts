@@ -11,7 +11,6 @@ import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
 import { DividerModule } from 'primeng/divider';
 import { DatePickerModule } from 'primeng/datepicker';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../../../../auth/service/auth.service';
@@ -41,7 +40,6 @@ const ROL_MAP_TO_DB: Record<string, string> = {
         MessageModule,
         DividerModule,
         DatePickerModule,
-        SelectButtonModule,
         PasswordModule,
     ],
     providers: [MessageService],
@@ -64,11 +62,6 @@ export class UsuarioDialogComponent {
     prefijosDoc = PREFIJOS_DOCUMENTO;
     gradosLicencia = GRADOS_LICENCIA;
 
-    activoOptions = [
-        { label: 'Activo', value: true },
-        { label: 'Inactivo', value: false },
-    ];
-
     form: FormGroup = this.fb.group({
         email: [
             '',
@@ -89,7 +82,6 @@ export class UsuarioDialogComponent {
         numeroDoc: [0, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
         nombreCompleto: ['', Validators.required],
         rol: ['ANALISTA', Validators.required],
-        activo: [true],
         licenciaNumero: [''],
         licenciaGrado: ['3ra'],
         licenciaExpedicion: [null],
@@ -105,7 +97,6 @@ export class UsuarioDialogComponent {
             numeroDoc: 0,
             nombreCompleto: '',
             rol: 'ANALISTA',
-            activo: true,
             licenciaNumero: '',
             licenciaGrado: '3ra',
             licenciaExpedicion: null,
@@ -141,7 +132,6 @@ export class UsuarioDialogComponent {
                         : null,
                     nombreCompleto: data.nombreCompleto || '',
                     rol: data.rol || '',
-                    activo: data.activo ?? true,
                     licenciaNumero: data.licencia?.numero || '',
                     licenciaGrado: data.licencia?.grado || '',
                     licenciaExpedicion: this.parseLocalDate(data.licencia?.fechaExpedicion),
@@ -251,7 +241,6 @@ export class UsuarioDialogComponent {
             documentoIdentidad: { prefijo: raw.prefijoDoc, numero: String(raw.numeroDoc) },
             nombreCompleto: raw.nombreCompleto,
             rol: raw.rol,
-            activo: raw.activo,
             fechaCreacion: this.usuarioData().fechaCreacion || this.formatDate(new Date()),
             licencia:
                 raw.rol === 'CHOFER'

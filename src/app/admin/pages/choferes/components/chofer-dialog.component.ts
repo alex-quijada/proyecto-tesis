@@ -63,16 +63,14 @@ export class ChoferDialogComponent {
         nombreCompleto: ['', Validators.required],
         telefono: ['', [Validators.pattern(/^(\+?\d{1,3}[-.\s]?)?\d{7,12}$/)]],
         rol: ['Chofer', Validators.required],
-        fechaIngreso: [''],
         licencia: this.fb.group({
             numero: ['', Validators.required],
             grado: ['', Validators.required],
-            fechaVencimiento: ['', Validators.required],
+            fechaExpedicion: ['', Validators.required],
         }),
         certificadoMedico: this.fb.group({
             numero: ['', Validators.required],
             fechaExpedicion: ['', Validators.required],
-            fechaVencimiento: ['', Validators.required],
         }),
     });
 
@@ -87,21 +85,17 @@ export class ChoferDialogComponent {
                 nombreCompleto: data.nombreCompleto || '',
                 telefono: data.telefono || '',
                 rol: data.rol || 'Chofer',
-                fechaIngreso: data.fechaIngreso ? new Date(data.fechaIngreso) : null,
                 licencia: {
                     numero: data.licencia?.numero || '',
                     grado: data.licencia?.grado || '',
-                    fechaVencimiento: data.licencia?.fechaVencimiento
-                        ? new Date(data.licencia.fechaVencimiento)
+                    fechaExpedicion: data.licencia?.fechaExpedicion
+                        ? new Date(data.licencia.fechaExpedicion)
                         : null,
                 },
                 certificadoMedico: {
                     numero: data.certificadoMedico?.numero || '',
                     fechaExpedicion: data.certificadoMedico?.fechaExpedicion
                         ? new Date(data.certificadoMedico.fechaExpedicion)
-                        : null,
-                    fechaVencimiento: data.certificadoMedico?.fechaVencimiento
-                        ? new Date(data.certificadoMedico.fechaVencimiento)
                         : null,
                 },
             });
@@ -121,6 +115,26 @@ export class ChoferDialogComponent {
         return `${year}-${month}-${day}`;
     }
 
+    get licenciaVencimientoCalculado(): string {
+        return this.calcularVencimiento(this.form.get('licencia.fechaExpedicion')?.value, 10);
+    }
+
+    get certMedicoVencimientoCalculado(): string {
+        return this.calcularVencimiento(
+            this.form.get('certificadoMedico.fechaExpedicion')?.value,
+            5,
+        );
+    }
+
+    private calcularVencimiento(d: Date | null | undefined, years: number): string {
+        if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '';
+        const fecha = new Date(d);
+        fecha.setFullYear(fecha.getFullYear() + years);
+        const lastDay = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+        if (fecha.getDate() > lastDay) fecha.setDate(lastDay);
+        return this.formatDate(fecha);
+    }
+
     save() {
         this.submitted = true;
         this.errorMessage = '';
@@ -138,22 +152,20 @@ export class ChoferDialogComponent {
             nombreCompleto: raw.nombreCompleto,
             telefono: raw.telefono,
             rol: raw.rol,
-            fechaIngreso: raw.fechaIngreso ? this.formatDate(raw.fechaIngreso) : '',
             licencia: {
                 numero: raw.licencia.numero,
                 grado: raw.licencia.grado,
-                fechaVencimiento: raw.licencia.fechaVencimiento
-                    ? this.formatDate(raw.licencia.fechaVencimiento)
+                fechaExpedicion: raw.licencia.fechaExpedicion
+                    ? this.formatDate(raw.licencia.fechaExpedicion)
                     : '',
+                fechaVencimiento: this.licenciaVencimientoCalculado,
             },
             certificadoMedico: {
                 numero: raw.certificadoMedico.numero,
                 fechaExpedicion: raw.certificadoMedico.fechaExpedicion
                     ? this.formatDate(raw.certificadoMedico.fechaExpedicion)
                     : '',
-                fechaVencimiento: raw.certificadoMedico.fechaVencimiento
-                    ? this.formatDate(raw.certificadoMedico.fechaVencimiento)
-                    : '',
+                fechaVencimiento: this.certMedicoVencimientoCalculado,
             },
         };
 

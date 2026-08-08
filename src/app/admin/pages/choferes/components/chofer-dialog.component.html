@@ -115,7 +115,7 @@
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
-                    <div class="col-span-6 flex flex-col gap-2">
+                    <div class="col-span-12 flex flex-col gap-2">
                         <label for="rol" class="font-semibold"
                             >Rol <span class="text-red-500">*</span></label
                         >
@@ -129,16 +129,6 @@
                             appendTo="body"
                         >
                         </p-select>
-                    </div>
-                    <div class="col-span-6 flex flex-col gap-2">
-                        <label for="fechaIngreso" class="font-semibold">Fecha de Ingreso</label>
-                        <p-datepicker
-                            id="fechaIngreso"
-                            formControlName="fechaIngreso"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body"
-                        />
                     </div>
                 </div>
             </p-fluid>
@@ -193,22 +183,35 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-2">
-                        <label for="licenciaVencimiento" class="font-semibold"
-                            >Fecha de Vencimiento <span class="text-red-500">*</span></label
-                        >
-                        <p-datepicker
-                            id="licenciaVencimiento"
-                            formControlName="fechaVencimiento"
-                            dateFormat="dd/mm/yy"
-                            placeholder="dd/mm/aaaa"
-                            appendTo="body"
-                        />
-                        <small
-                            *ngIf="submitted && form.get('licencia.fechaVencimiento')?.invalid"
-                            class="text-red-500"
-                            >La fecha de vencimiento es obligatoria</small
-                        >
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label for="licenciaExpedicion" class="font-semibold"
+                                >Fecha de Expedición <span class="text-red-500">*</span></label
+                            >
+                            <p-datepicker
+                                id="licenciaExpedicion"
+                                formControlName="fechaExpedicion"
+                                dateFormat="dd/mm/yy"
+                                placeholder="dd/mm/aaaa"
+                                appendTo="body"
+                            />
+                            <small
+                                *ngIf="submitted && form.get('licencia.fechaExpedicion')?.invalid"
+                                class="text-red-500"
+                                >La fecha de expedición es obligatoria</small
+                            >
+                        </div>
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label class="font-semibold">Fecha de Vencimiento</label>
+                            <div
+                                class="flex items-center h-10 px-3 rounded-md bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 text-sm"
+                            >
+                                {{
+                                    licenciaVencimientoCalculado ||
+                                        'Se calcula automáticamente (10 años)'
+                                }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </p-fluid>
@@ -263,24 +266,15 @@
                             >
                         </div>
                         <div class="col-span-6 flex flex-col gap-2">
-                            <label for="cmvVencimiento" class="font-semibold"
-                                >Fecha de Vencimiento <span class="text-red-500">*</span></label
+                            <label class="font-semibold">Fecha de Vencimiento</label>
+                            <div
+                                class="flex items-center h-10 px-3 rounded-md bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 text-sm"
                             >
-                            <p-datepicker
-                                id="cmvVencimiento"
-                                formControlName="fechaVencimiento"
-                                dateFormat="dd/mm/yy"
-                                placeholder="dd/mm/aaaa"
-                                appendTo="body"
-                            />
-                            <small
-                                *ngIf="
-                                    submitted &&
-                                    form.get('certificadoMedico.fechaVencimiento')?.invalid
-                                "
-                                class="text-red-500"
-                                >Obligatorio</small
-                            >
+                                {{
+                                    certMedicoVencimientoCalculado ||
+                                        'Se calcula automáticamente (5 años)'
+                                }}
+                            </div>
                         </div>
                     </div>
                 </div>

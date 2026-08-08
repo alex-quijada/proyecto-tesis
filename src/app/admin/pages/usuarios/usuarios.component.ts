@@ -89,7 +89,6 @@ export class UsuariosComponent implements OnInit {
         this.loading.set(true);
         try {
             const data = await this.authService.listarUsuarios();
-            console.log(data);
             this.usuarios.set(data);
         } catch (error: any) {
             console.error('Error al cargar usuarios desde Supabase:', error);
@@ -99,9 +98,7 @@ export class UsuariosComponent implements OnInit {
                 detail: 'No se pudo conectar con la base de datos. Mostrando datos locales.',
             });
         } finally {
-            console.log('Setting loading to false. Current value:', this.loading());
             this.loading.set(false);
-            console.log('Loading after set:', this.loading());
         }
     }
 
@@ -153,6 +150,8 @@ export class UsuariosComponent implements OnInit {
                 : `¿Reactivar a <strong>${usuario.nombreCompleto}</strong>? Podrá iniciar sesión nuevamente.`,
             header: desactivando ? 'Confirmar Desactivación' : 'Confirmar Reactivación',
             icon: 'pi pi-exclamation-triangle',
+            acceptLabel: desactivando ? 'Desactivar' : 'Reactivar',
+            rejectLabel: 'Cancelar',
             accept: async () => {
                 try {
                     if (desactivando) {
@@ -196,6 +195,8 @@ export class UsuariosComponent implements OnInit {
             message: `¿Desactivar ${selected.length} usuario(s) seleccionados?`,
             header: 'Confirmar Desactivación Masiva',
             icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Desactivar Todo',
+            rejectLabel: 'Cancelar',
             accept: async () => {
                 try {
                     for (const u of selected) {

@@ -263,6 +263,7 @@ export class AuthService {
         return (data || []).map(
             (row: any): Chofer => ({
                 id: row.id_usuario,
+                email: row.email || '',
                 documentoIdentidad: {
                     prefijo: row.prefijo_doc || 'V',
                     numero: String(row.cedula || ''),

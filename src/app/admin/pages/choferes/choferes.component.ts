@@ -117,15 +117,49 @@ export class ChoferesComponent implements OnInit {
         this.isDialogOpen.set(true);
     }
 
-    async handleSaveChofer(choferCapturado: Chofer) {
-        await this.cargarChoferes();
+    async handleSaveChofer(chofer: Chofer) {
+        if (!chofer.id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo identificar al usuario.',
+                life: 5000,
+            });
+            return;
+        }
 
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Completado',
-            detail: `Datos de ${choferCapturado.nombreCompleto} actualizados`,
-            life: 3000,
-        });
+        try {
+            await this.authService.actualizarUsuarioPorRol({
+                user_id: chofer.id,
+                email: chofer.email || '',
+                password: '',
+                nombre_completo: chofer.nombreCompleto || '',
+                cedula: Number(chofer.documentoIdentidad?.numero || 0),
+                nombre_rol: chofer.rol || 'Chofer',
+                prefijo_doc: chofer.documentoIdentidad?.prefijo || 'V',
+                certificado_numero: chofer.certificadoMedico?.numero || '',
+                certificado_expedicion: chofer.certificadoMedico?.fechaExpedicion || null,
+                licencia_numero: chofer.licencia?.numero || '',
+                licencia_grado: chofer.licencia?.grado || '',
+                licencia_expedicion: chofer.licencia?.fechaExpedicion || null,
+            });
+
+            await this.cargarChoferes();
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Completado',
+                detail: `Datos de ${chofer.nombreCompleto} actualizados`,
+                life: 3000,
+            });
+        } catch (error: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'No se pudieron guardar los cambios',
+                life: 5000,
+            });
+        }
     }
 
     async deleteChofer(chofer: Chofer) {
