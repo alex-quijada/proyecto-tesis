@@ -35,9 +35,8 @@ export class VehiculoDetalleDialogComponent {
 
     mantenimientos: any[] = [];
     activeTab = '0';
-
     getSeverity(estado?: string) {
-        switch (estado) {
+        switch ((estado || '').toUpperCase()) {
             case 'OPERATIVO':
                 return 'success';
             case 'MANTENIMIENTO':
@@ -49,6 +48,16 @@ export class VehiculoDetalleDialogComponent {
         }
     }
 
+    getEstadoClass(estado?: string): string {
+        return (estado || '').toUpperCase() === 'MANTENIMIENTO'
+            ? '!bg-purple-400 !text-white !border-purple-400'
+            : '';
+    }
+
+    getEstadoLabel(estado?: string): string {
+        if (!estado) return '';
+        return estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+    }
     getLabelCaja(tipo?: string) {
         switch (tipo) {
             case 'SECA':

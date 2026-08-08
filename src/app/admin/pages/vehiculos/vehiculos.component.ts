@@ -171,9 +171,8 @@ export class VehiculosComponent implements OnInit {
             },
         });
     }
-
     getSeverity(estado: string) {
-        switch (estado) {
+        switch ((estado || '').toUpperCase()) {
             case 'OPERATIVO':
                 return 'success';
             case 'MANTENIMIENTO':
@@ -185,6 +184,16 @@ export class VehiculosComponent implements OnInit {
         }
     }
 
+    getEstadoClass(estado: string): string {
+        return (estado || '').toUpperCase() === 'MANTENIMIENTO'
+            ? '!bg-purple-500 !text-white !border-purple-500'
+            : '';
+    }
+
+    getEstadoLabel(estado: string): string {
+        if (!estado) return '';
+        return estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+    }
     getSeverityCaja(tipo: string) {
         switch (tipo) {
             case 'REFRIGERADO':

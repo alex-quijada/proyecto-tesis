@@ -100,6 +100,21 @@
                             [maxlength]="4"
                             placeholder="Ej: 2024"
                         />
+                        <small
+                            *ngIf="submitted && form.get('anio')?.errors?.['required']"
+                            class="text-red-500"
+                            >El año es obligatorio</small
+                        >
+                        <small
+                            *ngIf="submitted && form.get('anio')?.errors?.['min']"
+                            class="text-red-500"
+                            >El año no puede ser anterior a 1950</small
+                        >
+                        <small
+                            *ngIf="submitted && form.get('anio')?.errors?.['max']"
+                            class="text-red-500"
+                            >El año no puede exceder {{ anioMaximo }}</small
+                        >
                     </div>
                 </div>
             </p-fluid>
@@ -127,6 +142,16 @@
                             [min]="0"
                             placeholder="Capacidad en Kg"
                         />
+                        <small
+                            *ngIf="submitted && form.get('pesoMaximo')?.errors?.['required']"
+                            class="text-red-500"
+                            >El peso máximo es obligatorio</small
+                        >
+                        <small
+                            *ngIf="submitted && form.get('pesoMaximo')?.errors?.['max']"
+                            class="text-red-500"
+                            >El peso máximo no puede exceder los 45,000 Kg</small
+                        >
                     </div>
                     <div class="col-span-6 flex flex-col gap-2" *ngIf="esCamion()">
                         <label for="pallets" class="font-semibold"
@@ -138,6 +163,28 @@
                             [min]="0"
                             placeholder="Cantidad"
                         />
+                        <small *ngIf="tipoCajaEsArticulado()" class="text-surface-400 italic"
+                            >Los articulados enganchan góndolas y no cargan palets</small
+                        >
+                        <small
+                            *ngIf="
+                                !tipoCajaEsArticulado() &&
+                                submitted &&
+                                form.get('capacidadPallets')?.errors?.['required']
+                            "
+                            class="text-red-500"
+                            >La capacidad de palets es obligatoria</small
+                        >
+                        <small
+                            *ngIf="
+                                !tipoCajaEsArticulado() &&
+                                submitted &&
+                                form.get('capacidadPallets')?.errors?.['max']
+                            "
+                            class="text-red-500"
+                            >La capacidad máxima es de {{ paletsMaximo() }} palets para esta
+                            estructura</small
+                        >
                     </div>
                 </div>
 
@@ -171,52 +218,6 @@
                         appendTo="body"
                     >
                     </p-select>
-                </div>
-            </p-fluid>
-
-            <p-divider />
-
-            <p-fluid>
-                <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
-                >
-                    Imagen del Vehículo
-                </div>
-
-                <div *ngIf="!uploadedImageUrl" class="flex flex-col gap-2 mt-2">
-                    <p-fileUpload
-                        mode="basic"
-                        name="imagen"
-                        accept="image/*"
-                        [maxFileSize]="5000000"
-                        chooseLabel="Seleccionar imagen"
-                        (onSelect)="onImageUpload($event)"
-                        [auto]="true"
-                        [disabled]="uploadingImage"
-                    >
-                    </p-fileUpload>
-                    <small class="text-surface-400 italic">
-                        Formatos: JPG, PNG, WEBP. Máximo 5MB.
-                    </small>
-                </div>
-
-                <div *ngIf="uploadedImageUrl" class="flex flex-col gap-2 mt-2">
-                    <div
-                        class="relative inline-block w-48 h-36 rounded-lg overflow-hidden border border-surface-200 dark:border-surface-700"
-                    >
-                        <img
-                            [src]="uploadedImageUrl"
-                            alt="Vehículo"
-                            class="w-full h-full object-cover"
-                        />
-                    </div>
-                    <p-button
-                        label="Eliminar imagen"
-                        icon="pi pi-trash"
-                        severity="danger"
-                        size="small"
-                        (onClick)="removeImage()"
-                    />
                 </div>
             </p-fluid>
         </form>

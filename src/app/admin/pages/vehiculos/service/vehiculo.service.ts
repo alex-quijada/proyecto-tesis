@@ -31,7 +31,6 @@ export class VehiculoService {
                 capacidadPallets: row.capacidad_pallets ?? 0,
                 pesoMaximo: row.peso_maximo ? Number(row.peso_maximo) : 0,
                 estado: row.estado_nombre,
-                imagen_url: row.imagen_url || undefined,
             }),
         );
     }
@@ -63,7 +62,6 @@ export class VehiculoService {
             p_capacidad_pallets: vehiculo.capacidadPallets ?? 0,
             p_peso_maximo: vehiculo.pesoMaximo ?? 0,
             p_estado_nombre: vehiculo.estado || 'OPERATIVO',
-            p_imagen_url: vehiculo.imagen_url || null,
         });
 
         if (error) throw new Error(`Error al crear vehículo: ${error.message}`);
@@ -82,7 +80,6 @@ export class VehiculoService {
             p_capacidad_pallets: vehiculo.capacidadPallets ?? 0,
             p_peso_maximo: vehiculo.pesoMaximo ?? 0,
             p_estado_nombre: vehiculo.estado || 'OPERATIVO',
-            p_imagen_url: vehiculo.imagen_url || null,
         });
 
         if (error) throw new Error(`Error al actualizar vehículo: ${error.message}`);
@@ -94,22 +91,5 @@ export class VehiculoService {
         });
 
         if (error) throw new Error(`Error al eliminar vehículo: ${error.message}`);
-    }
-
-    async subirImagenVehiculo(file: File, vehiculoId: string): Promise<string> {
-        const ext = file.name.split('.').pop();
-        const filePath = `vehiculos/${vehiculoId}/${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await this.supabase.storage
-            .from('vehiculos-imagenes')
-            .upload(filePath, file, { upsert: true });
-
-        if (uploadError) throw new Error(`Error al subir imagen: ${uploadError.message}`);
-
-        const { data: publicUrlData } = this.supabase.storage
-            .from('vehiculos-imagenes')
-            .getPublicUrl(filePath);
-
-        return publicUrlData.publicUrl;
     }
 }

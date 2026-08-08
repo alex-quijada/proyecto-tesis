@@ -41,8 +41,9 @@
                             ></span>
                         </div>
                         <p-tag
-                            [value]="vehiculo().estado"
+                            [value]="getEstadoLabel(vehiculo().estado)"
                             [severity]="getSeverity(vehiculo().estado)"
+                            [styleClass]="getEstadoClass(vehiculo().estado)"
                         />
                     </div>
 

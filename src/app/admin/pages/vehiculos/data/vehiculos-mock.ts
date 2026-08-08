@@ -10,7 +10,6 @@ export interface Vehiculo {
     tipoCaja?: 'SECA' | 'PLATAFORMA' | 'REFRIGERADO' | 'ARTICULADO';
     pesoMaximo?: number;
     estado?: 'OPERATIVO' | 'MANTENIMIENTO' | 'INACTIVO';
-    imagen_url?: string;
 }
 
 export const VEHICULOS_MOCK: Vehiculo[] = [

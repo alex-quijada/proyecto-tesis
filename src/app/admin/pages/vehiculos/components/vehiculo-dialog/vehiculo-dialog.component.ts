@@ -1,4 +1,14 @@
-import { Component, input, output, model, effect, inject, signal, DestroyRef } from '@angular/core';
+import {
+    Component,
+    input,
+    output,
+    model,
+    effect,
+    inject,
+    signal,
+    computed,
+    DestroyRef,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, JsonPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -13,7 +23,6 @@ import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
 import { DividerModule } from 'primeng/divider';
 import { ToastModule } from 'primeng/toast';
-import { FileUploadModule } from 'primeng/fileupload';
 
 import { Vehiculo } from '../../data/vehiculos-mock';
 import { VehiculoService } from '../../service/vehiculo.service';
@@ -33,7 +42,6 @@ import { VehiculoService } from '../../service/vehiculo.service';
         MessageModule,
         DividerModule,
         ToastModule,
-        FileUploadModule,
     ],
     providers: [MessageService],
     templateUrl: './vehiculo-dialog.component.html',
@@ -50,8 +58,17 @@ export class VehiculoDialogComponent {
     submitted = false;
     errorMessage = '';
     loading = false;
-    uploadingImage = false;
-    uploadedImageUrl: string | undefined = undefined;
+
+    anioMaximo = new Date().getFullYear() + 1;
+
+    paletsMaximo = computed(() => {
+        const tipoCaja = (this.form.get('tipoCaja')?.value || '').toUpperCase();
+        return tipoCaja === 'PLATAFORMA' ? 30 : 20;
+    });
+
+    tipoCajaEsArticulado = computed(
+        () => (this.form.get('tipoCaja')?.value || '').toUpperCase() === 'ARTICULADO',
+    );
 
     tiposVehiculo: { label: string; value: string }[] = [];
     tiposCaja: { label: string; value: string }[] = [];
@@ -66,14 +83,10 @@ export class VehiculoDialogComponent {
         modelo: ['', Validators.required],
         anio: [
             new Date().getFullYear(),
-            [
-                Validators.required,
-                Validators.min(1950),
-                Validators.max(new Date().getFullYear() + 1),
-            ],
+            [Validators.required, Validators.min(1950), Validators.max(this.anioMaximo)],
         ],
         capacidadPallets: [0, Validators.required],
-        pesoMaximo: [0, [Validators.required, Validators.min(0)]],
+        pesoMaximo: [0, [Validators.required, Validators.min(0), Validators.max(45000)]],
         tipoCaja: ['SECA', Validators.required],
         estado: ['OPERATIVO', Validators.required],
     });
@@ -85,7 +98,6 @@ export class VehiculoDialogComponent {
             const data = this.vehiculoData();
             this.submitted = false;
             this.errorMessage = '';
-            this.uploadedImageUrl = data.imagen_url || undefined;
             this.form.markAsPristine();
             this.form.markAsUntouched();
 
@@ -114,6 +126,8 @@ export class VehiculoDialogComponent {
                     estado: 'OPERATIVO',
                 });
             }
+
+            this.actualizarValidacionPallets();
         });
 
         effect(() => {
@@ -133,6 +147,33 @@ export class VehiculoDialogComponent {
                     this.form.get('tipoCaja')?.setValue('SECA');
                 }
             });
+
+        this.form
+            .get('tipoCaja')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.dr))
+            .subscribe(() => {
+                this.actualizarValidacionPallets();
+            });
+    }
+
+    private actualizarValidacionPallets() {
+        const pallets = this.form.get('capacidadPallets');
+        if (!pallets) return;
+
+        if (this.tipoCajaEsArticulado()) {
+            pallets.setValue(0, { emitEvent: false });
+            pallets.disable({ emitEvent: false });
+            pallets.clearValidators();
+            pallets.setValidators([Validators.required, Validators.max(0)]);
+        } else {
+            pallets.enable({ emitEvent: false });
+            pallets.setValidators([
+                Validators.required,
+                Validators.min(0),
+                Validators.max(this.paletsMaximo()),
+            ]);
+        }
+        pallets.updateValueAndValidity();
     }
 
     private async cargarCatalogos() {
@@ -166,7 +207,6 @@ export class VehiculoDialogComponent {
         this.visible.set(false);
         this.submitted = false;
         this.errorMessage = '';
-        this.uploadedImageUrl = undefined;
         this.form.markAsPristine();
         this.form.markAsUntouched();
     }
@@ -211,42 +251,12 @@ export class VehiculoDialogComponent {
         return true;
     }
 
-    onImageUpload(event: any) {
-        const file = event.files?.[0];
-        if (!file) return;
-
-        this.uploadingImage = true;
-        const tempId = `temp_${Date.now()}`;
-
-        this.vehiculoService
-            .subirImagenVehiculo(file, tempId)
-            .then((url) => {
-                this.uploadedImageUrl = url;
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Imagen subida',
-                    detail: 'La imagen se ha subido correctamente',
-                    life: 3000,
-                });
-            })
-            .catch((error: any) => {
-                this.errorMessage = error.message || 'Error al subir la imagen';
-            })
-            .finally(() => {
-                this.uploadingImage = false;
-            });
-    }
-
-    removeImage() {
-        this.uploadedImageUrl = undefined;
-    }
-
     async save() {
         this.submitted = true;
         this.errorMessage = '';
 
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            this.errorMessage = 'Corrija los campos señalados en rojo.';
             return;
         }
 
@@ -267,7 +277,6 @@ export class VehiculoDialogComponent {
             tipoCaja: tipo !== 'CAMION' ? 'SECA' : raw.tipoCaja,
             pesoMaximo: raw.pesoMaximo,
             estado: raw.estado,
-            imagen_url: this.uploadedImageUrl,
         };
 
         this.loading = true;

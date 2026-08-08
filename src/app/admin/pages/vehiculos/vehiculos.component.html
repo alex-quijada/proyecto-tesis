@@ -115,7 +115,11 @@
                     />
                 </td>
                 <td>
-                    <p-tag [value]="carro.estado" [severity]="getSeverity(carro.estado)" />
+                    <p-tag
+                        [value]="getEstadoLabel(carro.estado)"
+                        [severity]="getSeverity(carro.estado)"
+                        [styleClass]="getEstadoClass(carro.estado)"
+                    />
                 </td>
                 <td>
                     <div class="flex gap-1">
