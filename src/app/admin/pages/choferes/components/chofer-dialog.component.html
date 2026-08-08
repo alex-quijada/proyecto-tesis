@@ -5,11 +5,12 @@
     [modal]="true"
 >
     <ng-template #content>
+        <p-toast position="top-right" />
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
             <p-message
-                *ngIf="errorMessage"
+                *ngIf="errorMessage()"
                 severity="error"
-                [text]="errorMessage"
+                [text]="errorMessage()"
                 class="mb-2"
             ></p-message>
 
@@ -283,10 +284,18 @@
     </ng-template>
 
     <ng-template #footer>
-        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+        <p-button
+            label="Cancelar"
+            icon="pi pi-times"
+            text
+            [disabled]="loading()"
+            (onClick)="hideDialog()"
+        />
         <p-button
             [label]="choferData().id ? 'Guardar Cambios' : 'Registrar'"
             icon="pi pi-check"
+            [loading]="loading()"
+            [disabled]="loading()"
             (onClick)="save()"
         />
     </ng-template>

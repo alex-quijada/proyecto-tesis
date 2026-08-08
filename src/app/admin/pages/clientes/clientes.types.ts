@@ -37,4 +37,5 @@ export interface Cliente {
     idPrioridad?: string;
     prioridad?: string;
     sucursales?: SucursalCliente[];
+    activo?: boolean;
 }

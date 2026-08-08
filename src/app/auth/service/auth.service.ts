@@ -257,8 +257,10 @@ export class AuthService {
         if (error) throw new Error(`Error al reactivar usuario: ${error.message}`);
     }
 
-    async obtenerChoferes(): Promise<Chofer[]> {
-        const { data, error } = await this.supabase.rpc('obtener_choferes');
+    async obtenerChoferes(incluirInactivos = false): Promise<Chofer[]> {
+        const { data, error } = await this.supabase.rpc('obtener_choferes', {
+            p_incluir_inactivos: incluirInactivos,
+        });
 
         if (error) throw new Error(`Error al cargar choferes: ${error.message}`);
 
@@ -266,6 +268,7 @@ export class AuthService {
             (row: any): Chofer => ({
                 id: row.id_usuario,
                 email: row.email || '',
+                activo: row.activo ?? true,
                 documentoIdentidad: {
                     prefijo: row.prefijo_doc || 'V',
                     numero: String(row.cedula || ''),

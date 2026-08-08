@@ -138,7 +138,17 @@ export class ClienteService {
             personaContacto: c.persona_contacto,
             idPrioridad: c.id_prioridad,
             prioridad: c.nombre_prioridad,
+            activo: c.activo ?? true,
         }));
+    }
+
+    async cambiarEstadoCliente(cliente: Cliente, activo: boolean): Promise<void> {
+        const { error } = await this.supabase.rpc('actualizar_estado_cliente', {
+            p_id_cliente: cliente.id,
+            p_activo: activo,
+        });
+
+        if (error) throw this.formatearError('Error al actualizar el estado del cliente', error);
     }
 
     private formatearError(contexto: string, err: any): Error {

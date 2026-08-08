@@ -1,4 +1,4 @@
-import { Component, input, output, model, effect, inject } from '@angular/core';
+import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -8,10 +8,13 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
+import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
+import { MessageService } from 'primeng/api';
 
-import { Chofer, CHOFERES_MOCK, PREFIJOS_CEDULA, GRADOS_LICENCIA } from '../data/choferes-mock';
+import { Chofer, PREFIJOS_CEDULA, GRADOS_LICENCIA } from '../data/choferes-mock';
+import { AuthService } from '../../../../auth/service/auth.service';
 
 @Component({
     selector: 'app-chofer-dialog',
@@ -25,20 +28,25 @@ import { Chofer, CHOFERES_MOCK, PREFIJOS_CEDULA, GRADOS_LICENCIA } from '../data
         SelectModule,
         FluidModule,
         MessageModule,
+        ToastModule,
         DatePickerModule,
         DividerModule,
     ],
+    providers: [MessageService],
     templateUrl: './chofer-dialog.component.html',
 })
 export class ChoferDialogComponent {
     private fb = inject(FormBuilder);
+    private authService = inject(AuthService);
+    private messageService = inject(MessageService);
 
     visible = model<boolean>(false);
     choferData = input<Chofer>({});
     onSave = output<Chofer>();
 
     submitted = false;
-    errorMessage = '';
+    errorMessage = signal('');
+    loading = signal(false);
 
     prefijos = PREFIJOS_CEDULA;
     grados = GRADOS_LICENCIA;
@@ -78,7 +86,8 @@ export class ChoferDialogComponent {
         effect(() => {
             const data = this.choferData();
             this.submitted = false;
-            this.errorMessage = '';
+            this.errorMessage.set('');
+            this.loading.set(false);
 
             this.form.patchValue({
                 documentoIdentidad: data.documentoIdentidad || { prefijo: 'V', numero: '' },
@@ -105,7 +114,8 @@ export class ChoferDialogComponent {
     hideDialog() {
         this.visible.set(false);
         this.submitted = false;
-        this.errorMessage = '';
+        this.errorMessage.set('');
+        this.loading.set(false);
     }
 
     private formatDate(d: Date): string {
@@ -135,19 +145,25 @@ export class ChoferDialogComponent {
         return this.formatDate(fecha);
     }
 
-    save() {
+    async save() {
         this.submitted = true;
-        this.errorMessage = '';
+        this.errorMessage.set('');
 
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';
+            this.errorMessage.set('Complete todos los campos obligatorios marcados con *.');
+            return;
+        }
+
+        const chofer = this.choferData();
+        if (!chofer.id) {
+            this.errorMessage.set('No se pudo identificar al usuario.');
             return;
         }
 
         const raw = this.form.getRawValue();
 
         const choferFinal: Chofer = {
-            ...this.choferData(),
+            ...chofer,
             documentoIdentidad: raw.documentoIdentidad,
             nombreCompleto: raw.nombreCompleto,
             telefono: raw.telefono,
@@ -169,7 +185,40 @@ export class ChoferDialogComponent {
             },
         };
 
-        this.onSave.emit(choferFinal);
-        this.visible.set(false);
+        this.loading.set(true);
+        try {
+            await this.authService.actualizarUsuarioPorRol({
+                user_id: chofer.id,
+                email: chofer.email || '',
+                password: '',
+                nombre_completo: raw.nombreCompleto,
+                cedula: Number(raw.documentoIdentidad.numero || 0),
+                nombre_rol: raw.rol || 'Chofer',
+                prefijo_doc: raw.documentoIdentidad.prefijo || 'V',
+                certificado_numero: raw.certificadoMedico.numero || '',
+                certificado_expedicion: raw.certificadoMedico.fechaExpedicion
+                    ? this.formatDate(raw.certificadoMedico.fechaExpedicion)
+                    : null,
+                licencia_numero: raw.licencia.numero || '',
+                licencia_grado: raw.licencia.grado || '',
+                licencia_expedicion: raw.licencia.fechaExpedicion
+                    ? this.formatDate(raw.licencia.fechaExpedicion)
+                    : null,
+            });
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Completado',
+                detail: `Datos de ${raw.nombreCompleto} actualizados`,
+                life: 3000,
+            });
+
+            this.onSave.emit(choferFinal);
+            this.visible.set(false);
+        } catch (error: any) {
+            this.errorMessage.set(error.message || 'No se pudieron guardar los cambios');
+        } finally {
+            this.loading.set(false);
+        }
     }
 }

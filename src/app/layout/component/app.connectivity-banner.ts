@@ -1,17 +1,15 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 import { ButtonModule } from 'primeng/button';
 import { ConnectivityService } from '@/app/services/connectivity.service';
+
+const RECONEXION_BANNER_MS = 4000;
 
 @Component({
     selector: 'app-connectivity-banner',
     standalone: true,
-    imports: [CommonModule, ToastModule, ButtonModule],
-    providers: [MessageService],
+    imports: [CommonModule, ButtonModule],
     template: `
-        <p-toast />
         <div
             *ngIf="!connectivity.isOnline()"
             class="fixed inset-x-0 top-0 z-[2000] flex justify-center px-4 pt-3 pointer-events-none"
@@ -30,26 +28,42 @@ import { ConnectivityService } from '@/app/services/connectivity.service';
                 />
             </div>
         </div>
+
+        <div
+            *ngIf="mostrandoReconexion()"
+            class="fixed inset-x-0 top-0 z-[2000] flex justify-center px-4 pt-3 pointer-events-none"
+        >
+            <div
+                class="pointer-events-auto flex items-center gap-3 rounded-lg bg-green-500 text-white px-4 py-2 shadow-lg text-sm"
+            >
+                <i class="pi pi-check-circle text-base"></i>
+                <span>Conexión restablecida. Ya tienes internet de nuevo.</span>
+            </div>
+        </div>
     `,
 })
 export class AppConnectivityBanner {
     connectivity = inject(ConnectivityService);
-    private messageService = inject(MessageService);
+    mostrandoReconexion = signal(false);
+    private destroyRef = inject(DestroyRef);
+    private timer: ReturnType<typeof setTimeout> | undefined;
 
     constructor() {
         let prevOnline = this.connectivity.isOnline();
         effect(() => {
             const online = this.connectivity.isOnline();
             if (online && !prevOnline) {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Conexión restablecida',
-                    detail: 'Tu conexión a internet está activa de nuevo.',
-                    life: 3000,
-                });
+                this.mostrandoReconexion.set(true);
+                clearTimeout(this.timer);
+                this.timer = setTimeout(
+                    () => this.mostrandoReconexion.set(false),
+                    RECONEXION_BANNER_MS,
+                );
             }
             prevOnline = online;
         });
+
+        this.destroyRef.onDestroy(() => clearTimeout(this.timer));
     }
 
     reintentar() {

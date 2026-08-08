@@ -96,11 +96,20 @@ export class VehiculoService {
         if (error) throw this.formatearError('Error al actualizar vehículo', error);
     }
 
-    async eliminarVehiculo(id: string): Promise<void> {
-        const { error } = await this.supabase.rpc('eliminar_vehiculo', {
-            p_id_vehiculo: id,
+    async cambiarEstadoVehiculo(vehiculo: Vehiculo, estado: string): Promise<void> {
+        const { error } = await this.supabase.rpc('actualizar_vehiculo', {
+            p_id_vehiculo: vehiculo.id_vehiculo || vehiculo.id,
+            p_placa: vehiculo.placa || '',
+            p_marca: vehiculo.marca || '',
+            p_modelo: vehiculo.modelo || '',
+            p_anio: vehiculo.anio || new Date().getFullYear(),
+            p_tipo_nombre: vehiculo.tipo || 'CARRO',
+            p_caja_nombre: vehiculo.tipoCaja || 'SECA',
+            p_capacidad_pallets: vehiculo.capacidadPallets ?? 0,
+            p_peso_maximo: vehiculo.pesoMaximo ?? 0,
+            p_estado_nombre: estado,
         });
 
-        if (error) throw this.formatearError('Error al eliminar vehículo', error);
+        if (error) throw this.formatearError('Error al actualizar el estado del vehículo', error);
     }
 }

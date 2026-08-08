@@ -19,12 +19,18 @@
                 (onClick)="isExpanded() ? collapseAll() : expandAll()"
             />
             <p-button
-                label="Eliminar Seleccionados"
-                icon="pi pi-trash"
-                severity="danger"
+                label="Desactivar Seleccionados"
+                icon="pi pi-ban"
+                severity="secondary"
                 outlined
-                (onClick)="deleteSelectedClientes()"
+                (onClick)="desactivarSelectedClientes()"
                 [disabled]="!selectedClientes || !selectedClientes.length"
+            />
+            <p-selectbutton
+                [options]="estadosFiltro"
+                [(ngModel)]="filtroEstado"
+                optionLabel="label"
+                optionValue="value"
             />
         </ng-template>
         <ng-template #end>
@@ -58,7 +64,7 @@
     } @else {
         <p-table
             #dt
-            [value]="clientes()"
+            [value]="clientesFiltrados"
             dataKey="id"
             [rows]="10"
             [paginator]="true"
@@ -120,6 +126,9 @@
                     <th pSortableColumn="prioridad" style="min-width: 7rem">
                         Prioridad <p-sortIcon field="prioridad" />
                     </th>
+                    <th pSortableColumn="activo" style="min-width: 7rem">
+                        Estado <p-sortIcon field="activo" />
+                    </th>
                     <th style="width: 8rem">Acciones</th>
                 </tr>
             </ng-template>
@@ -164,6 +173,13 @@
                         />
                     </td>
                     <td>
+                        <p-tag
+                            [value]="cliente.activo !== false ? 'Activo' : 'Inactivo'"
+                            [severity]="cliente.activo !== false ? 'success' : 'danger'"
+                            [styleClass]="'text-xs px-2 py-0.5'"
+                        />
+                    </td>
+                    <td>
                         <div class="flex gap-1">
                             <p-button
                                 icon="pi pi-pencil"
@@ -176,14 +192,26 @@
                                 (click)="editCliente(cliente)"
                             />
                             <p-button
-                                icon="pi pi-trash"
+                                *ngIf="cliente.activo !== false"
+                                icon="pi pi-ban"
                                 [rounded]="true"
                                 [outlined]="true"
                                 severity="danger"
                                 size="small"
-                                pTooltip="Eliminar"
+                                pTooltip="Desactivar"
                                 tooltipPosition="top"
-                                (click)="deleteCliente(cliente)"
+                                (click)="toggleEstadoCliente(cliente)"
+                            />
+                            <p-button
+                                *ngIf="cliente.activo === false"
+                                icon="pi pi-check-circle"
+                                [rounded]="true"
+                                [outlined]="true"
+                                severity="success"
+                                size="small"
+                                pTooltip="Reactivar"
+                                tooltipPosition="top"
+                                (click)="toggleEstadoCliente(cliente)"
                             />
                         </div>
                     </td>
@@ -192,7 +220,7 @@
 
             <ng-template #expandedrow let-cliente>
                 <tr>
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="p-4">
                             <div
                                 class="flex items-center justify-between mb-4 text-surface-600 dark:text-surface-300 text-sm font-medium"

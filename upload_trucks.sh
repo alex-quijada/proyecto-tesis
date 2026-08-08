@@ -73,7 +73,6 @@ if docker exec supabase_db_proyecto-tesis sh -c "psql -U postgres -c 'SELECT 1;'
                 capacidad_pallets integer NOT NULL DEFAULT 0,
                 peso_maximo numeric NOT NULL DEFAULT 0,
                 id_estado_vehiculo uuid NOT NULL,
-                imagen_url text,
                 CONSTRAINT fk_vehiculo_tipo FOREIGN KEY (id_tipo_vehiculo) REFERENCES public.tipos_vehiculos(id_tipo_vehiculo),
                 CONSTRAINT fk_vehiculo_caja FOREIGN KEY (id_tipo_caja) REFERENCES public.tipos_cajas(id_tipo_caja),
                 CONSTRAINT fk_vehiculo_estado FOREIGN KEY (id_estado_vehiculo) REFERENCES public.estados_vehiculos(id_estado_vehiculo)
@@ -152,11 +151,11 @@ BEGIN
     INSERT INTO public.vehiculos (
         placa, marca, modelo, anio,
         id_tipo_vehiculo, id_tipo_caja, capacidad_pallets, peso_maximo,
-        id_estado_vehiculo, imagen_url
+        id_estado_vehiculo
     ) VALUES (
         UPPER('A98AE3I'), 'MITSUBISHI', 'CANTER', 2020,
         camion_id_tipo_vehiculo, camion_id_tipo_caja, 20, 3500.0,
-        camion_id_estado_vehiculo, NULL
+        camion_id_estado_vehiculo
     ) RETURNING id_vehiculo INTO camion_id_vehiculo;
     
     camiones_insertados := camiones_insertados + 1;
@@ -166,11 +165,11 @@ BEGIN
     INSERT INTO public.vehiculos (
         placa, marca, modelo, anio,
         id_tipo_vehiculo, id_tipo_caja, capacidad_pallets, peso_maximo,
-        id_estado_vehiculo, imagen_url
+        id_estado_vehiculo
     ) VALUES (
         UPPER('AA260XA'), 'MERCEDES BENZ', 'SPRINTER', 2019,
         mercedes_id_tipo_vehiculo, mercedes_id_tipo_caja, 10, 0.0,
-        mercedes_id_estado_vehiculo, NULL
+        mercedes_id_estado_vehiculo
     ) RETURNING id_vehiculo INTO mercedes_id_vehiculo;
     
     camiones_insertados := camiones_insertados + 1;
@@ -180,11 +179,11 @@ BEGIN
     INSERT INTO public.vehiculos (
         placa, marca, modelo, anio,
         id_tipo_vehiculo, id_tipo_caja, capacidad_pallets, peso_maximo,
-        id_estado_vehiculo, imagen_url
+        id_estado_vehiculo
     ) VALUES (
         UPPER('A48AR2B'), 'FORD', 'CARGO 1721', 2018,
         ford_id_tipo_vehiculo, ford_id_tipo_caja, 30, 9000.0,
-        ford_id_estado_vehiculo, NULL
+        ford_id_estado_vehiculo
     ) RETURNING id_vehiculo INTO ford_id_vehiculo;
     
     camiones_insertados := camiones_insertados + 1;

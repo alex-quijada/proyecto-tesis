@@ -64,7 +64,6 @@ export interface ChoferVehiculo {
     capacidad_pallets: number;
     peso_maximo: number;
     estado_nombre: string;
-    imagen_url: string | null;
 }
 
 export interface FinalizarEntregaResult {

@@ -30,6 +30,12 @@
                     appendTo="body"
                     styleClass="w-44"
                 />
+                <p-selectbutton
+                    [options]="estadosFiltro"
+                    [(ngModel)]="filtroEstado"
+                    optionLabel="label"
+                    optionValue="value"
+                />
             </div>
         </ng-template>
 

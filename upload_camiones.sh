@@ -82,7 +82,6 @@ CREATE TABLE IF NOT EXISTS public.vehiculos (
     capacidad_pallets integer NOT NULL DEFAULT 0,
     peso_maximo numeric NOT NULL DEFAULT 0,
     id_estado_vehiculo uuid NOT NULL,
-    imagen_url text,
     CONSTRAINT fk_vehiculo_tipo FOREIGN KEY (id_tipo_vehiculo) REFERENCES public.tipos_vehiculos(id_tipo_vehiculo),
     CONSTRAINT fk_vehiculo_caja FOREIGN KEY (id_tipo_caja) REFERENCES public.tipos_cajas(id_tipo_caja),
     CONSTRAINT fk_vehiculo_estado FOREIGN KEY (id_estado_vehiculo) REFERENCES public.estados_vehiculos(id_estado_vehiculo)

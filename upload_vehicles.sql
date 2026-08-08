@@ -27,8 +27,7 @@ INSERT INTO public.vehiculos (
     id_tipo_caja,
     capacidad_pallets,
     peso_maximo,
-    id_estado_vehiculo,
-    imagen_url
+    id_estado_vehiculo
 )
 SELECT
     UPPER('A98AE3I'),
@@ -39,8 +38,7 @@ SELECT
     cat2.id_tipo_caja,
     20,
     3500.0,
-    cat3.id_estado_vehiculo,
-    NULL
+    cat3.id_estado_vehiculo
 FROM cat1, cat2, cat3
 ON CONFLICT (placa) DO NOTHING;
 
@@ -58,8 +56,7 @@ INSERT INTO public.vehiculos (
     id_tipo_caja,
     capacidad_pallets,
     peso_maximo,
-    id_estado_vehiculo,
-    imagen_url
+    id_estado_vehiculo
 )
 SELECT
     UPPER('AA260XA'),
@@ -70,8 +67,7 @@ SELECT
     cat2.id_tipo_caja,
     10,
     0.0,
-    cat3.id_estado_vehiculo,
-    NULL
+    cat3.id_estado_vehiculo
 FROM cat1, cat2, cat3
 ON CONFLICT (placa) DO NOTHING;
 
@@ -89,8 +85,7 @@ INSERT INTO public.vehiculos (
     id_tipo_caja,
     capacidad_pallets,
     peso_maximo,
-    id_estado_vehiculo,
-    imagen_url
+    id_estado_vehiculo
 )
 SELECT
     UPPER('A48AR2B'),
@@ -101,8 +96,7 @@ SELECT
     cat2.id_tipo_caja,
     30,
     9000.0,
-    cat3.id_estado_vehiculo,
-    NULL
+    cat3.id_estado_vehiculo
 FROM cat1, cat2, cat3
 ON CONFLICT (placa) DO NOTHING;
 

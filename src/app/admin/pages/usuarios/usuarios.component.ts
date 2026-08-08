@@ -12,6 +12,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
@@ -35,6 +36,7 @@ import { AuthService } from '../../../auth/service/auth.service';
         IconFieldModule,
         TagModule,
         SelectModule,
+        SelectButtonModule,
         ConfirmDialogModule,
         TooltipModule,
         CardModule,
@@ -55,6 +57,12 @@ export class UsuariosComponent implements OnInit {
     editingUsuario: Usuario = {} as Usuario;
     filtroGlobal = '';
     filtroRol: string | null = null;
+    filtroEstado: 'activos' | 'inactivos' | 'todos' = 'activos';
+    estadosFiltro = [
+        { label: 'Activos', value: 'activos' },
+        { label: 'Inactivos', value: 'inactivos' },
+        { label: 'Todos', value: 'todos' },
+    ];
 
     rolFiltros = [
         { label: 'Todos los Roles', value: null },
@@ -109,6 +117,11 @@ export class UsuariosComponent implements OnInit {
         let list = this.usuarios();
         if (this.filtroRol) {
             list = list.filter((u) => u.rol === this.filtroRol);
+        }
+        if (this.filtroEstado === 'activos') {
+            list = list.filter((u) => u.activo);
+        } else if (this.filtroEstado === 'inactivos') {
+            list = list.filter((u) => !u.activo);
         }
         if (this.filtroGlobal?.trim()) {
             const q = this.filtroGlobal.toLowerCase();

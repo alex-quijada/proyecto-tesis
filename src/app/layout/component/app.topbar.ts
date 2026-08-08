@@ -79,14 +79,6 @@ import { AuthService } from '../../auth/service/auth.service';
             >
         </div>
 
-        <!-- SECCIÓN CENTRAL: Búsqueda Centrada -->
-        <div class="layout-topbar-search hidden lg:flex">
-            <p-iconfield iconPosition="left">
-                <p-inputicon class="pi pi-search"></p-inputicon>
-                <input type="text" pInputText placeholder="Buscar..." class="w-20rem" />
-            </p-iconfield>
-        </div>
-
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
@@ -114,30 +106,9 @@ import { AuthService } from '../../auth/service/auth.service';
                 </div>
             </div>
 
-            <button
-                class="layout-topbar-menu-button layout-topbar-action"
-                pStyleClass="@next"
-                enterFromClass="hidden"
-                enterActiveClass="animate-scalein"
-                leaveToClass="hidden"
-                leaveActiveClass="animate-fadeout"
-                [hideOnOutsideClick]="true"
-            >
-                <i class="pi pi-ellipsis-v"></i>
+            <button type="button" class="layout-topbar-action" (click)="authService.logout()">
+                <i class="pi pi-sign-out"></i>
             </button>
-
-            <div class="layout-topbar-menu hidden lg:block">
-                <div class="layout-topbar-menu-content">
-                    <button
-                        type="button"
-                        class="layout-topbar-action"
-                        (click)="authService.logout()"
-                    >
-                        <i class="pi pi-sign-out"></i>
-                        <span>Messages</span>
-                    </button>
-                </div>
-            </div>
         </div>
     </div>`,
     styles: [

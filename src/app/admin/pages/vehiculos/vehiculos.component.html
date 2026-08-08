@@ -7,13 +7,21 @@
 
     <p-toolbar styleClass="mb-6">
         <ng-template #start>
-            <p-button
-                *ngIf="vehiculoSelected() && vehiculoSelected().length > 0"
-                label="Eliminar Seleccionados"
-                icon="pi pi-trash"
-                severity="secondary"
-                (onClick)="deleteSelectedVehiculos()"
-            />
+            <div class="flex gap-2 items-center">
+                <p-button
+                    *ngIf="vehiculoSelected() && vehiculoSelected().length > 0"
+                    label="Desactivar Seleccionados"
+                    icon="pi pi-ban"
+                    severity="secondary"
+                    (onClick)="desactivarSelectedVehiculos()"
+                />
+                <p-selectbutton
+                    [options]="estadosFiltro"
+                    [(ngModel)]="filtroEstado"
+                    optionLabel="label"
+                    optionValue="value"
+                />
+            </div>
         </ng-template>
 
         <ng-template #end>
@@ -28,7 +36,7 @@
 
     <p-table
         #dt
-        [value]="vehiculos()"
+        [value]="vehiculosFiltrados"
         [(selection)]="vehiculoSelected"
         dataKey="id_vehiculo"
         [rows]="10"
@@ -132,13 +140,24 @@
                             pTooltip="Editar Datos"
                         />
                         <p-button
-                            icon="pi pi-trash"
+                            *ngIf="(carro.estado | uppercase) !== 'INACTIVO'"
+                            icon="pi pi-ban"
                             severity="danger"
                             rounded
                             outlined
                             size="small"
-                            (onClick)="deleteVehiculo(carro)"
-                            pTooltip="Remover"
+                            (onClick)="toggleEstadoVehiculo(carro)"
+                            pTooltip="Desactivar"
+                        />
+                        <p-button
+                            *ngIf="(carro.estado | uppercase) === 'INACTIVO'"
+                            icon="pi pi-check-circle"
+                            severity="success"
+                            rounded
+                            outlined
+                            size="small"
+                            (onClick)="toggleEstadoVehiculo(carro)"
+                            pTooltip="Reactivar"
                         />
                     </div>
                 </td>

@@ -19,6 +19,7 @@ export interface CertificadoMedico {
 export interface Chofer {
     id?: string;
     email?: string;
+    activo?: boolean;
     documentoIdentidad?: DocumentoIdentidad;
     nombreCompleto?: string;
     telefono?: string;

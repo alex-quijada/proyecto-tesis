@@ -15,6 +15,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RouterModule } from '@angular/router';
+import { SelectButtonModule } from 'primeng/selectbutton';
 
 import { ClienteDialogComponent } from './components/cliente-dialog.component';
 import { SucursalDialogComponent } from './components/sucursal-dialog.component';
@@ -40,6 +41,7 @@ import { CapitalizePipe } from './pipes/capitalize.pipe';
         SkeletonModule,
         TooltipModule,
         ConfirmDialogModule,
+        SelectButtonModule,
         RouterModule,
         ClienteDialogComponent,
         SucursalDialogComponent,
@@ -60,6 +62,24 @@ export class ClientesComponent implements OnInit {
     clientes = signal<Cliente[]>([]);
     loading = signal(false);
     selectedClientes: Cliente[] = [];
+
+    filtroEstado: 'activos' | 'inactivos' | 'todos' = 'activos';
+    estadosFiltro = [
+        { label: 'Activos', value: 'activos' },
+        { label: 'Inactivos', value: 'inactivos' },
+        { label: 'Todos', value: 'todos' },
+    ];
+
+    get clientesFiltrados(): Cliente[] {
+        const list = this.clientes();
+        if (this.filtroEstado === 'activos') {
+            return list.filter((c) => c.activo !== false);
+        }
+        if (this.filtroEstado === 'inactivos') {
+            return list.filter((c) => c.activo === false);
+        }
+        return list;
+    }
 
     expandedRows = signal<{ [key: string]: boolean }>({});
     loadingSucursales = signal<{ [key: string]: boolean }>({});
@@ -179,38 +199,78 @@ export class ClientesComponent implements OnInit {
         this.isDialogOpen.set(true);
     }
 
-    deleteCliente(cliente: Cliente) {
+    toggleEstadoCliente(cliente: Cliente) {
+        const desactivando = cliente.activo !== false;
         this.confirmationService.confirm({
-            message: `¿Estás seguro de eliminar a <b>${cliente.nombreComercial}</b>?`,
-            header: 'Eliminar Cliente',
+            message: `¿${desactivando ? 'Desactivar' : 'Reactivar'} a <b>${cliente.nombreComercial}</b>?`,
+            header: desactivando ? 'Desactivar Cliente' : 'Reactivar Cliente',
             icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                this.clientes.set(this.clientes().filter((c) => c.id !== cliente.id));
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Eliminado',
-                    detail: `Cliente "${cliente.nombreComercial}" eliminado`,
-                    life: 3000,
-                });
+            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+            acceptButtonProps: desactivando
+                ? { label: 'Desactivar', severity: 'danger' }
+                : { label: 'Reactivar', severity: 'success' },
+            accept: async () => {
+                try {
+                    await this.clienteService.cambiarEstadoCliente(cliente, !desactivando);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Completado',
+                        detail: `Cliente "${cliente.nombreComercial}" ${
+                            desactivando ? 'desactivado' : 'reactivado'
+                        }`,
+                        life: 3000,
+                    });
+                    await this.cargarClientes();
+                } catch (error: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.message || 'No se pudo actualizar el estado del cliente',
+                        life: 5000,
+                    });
+                }
             },
         });
     }
 
-    deleteSelectedClientes() {
+    desactivarSelectedClientes() {
+        const selected = this.selectedClientes.filter((c) => c.activo !== false);
+        if (!selected.length) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Sin cambios',
+                detail: 'No hay clientes activos seleccionados.',
+            });
+            return;
+        }
+
         this.confirmationService.confirm({
-            message: `¿Estás seguro de eliminar los <b>${this.selectedClientes.length}</b> clientes seleccionados?`,
-            header: 'Eliminar Clientes',
+            message: `¿Estás seguro de desactivar los <b>${selected.length}</b> clientes seleccionados?`,
+            header: 'Desactivar Clientes',
             icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                const ids = new Set(this.selectedClientes.map((c) => c.id));
-                this.clientes.set(this.clientes().filter((c) => !ids.has(c.id)));
-                this.selectedClientes = [];
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Eliminados',
-                    detail: 'Clientes eliminados correctamente',
-                    life: 3000,
-                });
+            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+            acceptButtonProps: { label: 'Desactivar Todo', severity: 'danger' },
+            accept: async () => {
+                try {
+                    for (const c of selected) {
+                        await this.clienteService.cambiarEstadoCliente(c, false);
+                    }
+                    this.selectedClientes = [];
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Desactivados',
+                        detail: 'Clientes desactivados correctamente',
+                        life: 3000,
+                    });
+                    await this.cargarClientes();
+                } catch (error: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error.message || 'Error al desactivar clientes',
+                        life: 5000,
+                    });
+                }
             },
         });
     }

@@ -33,7 +33,9 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ToastModule } from 'primeng/toast';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { MessageService } from 'primeng/api';
 
 import { GuiaDespacho, FacturaGuia } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
@@ -52,12 +54,14 @@ interface ChoferOption {
     value: string;
     nombreChofer: string;
     cedulaChofer: string;
+    activo: boolean;
 }
 
 interface AyudanteOption {
     label: string;
     value: string;
     nombreAyudante: string;
+    activo: boolean;
 }
 
 interface VehiculoOption {
@@ -65,6 +69,7 @@ interface VehiculoOption {
     value: string;
     placaVehiculo: string;
     camion: string;
+    estado: string;
 }
 
 @Component({
@@ -85,9 +90,11 @@ interface VehiculoOption {
         AccordionModule,
         TooltipModule,
         ProgressSpinnerModule,
+        ToastModule,
         AutoCompleteModule,
         ClienteDialogComponent,
     ],
+    providers: [MessageService],
     templateUrl: './guia-dialog.component.html',
 })
 export class GuiaDialogComponent implements OnInit {
@@ -97,6 +104,7 @@ export class GuiaDialogComponent implements OnInit {
     private clienteService = inject(ClienteService);
     private vehiculoService = inject(VehiculoService);
     private rutaService = inject(RutaService);
+    private messageService = inject(MessageService);
 
     @ViewChild('pdfInput') pdfInput!: ElementRef<HTMLInputElement>;
 
@@ -116,17 +124,30 @@ export class GuiaDialogComponent implements OnInit {
     empresasOptions = signal<{ label: string; value: string }[]>([]);
     municipios = signal<{ label: string; value: string }[]>([]);
 
-    choferesSig = signal<ChoferOption[]>([]);
-    ayudantesSig = signal<AyudanteOption[]>([]);
+    choferesSig = computed(() =>
+        this.todosLosChoferesSig().filter((c) => c.activo),
+    );
+    todosLosChoferesSig = signal<ChoferOption[]>([]);
+    ayudantesSig = computed(() =>
+        this.todosLosAyudantesSig().filter((a) => a.activo),
+    );
+    todosLosAyudantesSig = signal<AyudanteOption[]>([]);
     vehiculosSig = signal<VehiculoOption[]>([]);
+    vehiculosDisponiblesSig = computed(() =>
+        this.vehiculosSig().filter((v) => v.estado === 'OPERATIVO'),
+    );
     clientesSig = signal<Cliente[]>([]);
     clientesOptionsSig = computed(() =>
-        this.clientesSig().map((c) => ({
-            label: c.nombreComercial || '',
-            value: c.id || c.idCliente || '',
-        })),
+        this.clientesSig()
+            .filter((c) => c.activo !== false)
+            .map((c) => ({
+                label: c.nombreComercial || '',
+                value: c.id || c.idCliente || '',
+            })),
     );
     filteredClientesSig = signal<{ label: string; value: string }[]>([]);
+
+    entidadesInactivas = signal<string[]>([]);
 
     sucursalesPorCliente = signal<Record<string, SucursalCliente[]>>({});
 
@@ -159,6 +180,8 @@ export class GuiaDialogComponent implements OnInit {
         effect(() => {
             this.filteredClientesSig.set(this.clientesOptionsSig());
         });
+
+        this.form.valueChanges.subscribe(() => this.actualizarEntidadesInactivas());
 
         effect(() => {
             const data = this.guiaData();
@@ -227,6 +250,7 @@ export class GuiaDialogComponent implements OnInit {
 
         await Promise.all([this.cargarChoferes(), this.cargarVehiculos(), this.cargarClientes()]);
         this.syncFacturasConClientes();
+        this.actualizarEntidadesInactivas();
     }
 
     private syncFacturasConClientes() {
@@ -254,7 +278,7 @@ export class GuiaDialogComponent implements OnInit {
 
     private async cargarChoferes() {
         try {
-            const data = await this.authService.obtenerChoferes();
+            const data = await this.authService.obtenerChoferes(true);
             if (data?.length) {
                 const choferes = data
                     .filter((u) => u.rol === 'Chofer')
@@ -265,8 +289,9 @@ export class GuiaDialogComponent implements OnInit {
                         cedulaChofer: u.documentoIdentidad
                             ? `${u.documentoIdentidad.prefijo}-${u.documentoIdentidad.numero}`
                             : '',
+                        activo: u.activo !== false,
                     }));
-                this.choferesSig.set(choferes);
+                this.todosLosChoferesSig.set(choferes);
 
                 const ayudantes = data
                     .filter((u) => u.rol === 'Ayudante')
@@ -274,8 +299,9 @@ export class GuiaDialogComponent implements OnInit {
                         label: `${u.nombreCompleto} (${u.documentoIdentidad?.prefijo}-${u.documentoIdentidad?.numero})`,
                         value: u.id!,
                         nombreAyudante: u.nombreCompleto!,
+                        activo: u.activo !== false,
                     }));
-                this.ayudantesSig.set(ayudantes);
+                this.todosLosAyudantesSig.set(ayudantes);
             }
         } catch {
             /* keep fallback */
@@ -292,6 +318,7 @@ export class GuiaDialogComponent implements OnInit {
                         value: v.id_vehiculo || v.id || '',
                         placaVehiculo: v.placa || '',
                         camion: `[${v.placa}] ${v.marca} ${v.modelo}`,
+                        estado: (v.estado || '').toUpperCase(),
                     })),
                 );
             }
@@ -311,6 +338,39 @@ export class GuiaDialogComponent implements OnInit {
         } catch {
             /* keep fallback */
         }
+    }
+
+    private actualizarEntidadesInactivas() {
+        const msgs: string[] = [];
+        const raw = this.form.getRawValue();
+
+        if (raw.idChofer) {
+            const c = this.todosLosChoferesSig().find((x) => x.value === raw.idChofer);
+            if (c && !c.activo) msgs.push(`El chofer ${c.nombreChofer} está inactivo`);
+        }
+        if (raw.idAyudante) {
+            const a = this.todosLosAyudantesSig().find((x) => x.value === raw.idAyudante);
+            if (a && !a.activo) msgs.push(`El ayudante ${a.nombreAyudante} está inactivo`);
+        }
+        if (raw.idVehiculo) {
+            const v = this.vehiculosSig().find((x) => x.value === raw.idVehiculo);
+            if (v && v.estado !== 'OPERATIVO') {
+                const detalle =
+                    v.estado === 'MANTENIMIENTO' ? 'está en mantenimiento' : 'está inactivo';
+                msgs.push(`El vehículo ${v.placaVehiculo} ${detalle}`);
+            }
+        }
+
+        (raw.facturas || []).forEach((f: any, i: number) => {
+            const idCliente = this.obtenerIdCliente(f.idCliente);
+            if (!idCliente) return;
+            const cliente = this.clientesSig().find((c) => (c.id || c.idCliente) === idCliente);
+            if (cliente && cliente.activo === false) {
+                msgs.push(`El cliente ${cliente.nombreComercial} está inactivo (Factura #${i + 1})`);
+            }
+        });
+
+        this.entidadesInactivas.set(msgs);
     }
 
     scanPDF() {
@@ -356,7 +416,7 @@ export class GuiaDialogComponent implements OnInit {
             }
 
             if (datos.chofer) {
-                const match = this.choferesSig().find((ch) =>
+                const match = this.todosLosChoferesSig().find((ch) =>
                     ch.nombreChofer
                         .toLowerCase()
                         .includes(
@@ -365,7 +425,16 @@ export class GuiaDialogComponent implements OnInit {
                         ),
                 );
                 if (match) {
-                    this.form.patchValue({ idChofer: match.value });
+                    if (!match.activo) {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Chofer inactivo',
+                            detail: `El chofer ${match.nombreChofer} está inactivo. Selecciona otro.`,
+                            life: 5000,
+                        });
+                    } else {
+                        this.form.patchValue({ idChofer: match.value });
+                    }
                 }
             }
 
@@ -374,19 +443,42 @@ export class GuiaDialogComponent implements OnInit {
                     (v) => v.placaVehiculo.toLowerCase() === datos.placa.toLowerCase(),
                 );
                 if (match) {
-                    this.form.patchValue({ idVehiculo: match.value });
+                    if (match.estado !== 'OPERATIVO') {
+                        const detalle =
+                            match.estado === 'MANTENIMIENTO'
+                                ? 'está en mantenimiento'
+                                : 'está inactivo';
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Vehículo no disponible',
+                            detail: `El vehículo ${match.placaVehiculo} ${detalle}. Selecciona uno operativo.`,
+                            life: 5000,
+                        });
+                    } else {
+                        this.form.patchValue({ idVehiculo: match.value });
+                    }
                 }
             }
 
             const pdfFacturas = (datos.facturas || []).map((f, i) => {
                 const clienteMatch = this.matchClientePorFacturaPdf(f);
+                if (clienteMatch && clienteMatch.activo === false) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Cliente inactivo',
+                        detail: `El cliente ${clienteMatch.nombreComercial} está inactivo (Factura #${
+                            i + 1
+                        }). Selecciona otro cliente.`,
+                        life: 5000,
+                    });
+                }
                 const sucursalMatch = clienteMatch
                     ? this.matchSucursalPorRuta(clienteMatch, datos.ruta || '')
                     : undefined;
                 return {
                     id: `fact-pdf-${i}`,
                     numeroFactura: f.numero || '',
-                    idCliente: clienteMatch?.id || '',
+                    idCliente: clienteMatch?.activo === false ? '' : clienteMatch?.id || '',
                     nombreCliente: f.cliente || '',
                     rifCliente: clienteMatch?.documentoIdentidad
                         ? `${clienteMatch.documentoIdentidad.prefijo}-${clienteMatch.documentoIdentidad.numero}`
@@ -745,6 +837,15 @@ export class GuiaDialogComponent implements OnInit {
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
+
+        this.actualizarEntidadesInactivas();
+        if (this.entidadesInactivas().length) {
+            this.errorMessage.set(
+                this.entidadesInactivas().join(' ') +
+                    ' Corrige la selección antes de guardar la guía.',
+            );
+            return;
+        }
 
         if (this.form.invalid) {
             this.errorMessage.set('Complete todos los campos obligatorios marcados con *.');

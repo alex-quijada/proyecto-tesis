@@ -6,6 +6,7 @@
     [maximizable]="true"
 >
     <ng-template #content>
+        <p-toast position="top-right" />
         <input
             #pdfInput
             type="file"
@@ -23,6 +24,18 @@
             <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
                 @if (errorMessage()) {
                     <p-message severity="error" [text]="errorMessage()" class="mb-2"></p-message>
+                }
+
+                @if (entidadesInactivas().length) {
+                    <div class="flex flex-col gap-1 mb-2">
+                        @for (msg of entidadesInactivas(); track msg) {
+                            <p-message
+                                severity="warn"
+                                [text]="msg"
+                                styleClass="mb-1"
+                            ></p-message>
+                        }
+                    </div>
                 }
 
                 <div
@@ -119,7 +132,7 @@
                             >
                             <p-select
                                 formControlName="idVehiculo"
-                                [options]="vehiculosSig()"
+                                [options]="vehiculosDisponiblesSig()"
                                 optionLabel="label"
                                 optionValue="value"
                                 placeholder="Seleccionar vehículo"

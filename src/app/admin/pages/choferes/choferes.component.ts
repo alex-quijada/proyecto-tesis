@@ -17,6 +17,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -36,6 +37,7 @@ import { FormsModule } from '@angular/forms';
         ConfirmDialogModule,
         TooltipModule,
         SelectModule,
+        SelectButtonModule,
         ChoferDialogComponent,
     ],
     providers: [ConfirmationService, MessageService],
@@ -54,6 +56,12 @@ export class ChoferesComponent implements OnInit {
     choferParaModificar = signal<Chofer>({});
 
     filtroRol: string | null = null;
+    filtroEstado: 'activos' | 'inactivos' | 'todos' = 'activos';
+    estadosFiltro = [
+        { label: 'Activos', value: 'activos' },
+        { label: 'Inactivos', value: 'inactivos' },
+        { label: 'Todos', value: 'todos' },
+    ];
     rolesFiltro = [
         { label: 'Todos', value: null },
         { label: 'Chofer', value: 'Chofer' },
@@ -68,7 +76,7 @@ export class ChoferesComponent implements OnInit {
     private async cargarChoferes() {
         this.loading.set(true);
         try {
-            const data = await this.authService.obtenerChoferes();
+            const data = await this.authService.obtenerChoferes(this.filtroEstado !== 'activos');
             this.choferes.set(data);
         } catch (error: any) {
             console.error('Error cargando choferes:', error);
@@ -83,9 +91,16 @@ export class ChoferesComponent implements OnInit {
         }
     }
 
+    onFiltroEstadoChange() {
+        this.cargarChoferes();
+    }
+
     get choferesFiltrados(): Chofer[] {
-        if (!this.filtroRol) return this.choferes();
-        return this.choferes().filter((c) => c.rol === this.filtroRol);
+        let list = this.choferes();
+        if (this.filtroRol) {
+            list = list.filter((c) => c.rol === this.filtroRol);
+        }
+        return list;
     }
 
     getDocumentoDisplay(c: Chofer): string {
@@ -116,59 +131,23 @@ export class ChoferesComponent implements OnInit {
         this.isDialogOpen.set(true);
     }
 
-    async handleSaveChofer(chofer: Chofer) {
-        if (!chofer.id) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo identificar al usuario.',
-                life: 5000,
-            });
-            return;
-        }
-
-        try {
-            await this.authService.actualizarUsuarioPorRol({
-                user_id: chofer.id,
-                email: chofer.email || '',
-                password: '',
-                nombre_completo: chofer.nombreCompleto || '',
-                cedula: Number(chofer.documentoIdentidad?.numero || 0),
-                nombre_rol: chofer.rol || 'Chofer',
-                prefijo_doc: chofer.documentoIdentidad?.prefijo || 'V',
-                certificado_numero: chofer.certificadoMedico?.numero || '',
-                certificado_expedicion: chofer.certificadoMedico?.fechaExpedicion || null,
-                licencia_numero: chofer.licencia?.numero || '',
-                licencia_grado: chofer.licencia?.grado || '',
-                licencia_expedicion: chofer.licencia?.fechaExpedicion || null,
-            });
-
-            await this.cargarChoferes();
-
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Completado',
-                detail: `Datos de ${chofer.nombreCompleto} actualizados`,
-                life: 3000,
-            });
-        } catch (error: any) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: error.message || 'No se pudieron guardar los cambios',
-                life: 5000,
-            });
-        }
+    async handleSaveChofer(_chofer: Chofer) {
+        await this.cargarChoferes();
     }
 
-    async deleteChofer(chofer: Chofer) {
+    async toggleEstadoChofer(chofer: Chofer) {
+        const desactivando = chofer.activo !== false;
         const confirmed = await new Promise<boolean>((resolve) => {
             this.confirmationService.confirm({
-                message: `¿Desactivar a "${chofer.nombreCompleto}"? No podrá iniciar sesión hasta que lo actives de nuevo.`,
-                header: 'Confirmar Desactivación',
+                message: desactivando
+                    ? `¿Desactivar a "${chofer.nombreCompleto}"? No podrá iniciar sesión hasta que lo actives de nuevo.`
+                    : `¿Reactivar a "${chofer.nombreCompleto}"? Podrá iniciar sesión nuevamente.`,
+                header: desactivando ? 'Confirmar Desactivación' : 'Confirmar Reactivación',
                 icon: 'pi pi-exclamation-triangle',
                 rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-                acceptButtonProps: { label: 'Desactivar', severity: 'danger' },
+                acceptButtonProps: desactivando
+                    ? { label: 'Desactivar', severity: 'danger' }
+                    : { label: 'Reactivar', severity: 'success' },
                 accept: () => resolve(true),
                 reject: () => resolve(false),
             });
@@ -177,12 +156,16 @@ export class ChoferesComponent implements OnInit {
         if (!confirmed || !chofer.id) return;
 
         try {
-            await this.authService.desactivarUsuario(chofer.id);
+            if (desactivando) {
+                await this.authService.desactivarUsuario(chofer.id);
+            } else {
+                await this.authService.reactivarUsuario(chofer.id);
+            }
             await this.cargarChoferes();
             this.messageService.add({
                 severity: 'success',
                 summary: 'Completado',
-                detail: 'Chofer desactivado',
+                detail: desactivando ? 'Chofer desactivado' : 'Chofer reactivado',
                 life: 3000,
             });
         } catch (error: any) {
@@ -196,9 +179,19 @@ export class ChoferesComponent implements OnInit {
     }
 
     async deleteSelectedChoferes() {
+        const selected = this.choferSelected().filter((c) => c.activo !== false);
+        if (!selected.length) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Sin cambios',
+                detail: 'No hay personal activo seleccionado.',
+            });
+            return;
+        }
+
         const confirmed = await new Promise<boolean>((resolve) => {
             this.confirmationService.confirm({
-                message: '¿Desactivar los registros seleccionados?',
+                message: `¿Desactivar los <b>${selected.length}</b> registros seleccionados?`,
                 header: 'Desactivación Masiva',
                 icon: 'pi pi-exclamation-triangle',
                 rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
@@ -211,7 +204,7 @@ export class ChoferesComponent implements OnInit {
         if (!confirmed) return;
 
         try {
-            for (const c of this.choferSelected()) {
+            for (const c of selected) {
                 if (c.id) await this.authService.desactivarUsuario(c.id);
             }
             this.choferSelected.set([]);

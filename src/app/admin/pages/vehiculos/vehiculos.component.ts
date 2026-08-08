@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 import { VehiculoDetalleDialogComponent } from './components/vehiculo-detalle-dialog.component';
@@ -20,12 +21,14 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
+import { SelectButtonModule } from 'primeng/selectbutton';
 
 @Component({
     selector: 'app-vehiculos',
     standalone: true,
     imports: [
         CommonModule,
+        FormsModule,
         TableModule,
         ButtonModule,
         ToastModule,
@@ -36,6 +39,7 @@ import { TooltipModule } from 'primeng/tooltip';
         InputIconModule,
         ConfirmDialogModule,
         TooltipModule,
+        SelectButtonModule,
         VehiculoDialogComponent,
         VehiculoDetalleDialogComponent,
         TipoVehiculoIconoPipe,
@@ -51,6 +55,24 @@ export class VehiculosComponent implements OnInit {
 
     vehiculos = signal<Vehiculo[]>([]);
     vehiculoSelected = signal<Vehiculo[]>([]);
+
+    filtroEstado: 'activos' | 'inactivos' | 'todos' = 'activos';
+    estadosFiltro = [
+        { label: 'Activos', value: 'activos' },
+        { label: 'Inactivos', value: 'inactivos' },
+        { label: 'Todos', value: 'todos' },
+    ];
+
+    get vehiculosFiltrados(): Vehiculo[] {
+        const list = this.vehiculos();
+        if (this.filtroEstado === 'activos') {
+            return list.filter((v) => (v.estado || '').toUpperCase() !== 'INACTIVO');
+        }
+        if (this.filtroEstado === 'inactivos') {
+            return list.filter((v) => (v.estado || '').toUpperCase() === 'INACTIVO');
+        }
+        return list;
+    }
 
     isDialogOpen = signal<boolean>(false);
     vehiculoParaModificar = signal<Vehiculo>({});
@@ -108,22 +130,28 @@ export class VehiculosComponent implements OnInit {
         this.cargarVehiculos();
     }
 
-    deleteVehiculo(vehiculo: Vehiculo) {
+    toggleEstadoVehiculo(vehiculo: Vehiculo) {
+        const desactivando = (vehiculo.estado || '').toUpperCase() !== 'INACTIVO';
         this.confirmationService.confirm({
-            message: `¿Estás seguro de que deseas desincorporar la unidad con placa ${vehiculo.placa}?`,
-            header: 'Confirmar Eliminación',
+            message: desactivando
+                ? `¿Desactivar la unidad con placa ${vehiculo.placa}? Pasará a estado INACTIVO.`
+                : `¿Reactivar la unidad con placa ${vehiculo.placa}? Pasará a estado OPERATIVO.`,
+            header: desactivando ? 'Confirmar Desactivación' : 'Confirmar Reactivación',
             icon: 'pi pi-exclamation-triangle',
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-            acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
+            acceptButtonProps: desactivando
+                ? { label: 'Desactivar', severity: 'danger' }
+                : { label: 'Reactivar', severity: 'success' },
             accept: async () => {
                 try {
-                    await this.vehiculoService.eliminarVehiculo(
-                        vehiculo.id_vehiculo || vehiculo.id || '',
+                    await this.vehiculoService.cambiarEstadoVehiculo(
+                        vehiculo,
+                        desactivando ? 'INACTIVO' : 'OPERATIVO',
                     );
                     this.messageService.add({
                         severity: 'success',
                         summary: 'Completado',
-                        detail: 'Unidad removida',
+                        detail: desactivando ? 'Unidad desactivada' : 'Unidad reactivada',
                         life: 3000,
                     });
                     await this.cargarVehiculos();
@@ -131,7 +159,7 @@ export class VehiculosComponent implements OnInit {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: error.message || 'No se pudo eliminar el vehículo',
+                        detail: error.message || 'No se pudo actualizar el estado del vehículo',
                         life: 5000,
                     });
                 }
@@ -139,24 +167,35 @@ export class VehiculosComponent implements OnInit {
         });
     }
 
-    deleteSelectedVehiculos() {
+    desactivarSelectedVehiculos() {
+        const selected = this.vehiculoSelected().filter(
+            (v) => (v.estado || '').toUpperCase() !== 'INACTIVO',
+        );
+        if (!selected.length) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Sin cambios',
+                detail: 'No hay unidades activas seleccionadas.',
+            });
+            return;
+        }
+
         this.confirmationService.confirm({
-            message: '¿Estás seguro de borrar todas las unidades seleccionadas?',
-            header: 'Eliminación Masiva',
+            message: `¿Desactivar ${selected.length} unidad(es) seleccionada(s)? Pasarán a estado INACTIVO.`,
+            header: 'Desactivación Masiva',
             icon: 'pi pi-exclamation-triangle',
             rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-            acceptButtonProps: { label: 'Eliminar Todo', severity: 'danger' },
+            acceptButtonProps: { label: 'Desactivar Todo', severity: 'danger' },
             accept: async () => {
                 try {
-                    const ids = this.vehiculoSelected().map((v) => v.id_vehiculo || v.id || '');
-                    for (const id of ids) {
-                        await this.vehiculoService.eliminarVehiculo(id);
+                    for (const v of selected) {
+                        await this.vehiculoService.cambiarEstadoVehiculo(v, 'INACTIVO');
                     }
                     this.vehiculoSelected.set([]);
                     this.messageService.add({
                         severity: 'success',
                         summary: 'Completado',
-                        detail: 'Flota actualizada',
+                        detail: 'Unidades desactivadas',
                         life: 3000,
                     });
                     await this.cargarVehiculos();
@@ -164,7 +203,7 @@ export class VehiculosComponent implements OnInit {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: error.message || 'Error al eliminar vehículos',
+                        detail: error.message || 'Error al desactivar vehículos',
                         life: 5000,
                     });
                 }
