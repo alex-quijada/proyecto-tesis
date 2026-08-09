@@ -412,6 +412,9 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         this.actualizarSedeMarkers();
 
         await this.recargarGuias();
+        if (this.guiasDelMunicipio.length === 0) {
+            this.volverMunicipios();
+        }
 
         const creados = results.filter((r) => r.nuevo).length;
         const agregados = results.length - creados;
