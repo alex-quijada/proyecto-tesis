@@ -8,13 +8,6 @@
     <p-toolbar styleClass="mb-6">
         <ng-template #start>
             <div class="flex gap-2 items-center">
-                <p-button
-                    *ngIf="vehiculoSelected() && vehiculoSelected().length > 0"
-                    label="Desactivar Seleccionados"
-                    icon="pi pi-ban"
-                    severity="secondary"
-                    (onClick)="desactivarSelectedVehiculos()"
-                />
                 <p-select
                     [options]="tiposFiltro"
                     [(ngModel)]="filtroTipo"
@@ -34,10 +27,18 @@
 
         <ng-template #end>
             <p-button
+                *ngIf="!(vehiculoSelected() && vehiculoSelected().length > 0)"
                 label="Nuevo Vehículo"
                 icon="pi pi-plus"
                 severity="success"
                 (onClick)="openNew()"
+            />
+            <p-button
+                *ngIf="vehiculoSelected() && vehiculoSelected().length > 0"
+                label="Desactivar Seleccionados"
+                icon="pi pi-ban"
+                severity="danger"
+                (onClick)="desactivarSelectedVehiculos()"
             />
         </ng-template>
     </p-toolbar>

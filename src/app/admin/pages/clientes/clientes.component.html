@@ -18,14 +18,6 @@
                 class="mr-2"
                 (onClick)="isExpanded() ? collapseAll() : expandAll()"
             />
-            <p-button
-                label="Desactivar Seleccionados"
-                icon="pi pi-ban"
-                severity="secondary"
-                outlined
-                (onClick)="desactivarSelectedClientes()"
-                [disabled]="!selectedClientes || !selectedClientes.length"
-            />
             <p-selectbutton
                 [options]="estadosFiltro"
                 [(ngModel)]="filtroEstado"
@@ -35,10 +27,18 @@
         </ng-template>
         <ng-template #end>
             <p-button
+                *ngIf="!selectedClientes || !selectedClientes.length"
                 label="Nuevo Cliente"
                 icon="pi pi-plus"
                 severity="success"
                 (onClick)="openNew()"
+            />
+            <p-button
+                *ngIf="selectedClientes && selectedClientes.length"
+                label="Desactivar Seleccionados"
+                icon="pi pi-ban"
+                severity="danger"
+                (onClick)="desactivarSelectedClientes()"
             />
         </ng-template>
     </p-toolbar>
