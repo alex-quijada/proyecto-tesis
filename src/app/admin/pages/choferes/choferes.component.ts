@@ -97,6 +97,9 @@ export class ChoferesComponent implements OnInit {
 
     get choferesFiltrados(): Chofer[] {
         let list = this.choferes();
+        if (this.filtroEstado === 'inactivos') {
+            list = list.filter((c) => c.activo === false);
+        }
         if (this.filtroRol) {
             list = list.filter((c) => c.rol === this.filtroRol);
         }

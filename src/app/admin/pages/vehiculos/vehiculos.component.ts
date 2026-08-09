@@ -22,6 +22,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { SelectModule } from 'primeng/select';
 
 @Component({
     selector: 'app-vehiculos',
@@ -40,6 +41,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
         ConfirmDialogModule,
         TooltipModule,
         SelectButtonModule,
+        SelectModule,
         VehiculoDialogComponent,
         VehiculoDetalleDialogComponent,
         TipoVehiculoIconoPipe,
@@ -63,8 +65,19 @@ export class VehiculosComponent implements OnInit {
         { label: 'Todos', value: 'todos' },
     ];
 
+    filtroTipo: string | null = null;
+    tiposFiltro = [
+        { label: 'Todos los tipos', value: null },
+        { label: 'Camión de Carga', value: 'CAMION' },
+        { label: 'Automóvil', value: 'CARRO' },
+        { label: 'Motocicleta', value: 'MOTO' },
+    ];
+
     get vehiculosFiltrados(): Vehiculo[] {
-        const list = this.vehiculos();
+        let list = this.vehiculos();
+        if (this.filtroTipo) {
+            list = list.filter((v) => (v.tipo || '').toUpperCase() === this.filtroTipo);
+        }
         if (this.filtroEstado === 'activos') {
             return list.filter((v) => (v.estado || '').toUpperCase() !== 'INACTIVO');
         }

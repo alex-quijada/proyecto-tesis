@@ -13,7 +13,7 @@ export class TipoVehiculoIconoPipe implements PipeTransform {
     private sanitizer = inject(DomSanitizer);
 
     transform(tipo: string | undefined | null): SafeHtml {
-        switch (tipo) {
+        switch ((tipo || '').toLowerCase()) {
             case 'carro':
                 return this.sanitizer.bypassSecurityTrustHtml(SVG_CARRO);
             case 'moto':

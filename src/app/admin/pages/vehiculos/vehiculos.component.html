@@ -15,6 +15,14 @@
                     severity="secondary"
                     (onClick)="desactivarSelectedVehiculos()"
                 />
+                <p-select
+                    [options]="tiposFiltro"
+                    [(ngModel)]="filtroTipo"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Tipo de vehículo"
+                    class="w-52"
+                />
                 <p-selectbutton
                     [options]="estadosFiltro"
                     [(ngModel)]="filtroEstado"
