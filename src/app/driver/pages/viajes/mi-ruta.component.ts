@@ -13,7 +13,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 
-import { FirmaDialogComponent } from './components/firma-dialog/firma-dialog.component';
+import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
 import { AuthService } from '../../../auth/service/auth.service';
 import { ViajeService } from '@/app/services/viaje.service';
 import { ViajeChofer } from '@/app/services/viaje.types';

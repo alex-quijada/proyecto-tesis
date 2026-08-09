@@ -1,6 +1,12 @@
 import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
+import {
+    ReactiveFormsModule,
+    FormBuilder,
+    FormGroup,
+    Validators,
+    AbstractControl,
+} from '@angular/forms';
 
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';

@@ -124,13 +124,9 @@ export class GuiaDialogComponent implements OnInit {
     empresasOptions = signal<{ label: string; value: string }[]>([]);
     municipios = signal<{ label: string; value: string }[]>([]);
 
-    choferesSig = computed(() =>
-        this.todosLosChoferesSig().filter((c) => c.activo),
-    );
+    choferesSig = computed(() => this.todosLosChoferesSig().filter((c) => c.activo));
     todosLosChoferesSig = signal<ChoferOption[]>([]);
-    ayudantesSig = computed(() =>
-        this.todosLosAyudantesSig().filter((a) => a.activo),
-    );
+    ayudantesSig = computed(() => this.todosLosAyudantesSig().filter((a) => a.activo));
     todosLosAyudantesSig = signal<AyudanteOption[]>([]);
     vehiculosSig = signal<VehiculoOption[]>([]);
     vehiculosDisponiblesSig = computed(() =>
@@ -366,7 +362,9 @@ export class GuiaDialogComponent implements OnInit {
             if (!idCliente) return;
             const cliente = this.clientesSig().find((c) => (c.id || c.idCliente) === idCliente);
             if (cliente && cliente.activo === false) {
-                msgs.push(`El cliente ${cliente.nombreComercial} está inactivo (Factura #${i + 1})`);
+                msgs.push(
+                    `El cliente ${cliente.nombreComercial} está inactivo (Factura #${i + 1})`,
+                );
             }
         });
 

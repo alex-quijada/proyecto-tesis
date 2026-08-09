@@ -29,8 +29,7 @@ export const appRoutes: Routes = [
     // RUTA EXCLUSIVA PARA EL CHOFER (vista móvil)
     {
         path: 'driver',
-        loadComponent: () =>
-            import('./app/driver/pages/home-page/home-page').then((m) => m.HomePage),
+        loadChildren: () => import('./app/driver/driver.routes'),
         canActivate: [roleGuard],
         data: { roles: ['Chofer'] },
     },

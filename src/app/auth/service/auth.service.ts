@@ -1,6 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { SupabaseClient, User, Session, FunctionsHttpError, createClient } from '@supabase/supabase-js';
+import {
+    SupabaseClient,
+    User,
+    Session,
+    FunctionsHttpError,
+    createClient,
+} from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
 import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
 import { Chofer } from '../../admin/pages/choferes/data/choferes-mock';
@@ -434,7 +440,10 @@ export class AuthService {
 
         const doInsert = async (table: string, row: any) => {
             const { error: e } = await this.supabase.from(table).insert(row);
-            if (e) throw new Error(this.traducirErrorUsuario(`Error al guardar en ${table}: ${e.message}`));
+            if (e)
+                throw new Error(
+                    this.traducirErrorUsuario(`Error al guardar en ${table}: ${e.message}`),
+                );
         };
 
         if (datosFormulario.certificado_numero) {

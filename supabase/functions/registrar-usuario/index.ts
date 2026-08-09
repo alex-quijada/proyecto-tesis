@@ -133,16 +133,13 @@ serve(async (req) => {
             .eq('cedula', Number(cedula))
             .maybeSingle();
         if (cedulaExistente) {
-            return new Response(
-                JSON.stringify({ error: 'La cédula ya está registrada.' }),
-                {
-                    status: 400,
-                    headers: {
-                        ...corsHeaders,
-                        'Content-Type': 'application/json',
-                    },
+            return new Response(JSON.stringify({ error: 'La cédula ya está registrada.' }), {
+                status: 400,
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
                 },
-            );
+            });
         }
 
         const { data: nuevoUsuario, error: createError } =

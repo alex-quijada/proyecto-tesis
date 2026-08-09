@@ -18,6 +18,7 @@ export interface ParadaViaje {
     latitud?: number | null;
     longitud?: number | null;
     estado_factura?: string;
+    monto_dolares?: number | null;
 }
 
 export interface ViajeChofer {

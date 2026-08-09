@@ -1,0 +1,197 @@
+<div
+    class="bg-white dark:bg-surface-800 px-4 pt-6 pb-5 text-center border-b border-surface-200 dark:border-surface-700"
+>
+    <div
+        class="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary-900/30 mx-auto flex items-center justify-center text-xl font-bold text-primary border-2 border-primary/20 mb-2.5"
+    >
+        {{ (store.driverInfo()?.nombre || 'C').charAt(0) }}
+    </div>
+    <h1 class="text-lg font-bold text-surface-800 dark:text-surface-100">
+        {{ store.driverInfo()?.nombre || 'Chofer' }}
+    </h1>
+    <p class="text-sm text-surface-400">{{ store.driverInfo()?.documento }}</p>
+</div>
+
+<div class="px-4 pt-4 space-y-3">
+    <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+        <h2 class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">
+            Información personal
+        </h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <div class="text-xs text-surface-400 mb-0.5">Nombre</div>
+                <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                    {{ store.driverInfo()?.nombre }}
+                </div>
+            </div>
+            <div>
+                <div class="text-xs text-surface-400 mb-0.5">Documento</div>
+                <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                    {{ store.driverInfo()?.documento }}
+                </div>
+            </div>
+            @if (store.driverInfo()?.telefono) {
+                <div>
+                    <div class="text-xs text-surface-400 mb-0.5">Teléfono</div>
+                    <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                        {{ store.driverInfo()?.telefono }}
+                    </div>
+                </div>
+            }
+            <div>
+                <div class="text-xs text-surface-400 mb-0.5">Email</div>
+                <div class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate">
+                    {{ store.driverInfo()?.email }}
+                </div>
+            </div>
+            @if (store.driverInfo()?.fechaIngreso) {
+                <div>
+                    <div class="text-xs text-surface-400 mb-0.5">Ingreso</div>
+                    <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                        {{ store.driverInfo()?.fechaIngreso }}
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+        @if (store.driverInfo()?.licencia; as lic) {
+            <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+                <h2
+                    class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"
+                >
+                    <i class="pi pi-id-card text-orange-500"></i> Licencia
+                </h2>
+                <div class="space-y-2">
+                    <div>
+                        <div class="text-xs text-surface-400">Número</div>
+                        <div
+                            class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate"
+                        >
+                            {{ lic.numero }}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-surface-400">Grado</div>
+                        <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                            {{ lic.grado }}
+                        </div>
+                    </div>
+                    @if (lic.fechaExpedicion) {
+                        <div>
+                            <div class="text-xs text-surface-400">Expedición</div>
+                            <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                                {{ lic.fechaExpedicion }}
+                            </div>
+                        </div>
+                    }
+                    <div>
+                        <div class="text-xs text-surface-400">Vence</div>
+                        <div
+                            class="text-sm font-medium"
+                            [ngClass]="
+                                lic.fechaVencimiento < '2026-06-14'
+                                    ? 'text-red-500'
+                                    : 'text-surface-700 dark:text-surface-200'
+                            "
+                        >
+                            {{ lic.fechaVencimiento }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (store.driverInfo()?.certificadoMedico; as cm) {
+            <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+                <h2
+                    class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"
+                >
+                    <i class="pi pi-heart text-teal-500"></i> Cert. Médico
+                </h2>
+                <div class="space-y-2">
+                    <div>
+                        <div class="text-xs text-surface-400">Número</div>
+                        <div
+                            class="text-sm font-medium text-surface-700 dark:text-surface-200 truncate"
+                        >
+                            {{ cm.numero }}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-surface-400">Expedición</div>
+                        <div class="text-sm font-medium text-surface-700 dark:text-surface-200">
+                            {{ cm.fechaExpedicion }}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-surface-400">Vence</div>
+                        <div
+                            class="text-sm font-medium"
+                            [ngClass]="
+                                cm.fechaVencimiento < '2026-06-14'
+                                    ? 'text-red-500'
+                                    : 'text-surface-700 dark:text-surface-200'
+                            "
+                        >
+                            {{ cm.fechaVencimiento }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (store.driverInfo()?.vehiculos; as vehiculos) {
+        @if (vehiculos.length > 0) {
+            <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+                <h2
+                    class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"
+                >
+                    <i class="pi pi-truck text-primary"></i> Vehículos asignados
+                </h2>
+                <div class="space-y-2">
+                    @for (v of vehiculos; track v.id) {
+                        <div
+                            class="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-700/50"
+                        >
+                            <div
+                                class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"
+                            >
+                                <i class="pi pi-truck text-primary text-lg"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div
+                                    class="text-sm font-semibold text-surface-700 dark:text-surface-200"
+                                >
+                                    {{ v.placa }}
+                                </div>
+                                <div class="text-xs text-surface-400 truncate">
+                                    {{ v.marca }} {{ v.modelo }} · {{ v.anio }}
+                                </div>
+                            </div>
+                            <span
+                                class="text-xs bg-primary/10 text-primary px-2.5 py-0.5 rounded-full font-medium flex-shrink-0"
+                                >{{ v.tipo }}</span
+                            >
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    <div class="pt-1">
+        <p-button
+            label="Cerrar sesión"
+            icon="pi pi-sign-out"
+            severity="danger"
+            styleClass="w-full text-sm"
+            (onClick)="store.logout()"
+        />
+    </div>
+
+    <div class="text-center text-xs text-surface-400 pb-4">
+        <p>App Chofer v1.0.0 · {{ store.fechaActual.split('de ')[1] || '2026' }}</p>
+    </div>
+</div>

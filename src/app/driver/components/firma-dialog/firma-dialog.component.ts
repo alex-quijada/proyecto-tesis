@@ -164,6 +164,26 @@ import { DividerModule } from 'primeng/divider';
             </ng-template>
         </p-dialog>
     `,
+    styles: `
+        :host .firma-dialog .p-dialog-content {
+            padding: 1.25rem;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+        }
+
+        textarea {
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--p-primary-color);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+        }
+    `,
 })
 export class FirmaDialogComponent implements AfterViewInit {
     @Input() guia: any = null;

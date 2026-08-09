@@ -132,7 +132,10 @@ serve(async (req) => {
         if (dbUpdateError) {
             const texto = `${dbUpdateError.message || ''} ${dbUpdateError.details || ''}`;
             let msg = `Error al actualizar usuario en BD: ${dbUpdateError.message}`;
-            if (/(usuarios_cedula_key|cedula)/i.test(texto) && /(duplicate|already exists)/i.test(texto)) {
+            if (
+                /(usuarios_cedula_key|cedula)/i.test(texto) &&
+                /(duplicate|already exists)/i.test(texto)
+            ) {
                 msg = 'La cédula ya está registrada.';
             } else if (/(usuarios_email_key|already been registered)/i.test(texto)) {
                 msg = 'El email ya está registrado.';
@@ -187,13 +190,10 @@ serve(async (req) => {
                 ) {
                     msg = 'El número de licencia ya está registrado.';
                 }
-                return new Response(
-                    JSON.stringify({ error: msg }),
-                    {
-                        status: 400,
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    },
-                );
+                return new Response(JSON.stringify({ error: msg }), {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
             }
         }
 

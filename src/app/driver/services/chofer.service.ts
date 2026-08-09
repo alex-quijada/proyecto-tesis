@@ -27,7 +27,6 @@ export interface ChoferFactura {
     rif_cliente: string | null;
     telefono_cliente: string | null;
     persona_contacto: string | null;
-    reglas: any;
     nombre_prioridad: string | null;
 }
 
