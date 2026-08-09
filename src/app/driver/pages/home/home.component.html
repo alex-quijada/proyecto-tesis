@@ -1,18 +1,18 @@
 <div class="px-4 pt-4 space-y-4">
     <div class="text-base text-surface-600 font-medium">
-        @if (store.pendingCount() > 0) {
-            Tienes <span class="font-bold text-primary">{{ store.pendingCount() }}</span>
-            {{ store.pendingCount() === 1 ? 'guía por entregar' : 'guías por entregar' }}
+        @if (store.pendingGuiasCount() > 0) {
+            Tienes <span class="font-bold text-primary">{{ store.pendingGuiasCount() }}</span>
+            {{ store.pendingGuiasCount() === 1 ? 'guía por entregar' : 'guías por entregar' }}
         } @else {
             No tienes guías pendientes
         }
     </div>
 
-    @for (guia of store.guiasPendientes(); track guia.id) {
+    @for (guia of store.guiasPendientesAgrupadas(); track guia.id) {
         <div
             class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 overflow-hidden transition-all duration-200 cursor-pointer"
             [ngClass]="[
-                store.getColorBorde(guia.estado),
+                store.getColorBorde(guia.facturas[0]?.estado || 'nuevo'),
                 guiaActivaExpandida() === guia.id
                     ? 'ring-2 ring-primary-200 dark:ring-primary-800'
                     : '',
@@ -20,41 +20,41 @@
             (click)="toggleGuiaActiva(guia.id)"
         >
             <div class="p-4">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="font-mono text-base font-bold text-primary">{{
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="font-mono text-base font-bold text-primary truncate">{{
                             guia.numeroGuia
                         }}</span>
                         <p-tag
-                            [value]="store.getEstadoLabel(guia.estado)"
-                            [severity]="store.getEstadoSeverity(guia.estado)"
+                            [value]="guia.facturas.length === 1 ? '1 factura' : guia.facturas.length + ' facturas'"
+                            severity="secondary"
                             styleClass="text-sm"
                         />
                     </div>
-                    <div class="text-right flex-shrink-0">
-                        <div class="text-sm text-surface-400 font-mono">
-                            {{ guia.numeroFactura }}
-                        </div>
+                    <div class="flex items-center gap-2 flex-shrink-0 ml-2">
                         <div class="text-base font-bold text-primary">
-                            {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}
+                            {{
+                                totalFacturas(guia)
+                                    | currency: 'USD' : 'symbol' : '1.0-0'
+                            }}
                         </div>
+                        <i
+                            class="pi text-sm text-surface-400"
+                            [ngClass]="
+                                guiaActivaExpandida() === guia.id
+                                    ? 'pi-chevron-up'
+                                    : 'pi-chevron-down'
+                            "
+                        ></i>
                     </div>
                 </div>
 
                 <div class="space-y-2.5">
                     <div class="flex items-start gap-2">
                         <span class="text-sm text-surface-400 w-24 flex-shrink-0">Sucursal:</span>
-                        <span
-                            class="text-base font-semibold text-surface-700 dark:text-surface-200"
-                            >{{ guia.empresaSuministro }}</span
-                        >
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="text-sm text-surface-400 w-24 flex-shrink-0">Cliente:</span>
-                        <span
-                            class="text-base font-medium text-surface-700 dark:text-surface-200"
-                            >{{ guia.cliente }}</span
-                        >
+                        <span class="text-base font-semibold text-surface-700 dark:text-surface-200">{{
+                            guia.empresaSuministro
+                        }}</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="text-sm text-surface-400 w-24 flex-shrink-0">Ruta:</span>
@@ -62,35 +62,78 @@
                     </div>
                 </div>
 
-                <div
-                    class="mt-3 flex items-center gap-1.5 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-1.5 rounded-lg w-fit"
-                >
-                    <i class="pi pi-clock text-base"></i>
-                    <span class="font-medium">{{ store.getTiempoCarga(guia.id) }}</span>
-                </div>
-
                 @if (guiaActivaExpandida() === guia.id) {
                     <div
-                        class="mt-3 pt-3 border-t border-surface-200 dark:border-surface-700 space-y-2.5 text-base"
+                        class="mt-3 pt-3 border-t border-surface-200 dark:border-surface-700 space-y-2"
                     >
-                        <div class="flex items-start gap-2">
-                            <i class="pi pi-map-marker text-surface-400 mt-0.5"></i>
-                            <span class="text-surface-500">{{ guia.direccion }}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i class="pi pi-id-card text-surface-400"></i>
-                            <span class="text-surface-500">RIF: {{ guia.rif }}</span>
-                        </div>
-                        @if (guia.tuvoDevolucion) {
+                        <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider"
+                            >Facturas de la guía</span
+                        >
+                        @for (factura of guia.facturas; track factura.id) {
                             <div
-                                class="flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg"
+                                class="rounded-lg bg-surface-50 dark:bg-surface-700/50 p-3"
+                                [ngClass]="[
+                                    'border-l-4',
+                                    store.getColorBorde(factura.estado),
+                                ]"
                             >
-                                <i class="pi pi-exclamation-triangle"></i>
-                                <span>Incidencia: Devolución</span>
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <div class="font-mono text-sm font-semibold">{{
+                                            factura.numeroFactura
+                                        }}</div>
+                                        <div class="text-base font-medium truncate">{{
+                                            factura.cliente
+                                        }}</div>
+                                    </div>
+                                    <div class="text-right flex-shrink-0">
+                                        <p-tag
+                                            [value]="store.getEstadoLabel(factura.estado)"
+                                            [severity]="store.getEstadoSeverity(factura.estado)"
+                                            styleClass="text-xs"
+                                        />
+                                        <div class="text-sm font-bold text-primary mt-1">
+                                            {{
+                                                factura.precioCarga
+                                                    | currency: 'USD' : 'symbol' : '1.0-0'
+                                            }}
+                                        </div>
+                                    </div>
+                                </div>
+                                @if (factura.direccion) {
+                                    <div class="flex items-start gap-2 mt-2 text-sm text-surface-500">
+                                        <i class="pi pi-map-marker text-surface-400 mt-0.5"></i>
+                                        <span>{{ factura.direccion }}</span>
+                                    </div>
+                                }
+                                @if (factura.rif) {
+                                    <div
+                                        class="flex items-center gap-2 mt-1 text-sm text-surface-500"
+                                    >
+                                        <i class="pi pi-id-card text-surface-400"></i>
+                                        <span>RIF: {{ factura.rif }}</span>
+                                    </div>
+                                }
+                                <div
+                                    class="mt-2 flex items-center gap-1.5 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-1.5 rounded-lg w-fit"
+                                >
+                                    <i class="pi pi-clock text-base"></i>
+                                    <span class="font-medium">{{
+                                        store.getTiempoCarga(factura.id)
+                                    }}</span>
+                                </div>
+                                @if (factura.tuvoDevolucion) {
+                                    <div
+                                        class="flex items-center gap-2 mt-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg"
+                                    >
+                                        <i class="pi pi-exclamation-triangle"></i>
+                                        <span>Incidencia: Devolución</span>
+                                    </div>
+                                }
                             </div>
                         }
                         @if (guia.observaciones) {
-                            <div class="flex items-start gap-2 text-surface-500">
+                            <div class="flex items-start gap-2 text-surface-500 pt-1">
                                 <i class="pi pi-comment mt-0.5"></i>
                                 <span>{{ guia.observaciones }}</span>
                             </div>

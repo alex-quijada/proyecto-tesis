@@ -6,7 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 
 import { DriverStoreService } from '../../services/driver-store.service';
-import { Entrega } from '../../services/driver-store.service';
+import { Entrega, GuiaPendiente } from '../../services/driver-store.service';
 
 @Component({
     selector: 'app-home',
@@ -20,6 +20,10 @@ export class HomeComponent {
 
     guiaActivaExpandida = signal<string | null>(null);
     selectedHistory = signal<Entrega | null>(null);
+
+    totalFacturas(guia: GuiaPendiente): number {
+        return guia.facturas.reduce((sum, f) => sum + (f.precioCarga || 0), 0);
+    }
 
     irARuta() {
         this.router.navigate(['/driver/ruta']);

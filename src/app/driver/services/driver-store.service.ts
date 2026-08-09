@@ -58,6 +58,15 @@ export interface DriverInfo {
     fechaIngreso?: string;
 }
 
+export interface GuiaPendiente {
+    id: string;
+    numeroGuia: string;
+    empresaSuministro: string;
+    ruta: string;
+    observaciones?: string;
+    facturas: Entrega[];
+}
+
 const ORDEN_MUNICIPIOS: Record<string, number> = {
     PENINSULA_DE_MACANAO: 1,
     TUBORES: 2,
@@ -111,6 +120,28 @@ export class DriverStoreService implements OnDestroy {
 
     readonly pendingCount = computed(() => this.guiasPendientes().length);
     readonly completedCount = computed(() => this.guiasCompletadas().length);
+
+    readonly guiasPendientesAgrupadas = computed<GuiaPendiente[]>(() => {
+        const mapa = new Map<string, GuiaPendiente>();
+        for (const g of this.guiasPendientes()) {
+            let grupo = mapa.get(g.idGuia);
+            if (!grupo) {
+                grupo = {
+                    id: g.idGuia,
+                    numeroGuia: g.numeroGuia,
+                    empresaSuministro: g.empresaSuministro,
+                    ruta: g.ruta,
+                    observaciones: g.observaciones,
+                    facturas: [],
+                };
+                mapa.set(g.idGuia, grupo);
+            }
+            grupo.facturas.push(g);
+        }
+        return Array.from(mapa.values());
+    });
+
+    readonly pendingGuiasCount = computed(() => this.guiasPendientesAgrupadas().length);
 
     async cargarDatos() {
         await this.authService.waitForInitialization();
