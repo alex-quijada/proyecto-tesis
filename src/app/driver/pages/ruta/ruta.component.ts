@@ -1,4 +1,4 @@
-import { Component, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 
@@ -9,6 +9,31 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DriverStoreService } from '../../services/driver-store.service';
 import { Entrega } from '../../services/driver-store.service';
 import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
+import { ViajeService } from '@/app/services/viaje.service';
+import { ViajeChofer } from '@/app/services/viaje.types';
+import {
+    GoogleMapsOptimizationService,
+    Waypoint,
+} from '../../../admin/pages/map/map/google-maps-optimization.service';
+import { environment } from '@/environments/environment';
+
+interface ParadaDisplay {
+    id: string;
+    ordenVisita: number;
+    numeroGuia: string;
+    numeroFactura: string;
+    cliente: string;
+    ruta: string;
+    direccion: string;
+    rif: string;
+    precioCarga: number;
+    estado: string;
+    observaciones?: string;
+    eventos: any[];
+    latitud?: number;
+    longitud?: number;
+    empresaSuministro?: string;
+}
 
 @Component({
     selector: 'app-ruta',
@@ -16,20 +41,203 @@ import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog
     imports: [CommonModule, ButtonModule, TagModule, TooltipModule, FirmaDialogComponent],
     templateUrl: './ruta.component.html',
 })
-export class RutaComponent {
+export class RutaComponent implements OnInit {
     store = inject(DriverStoreService);
     private messageService = inject(MessageService);
+    private viajeService = inject(ViajeService);
+    private googleOptimization = inject(GoogleMapsOptimizationService);
 
-    selectedGuia = signal<Entrega | null>(null);
-    firmaGuia = signal<Entrega | null>(null);
+    viajes = signal<ViajeChofer[]>([]);
+    paradas = signal<ParadaDisplay[]>([]);
+    selectedGuia = signal<ParadaDisplay | null>(null);
+    firmaGuia = signal<ParadaDisplay | null>(null);
+    reordering = signal(false);
+    optimizando = signal(false);
+    cargando = signal(true);
 
     @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
 
-    toggleSelectedGuia(g: Entrega) {
+    readonly activeViaje = computed(() => this.viajes()[0] || null);
+
+    readonly guiasPendientes = computed(() =>
+        this.paradas().filter((p) => p.estado !== 'finalizado' && p.estado !== 'cancelado'),
+    );
+
+    readonly guiasCompletadas = computed(() =>
+        this.paradas().filter((p) => p.estado === 'finalizado' || p.estado === 'cancelado'),
+    );
+
+    readonly completedCount = computed(() => this.guiasCompletadas().length);
+
+    async ngOnInit() {
+        await this.cargarViaje();
+        this.cargando.set(false);
+    }
+
+    private async cargarViaje() {
+        try {
+            const viajes = await this.viajeService.obtenerViajeChofer();
+            this.viajes.set(viajes);
+
+            const viaje = viajes[0];
+            if (viaje) {
+                const entregas = this.store.guiasAsignadas();
+                this.paradas.set(
+                    (viaje.paradas || [])
+                        .slice()
+                        .sort((a, b) => a.orden_visita - b.orden_visita)
+                        .map((p) => {
+                            const entrega = entregas.find((e) => e.id === p.id_factura);
+                            return {
+                                id: p.id_factura,
+                                ordenVisita: p.orden_visita,
+                                numeroGuia: p.codigo_guia || entrega?.numeroGuia || p.id_guia || '',
+                                numeroFactura: p.numero_factura || entrega?.numeroFactura || '',
+                                cliente: p.nombre_cliente || entrega?.cliente || 'Sin cliente',
+                                ruta: entrega?.ruta || '',
+                                direccion: p.direccion || entrega?.direccion || '',
+                                rif: entrega?.rif || '',
+                                precioCarga: Number(p.monto_dolares) || entrega?.precioCarga || 0,
+                                estado: p.estado_factura || entrega?.estado || 'embarque',
+                                observaciones: entrega?.observaciones,
+                                eventos: entrega?.eventos || [],
+                                latitud: p.latitud ?? entrega?.latitud,
+                                longitud: p.longitud ?? entrega?.longitud,
+                                empresaSuministro: entrega?.empresaSuministro,
+                            };
+                        }),
+                );
+            } else {
+                this.paradas.set([]);
+            }
+        } catch (err) {
+            console.error('Error al cargar viaje', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo cargar tu viaje.',
+            });
+        }
+    }
+
+    async optimizarRuta() {
+        const conCoords = this.guiasPendientes().filter(
+            (p) => p.latitud != null && p.longitud != null,
+        );
+        if (conCoords.length < 1) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Sin coordenadas',
+                detail: 'Las paradas pendientes no tienen ubicación para calcular la ruta.',
+            });
+            return;
+        }
+
+        this.optimizando.set(true);
+        try {
+            const viaje = this.activeViaje();
+            if (!viaje) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Sin viaje',
+                    detail: 'No hay un viaje activo para guardar la ruta.',
+                });
+                return;
+            }
+
+            const waypoints: Waypoint[] = conCoords.map((p) => ({
+                lat: p.latitud!,
+                lng: p.longitud!,
+                name: `${p.cliente} - ${p.numeroGuia || p.numeroFactura}`,
+            }));
+            const warehouse: Waypoint = {
+                lat: environment.warehouseLat,
+                lng: environment.warehouseLng,
+                name: 'Almacén',
+            };
+
+            const result = await this.googleOptimization.optimize(waypoints, warehouse, warehouse);
+            if (!result) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Sin optimización',
+                    detail: 'No se pudo calcular la ruta optimizada. Se mantiene el orden actual.',
+                });
+                return;
+            }
+
+            const pendientes = this.guiasPendientes();
+            const ordenados = result.order.map((idx) => conCoords[idx]);
+            const idsOrdenados = new Set(ordenados.map((p) => p.id));
+            const sinCoords = pendientes.filter((p) => !idsOrdenados.has(p.id));
+
+            this.paradas.set([...ordenados, ...sinCoords, ...this.guiasCompletadas()]);
+            await this.persistirOrden();
+
+            const detallada = await this.googleOptimization.getRutaDetallada(
+                result.order.map((idx) => waypoints[idx]),
+                warehouse,
+                warehouse,
+            );
+            if (detallada) {
+                await this.viajeService.guardarRutaViaje(viaje.id_viaje, detallada);
+            }
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Ruta optimizada',
+                detail: `Nuevo orden guardado (${(result.distance / 1000).toFixed(1)} km, ${Math.round(
+                    result.duration / 60,
+                )} min aprox.).`,
+            });
+        } catch (err) {
+            console.error('Error al optimizar ruta', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo optimizar la ruta. Intenta nuevamente.',
+            });
+        } finally {
+            this.optimizando.set(false);
+        }
+    }
+
+    moverParada(index: number, direction: number) {
+        const pendientes = [...this.guiasPendientes()];
+        const completadas = this.guiasCompletadas();
+        const target = index + direction;
+        if (target < 0 || target >= pendientes.length) return;
+        [pendientes[index], pendientes[target]] = [pendientes[target], pendientes[index]];
+        this.paradas.set([...pendientes, ...completadas]);
+        this.persistirOrden();
+    }
+
+    private async persistirOrden() {
+        const viaje = this.activeViaje();
+        if (!viaje) return;
+        const ids = this.guiasPendientes().map((p) => p.id);
+        if (ids.length < 1) return;
+        try {
+            await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, ids);
+        } catch (err) {
+            console.error('Error al persistir el orden de la ruta', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo guardar el orden de la ruta.',
+            });
+        }
+    }
+
+    toggleReordering() {
+        this.reordering.update((v) => !v);
+    }
+
+    toggleSelectedGuia(g: ParadaDisplay) {
         this.selectedGuia.set(this.selectedGuia()?.id === g.id ? null : g);
     }
 
-    abrirFirma(entrega: Entrega) {
+    abrirFirma(entrega: ParadaDisplay) {
         this.firmaGuia.set(entrega);
         if (this.firmaDialog) {
             this.firmaDialog.guia = entrega;
@@ -45,9 +253,29 @@ export class RutaComponent {
         const entrega = this.firmaGuia();
         if (!entrega) return;
 
+        const entregaStore: Entrega = {
+            id: entrega.id,
+            idGuia: '',
+            numeroGuia: entrega.numeroGuia,
+            numeroFactura: entrega.numeroFactura,
+            empresaSuministro: entrega.empresaSuministro || '',
+            cliente: entrega.cliente,
+            ruta: entrega.ruta,
+            direccion: entrega.direccion,
+            rif: entrega.rif,
+            precioCarga: entrega.precioCarga,
+            estado: entrega.estado,
+            observaciones: entrega.observaciones,
+            tuvoDevolucion: false,
+            eventos: entrega.eventos,
+            latitud: entrega.latitud,
+            longitud: entrega.longitud,
+        };
+
         try {
-            await this.store.finalizarEntrega(entrega, event.firma, event.observaciones);
+            await this.store.finalizarEntrega(entregaStore, event.firma, event.observaciones);
             this.selectedGuia.set(null);
+            await this.cargarViaje();
             this.messageService.add({
                 severity: 'success',
                 summary: 'Entrega completada',

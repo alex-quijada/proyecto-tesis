@@ -6,24 +6,53 @@
                 >Avance del día</span
             >
             <span class="text-base font-bold text-primary"
-                >{{ store.completedCount() }}/{{ store.guiasAsignadas().length }}</span
+                >{{ completedCount() }}/{{ paradas().length }}</span
             >
         </div>
         <div class="w-full h-2.5 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
             <div
                 class="h-full bg-primary rounded-full transition-all duration-700"
                 [style.width.%]="
-                    store.guiasAsignadas().length
-                        ? (store.completedCount() / store.guiasAsignadas().length) * 100
+                    paradas().length
+                        ? (completedCount() / paradas().length) * 100
                         : 0
                 "
             ></div>
         </div>
         <div class="flex justify-between text-xs text-surface-400 mt-1.5">
-            <span>{{ store.pendingCount() }} pendientes</span>
-            <span>{{ store.completedCount() }} completadas</span>
+            <span>{{ guiasPendientes().length }} pendientes</span>
+            <span>{{ completedCount() }} completadas</span>
         </div>
     </div>
+
+    @if (activeViaje(); as viaje) {
+        <!-- Acciones de planificación -->
+        <div class="flex gap-2">
+            <p-button
+                icon="pi pi-route"
+                label="Optimizar ruta"
+                [loading]="optimizando()"
+                [disabled]="guiasPendientes().length < 2"
+                (onClick)="optimizarRuta()"
+                styleClass="flex-1 text-sm"
+            />
+            <p-button
+                [icon]="reordering() ? 'pi pi-check' : 'pi pi-bars'"
+                [label]="reordering() ? 'Hecho' : 'Reordenar'"
+                [severity]="reordering() ? 'success' : 'secondary'"
+                [disabled]="guiasPendientes().length < 2"
+                (onClick)="toggleReordering()"
+                styleClass="flex-1 text-sm"
+            />
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-surface-400 px-0.5">
+            <span>Orden de entrega del viaje</span>
+            <span class="flex items-center gap-1"
+                ><i class="pi pi-truck"></i>{{ viaje.placa_vehiculo || '—' }}</span
+            >
+        </div>
+    }
 
     @if (store.driverInfo()?.vehiculos; as vehiculos) {
         @if (vehiculos.length > 0) {
@@ -44,129 +73,172 @@
         }
     }
 
-    @for (guia of store.guiasAsignadas(); track guia.id) {
+    @if (cargando()) {
         <div
-            class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 overflow-hidden transition-all cursor-pointer"
-            [ngClass]="[
-                store.getColorBorde(guia.estado),
-                selectedGuia()?.id === guia.id
-                    ? 'ring-2 ring-primary-200 dark:ring-primary-800'
-                    : '',
-            ]"
-            (click)="toggleSelectedGuia(guia)"
+            class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
         >
-            <div class="p-4">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span class="text-base font-semibold truncate">{{ guia.cliente }}</span>
-                            <p-tag
-                                [value]="store.getEstadoLabel(guia.estado)"
-                                [severity]="store.getEstadoSeverity(guia.estado)"
-                                styleClass="text-sm"
-                            />
-                        </div>
-                        <div
-                            class="text-base text-surface-400 mt-1.5 flex items-center gap-3 flex-wrap"
-                        >
-                            <span class="flex items-center gap-1"
-                                ><i class="pi pi-map-marker"></i>{{ guia.ruta }}</span
-                            >
-                            <span class="flex items-center gap-1"
-                                ><i class="pi pi-box"></i>{{ guia.numeroFactura }}</span
-                            >
-                            <span class="flex items-center gap-1"
-                                ><i class="pi pi-dollar"></i
-                                >{{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}</span
-                            >
-                        </div>
-                    </div>
-                    <div class="text-right ml-2 flex-shrink-0">
-                        <span class="font-mono text-sm font-semibold text-primary block mb-1">{{
-                            guia.numeroGuia
-                        }}</span>
-                        @if (guia.estado !== 'FINALIZADO' && guia.estado !== 'CANCELADO') {
-                            <p-button
-                                icon="pi pi-check-circle"
-                                severity="success"
-                                text
-                                size="small"
-                                pTooltip="Completar entrega"
-                                tooltipPosition="left"
-                                (click)="$event.stopPropagation(); abrirFirma(guia)"
-                            />
-                        }
-                    </div>
-                </div>
-                @if (selectedGuia()?.id === guia.id) {
-                    <div
-                        class="mt-3 pt-3 border-t border-surface-200 dark:border-surface-700 text-sm space-y-2"
-                    >
-                        <div class="flex justify-between">
-                            <span class="text-surface-400">Sucursal:</span
-                            ><span class="font-medium text-right max-w-48">{{
-                                guia.empresaSuministro
-                            }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-surface-400">Dirección:</span
-                            ><span class="font-medium text-right max-w-48">{{
-                                guia.direccion
-                            }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-surface-400">RIF:</span><span>{{ guia.rif }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-surface-400">Factura:</span
-                            ><span class="font-mono">{{ guia.numeroFactura }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-surface-400">Monto:</span
-                            ><span>{{
-                                guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0'
-                            }}</span>
-                        </div>
-                        @if (guia.observaciones) {
-                            <div
-                                class="flex justify-between mt-2 pt-2 border-t border-surface-100 dark:border-surface-700"
-                            >
-                                <span class="text-surface-400">Notas:</span
-                                ><span class="text-right max-w-48">{{ guia.observaciones }}</span>
-                            </div>
-                        }
-                        @if (guia.eventos.length > 0) {
-                            <div class="mt-2">
-                                <span class="text-xs font-semibold text-surface-400 block mb-1.5"
-                                    >Eventos</span
-                                >
-                                @for (ev of guia.eventos; track ev.id) {
-                                    <div class="flex gap-2 items-start mb-1">
-                                        <i
-                                            class="pi pi-circle-fill text-surface-300 dark:text-surface-500 text-[6px] mt-1.5"
-                                        ></i>
-                                        <div>
-                                            <span class="font-medium">{{ ev.descripcion }}</span
-                                            ><span class="text-surface-400 ml-1">{{
-                                                ev.fecha
-                                            }}</span>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
+            <i class="pi pi-spin pi-spinner text-4xl block mb-2"></i>
+            <p class="text-sm font-semibold text-surface-500">Cargando viaje...</p>
         </div>
-    } @empty {
+    } @else if (!activeViaje()) {
         <div
             class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
         >
             <i class="pi pi-inbox text-4xl block mb-2"></i>
-            <p class="text-sm font-semibold text-surface-500">Sin guías asignadas</p>
-            <p class="text-xs mt-1">No tienes guías para hoy</p>
+            <p class="text-sm font-semibold text-surface-500">Sin viaje asignado</p>
+            <p class="text-xs mt-1">El administrador aún no te ha asignado un viaje.</p>
         </div>
+    } @else if (guiasPendientes().length === 0) {
+        <div
+            class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
+        >
+            <i class="pi pi-check-circle text-4xl block mb-2"></i>
+            <p class="text-sm font-semibold text-surface-500">Sin paradas pendientes</p>
+            <p class="text-xs mt-1">Todas las entregas del viaje están completadas.</p>
+        </div>
+    } @else {
+        @for (guia of guiasPendientes(); track guia.id; let i = $index) {
+            <div
+                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 overflow-hidden transition-all cursor-pointer"
+                [ngClass]="[
+                    store.getColorBorde(guia.estado),
+                    selectedGuia()?.id === guia.id
+                        ? 'ring-2 ring-primary-200 dark:ring-primary-800'
+                        : '',
+                ]"
+                (click)="reordering() ? null : toggleSelectedGuia(guia)"
+            >
+                @if (reordering() && guiasPendientes().length > 1) {
+                    <div
+                        class="flex items-center justify-center gap-4 py-2 bg-surface-100 dark:bg-surface-700"
+                    >
+                        <p-button
+                            icon="pi pi-chevron-up"
+                            text
+                            size="small"
+                            [disabled]="i === 0"
+                            (onClick)="$event.stopPropagation(); moverParada(i, -1)"
+                        />
+                        <span class="text-xs font-bold text-surface-400">#{{ i + 1 }}</span>
+                        <p-button
+                            icon="pi pi-chevron-down"
+                            text
+                            size="small"
+                            [disabled]="i === guiasPendientes().length - 1"
+                            (onClick)="$event.stopPropagation(); moverParada(i, 1)"
+                        />
+                    </div>
+                }
+                <div class="p-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base font-semibold truncate">{{ guia.cliente }}</span>
+                                <p-tag
+                                    [value]="store.getEstadoLabel(guia.estado)"
+                                    [severity]="store.getEstadoSeverity(guia.estado)"
+                                    styleClass="text-sm"
+                                />
+                            </div>
+                            <div
+                                class="text-base text-surface-400 mt-1.5 flex items-center gap-3 flex-wrap"
+                            >
+                                <span class="flex items-center gap-1"
+                                    ><i class="pi pi-map-marker"></i>{{ guia.ruta || guia.direccion }}</span
+                                >
+                                <span class="flex items-center gap-1"
+                                    ><i class="pi pi-box"></i>{{ guia.numeroFactura }}</span
+                                >
+                                <span class="flex items-center gap-1"
+                                    ><i class="pi pi-dollar"></i
+                                    >{{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}</span
+                                >
+                            </div>
+                        </div>
+                        <div class="text-right ml-2 flex-shrink-0">
+                            <span class="font-mono text-sm font-semibold text-primary block mb-1">{{
+                                guia.numeroGuia
+                            }}</span>
+                            @if (!reordering() && guia.estado !== 'FINALIZADO' && guia.estado !== 'CANCELADO') {
+                                <p-button
+                                    icon="pi pi-check-circle"
+                                    severity="success"
+                                    text
+                                    size="small"
+                                    pTooltip="Completar entrega"
+                                    tooltipPosition="left"
+                                    (click)="$event.stopPropagation(); abrirFirma(guia)"
+                                />
+                            }
+                        </div>
+                    </div>
+                    @if (selectedGuia()?.id === guia.id) {
+                        <div
+                            class="mt-3 pt-3 border-t border-surface-200 dark:border-surface-700 text-sm space-y-2"
+                        >
+                            @if (guia.empresaSuministro) {
+                                <div class="flex justify-between">
+                                    <span class="text-surface-400">Sucursal:</span
+                                    ><span class="font-medium text-right max-w-48">{{
+                                        guia.empresaSuministro
+                                    }}</span>
+                                </div>
+                            }
+                            <div class="flex justify-between">
+                                <span class="text-surface-400">Dirección:</span
+                                ><span class="font-medium text-right max-w-48">{{
+                                    guia.direccion
+                                }}</span>
+                            </div>
+                            @if (guia.rif) {
+                                <div class="flex justify-between">
+                                    <span class="text-surface-400">RIF:</span
+                                    ><span>{{ guia.rif }}</span>
+                                </div>
+                            }
+                            <div class="flex justify-between">
+                                <span class="text-surface-400">Factura:</span
+                                ><span class="font-mono">{{ guia.numeroFactura }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-surface-400">Monto:</span
+                                ><span>{{
+                                    guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0'
+                                }}</span>
+                            </div>
+                            @if (guia.observaciones) {
+                                <div
+                                    class="flex justify-between mt-2 pt-2 border-t border-surface-100 dark:border-surface-700"
+                                >
+                                    <span class="text-surface-400">Notas:</span
+                                    ><span class="text-right max-w-48">{{ guia.observaciones }}</span>
+                                </div>
+                            }
+                            @if (guia.eventos.length > 0) {
+                                <div class="mt-2">
+                                    <span class="text-xs font-semibold text-surface-400 block mb-1.5"
+                                        >Eventos</span
+                                    >
+                                    @for (ev of guia.eventos; track ev.id) {
+                                        <div class="flex gap-2 items-start mb-1">
+                                            <i
+                                                class="pi pi-circle-fill text-surface-300 dark:text-surface-500 text-[6px] mt-1.5"
+                                            ></i>
+                                            <div>
+                                                <span class="font-medium">{{ ev.descripcion }}</span
+                                                ><span class="text-surface-400 ml-1">{{
+                                                    ev.fecha
+                                                }}</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     }
 
     <!-- ===== FIRMA DIALOG ===== -->

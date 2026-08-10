@@ -5,6 +5,7 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 
 import { DriverStoreService } from '../services/driver-store.service';
+import { NavigationService } from '../services/navigation.service';
 import { DriverTopbar } from './driver-topbar';
 import { DriverBottomNav } from './driver-bottom-nav';
 
@@ -12,7 +13,7 @@ import { DriverBottomNav } from './driver-bottom-nav';
     selector: 'app-driver-layout',
     standalone: true,
     imports: [CommonModule, RouterModule, ToastModule, DriverTopbar, DriverBottomNav],
-    providers: [MessageService, DriverStoreService],
+    providers: [MessageService, DriverStoreService, NavigationService],
     template: `
         <div class="min-h-screen bg-surface-50 dark:bg-surface-950 pb-20">
             <p-toast position="top-center" />

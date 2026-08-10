@@ -1,65 +1,45 @@
-import { Component, OnInit, signal, computed, inject, ElementRef, viewChild } from '@angular/core';
+import {
+    Component,
+    DestroyRef,
+    OnInit,
+    inject,
+    signal,
+    computed,
+    ElementRef,
+    viewChild,
+    afterNextRender,
+    effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 
 import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { AvatarModule } from 'primeng/avatar';
 import { TagModule } from 'primeng/tag';
-import { BadgeModule } from 'primeng/badge';
-import { DividerModule } from 'primeng/divider';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 
-import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
-import { AuthService } from '../../../auth/service/auth.service';
 import { ViajeService } from '@/app/services/viaje.service';
 import { ViajeChofer } from '@/app/services/viaje.types';
+import { RutaPersistida } from '@/app/services/viaje.types';
 import {
     GoogleMapsOptimizationService,
     Waypoint,
 } from '../../../admin/pages/map/map/google-maps-optimization.service';
 import { environment } from '@/environments/environment';
+import { NavigationService, ParadaNavegacion } from '../../services/navigation.service';
+import { iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 
-interface ParadaDisplay {
+interface ParadaMapa {
     id: string;
     ordenVisita: number;
     numeroGuia: string;
+    numeroFactura: string;
     nombreCliente: string;
-    cliente: string;
-    direccionEntrega: string;
+    direccion: string;
     estado: string;
-    pesoKg: number;
-    precioCarga: number;
-    municipio: string;
-    rifCliente: string;
-    observaciones?: string;
     latitud?: number | null;
     longitud?: number | null;
-    eventos: any[];
-    fechaLlegadaCliente?: string;
-    fechaRegreso?: string;
-}
-
-interface DriverSession {
-    id: string;
-    nombre: string;
-    documento: string;
-    telefono: string;
-    vehiculo: {
-        id: string;
-        placa: string;
-        marca: string;
-        modelo: string;
-        anio: number;
-        tipo: string;
-    } | null;
-    ruta: {
-        codigo: string;
-        fecha: string;
-    } | null;
 }
 
 @Component({
@@ -69,71 +49,86 @@ interface DriverSession {
         CommonModule,
         FormsModule,
         ButtonModule,
-        CardModule,
-        AvatarModule,
         TagModule,
-        BadgeModule,
-        DividerModule,
-        ToastModule,
         TooltipModule,
-        SelectModule,
-        FirmaDialogComponent,
+        SelectButtonModule,
     ],
-    providers: [MessageService],
     templateUrl: './mi-ruta.component.html',
     styleUrl: './mi-ruta.component.css',
 })
 export class MiRutaComponent implements OnInit {
     private messageService = inject(MessageService);
-    private authService = inject(AuthService);
     private viajeService = inject(ViajeService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
+    private destroyRef = inject(DestroyRef);
+    navigation = inject(NavigationService);
 
     private mapaEl = viewChild<ElementRef<HTMLDivElement>>('mapaElement');
 
-    session = signal<DriverSession | null>(null);
+    topOffset = signal(77);
+    bottomOffset = signal(68);
+    siguiendo = signal(true);
+    verPasos = signal(true);
+    private mapaListo = signal(false);
+
+    constructor() {
+        const medirOffsets = () => {
+            const topbar = document.querySelector('app-driver-topbar') as HTMLElement | null;
+            const nav = document.querySelector('app-driver-bottom-nav') as HTMLElement | null;
+            const topbarDiv = topbar?.firstElementChild as HTMLElement | null;
+            const navDiv = nav?.firstElementChild as HTMLElement | null;
+            if (topbarDiv) this.topOffset.set(topbarDiv.getBoundingClientRect().bottom);
+            if (navDiv)
+                this.bottomOffset.set(window.innerHeight - navDiv.getBoundingClientRect().top);
+        };
+        afterNextRender(medirOffsets);
+        window.addEventListener('resize', medirOffsets);
+        this.destroyRef.onDestroy(() => window.removeEventListener('resize', medirOffsets));
+
+        afterNextRender(() => {
+            effect(() => {
+                const pos = this.navigation.posicionDriver();
+                const listo = this.mapaListo();
+                if (pos && listo) this.moverMarcadorChofer(pos);
+            });
+
+            effect(() => {
+                const navegando = this.navigation.navegando();
+                const path = this.navigation.path();
+                const legs = this.navigation.legs();
+                const listo = this.mapaListo();
+                if (!listo) return;
+                if (navegando && legs.length > 0) {
+                    this.dibujarRutaPorTramos(legs);
+                } else if (navegando && path.length > 0) {
+                    this.dibujarPolyline(path);
+                } else if (!navegando) {
+                    this.limpiarPolyline();
+                }
+            });
+        });
+    }
+
     viajes = signal<ViajeChofer[]>([]);
-    paradas = signal<ParadaDisplay[]>([]);
-    selectedGuia = signal<ParadaDisplay | null>(null);
-    reordering = signal(false);
-    showCompleted = signal(false);
-    activeTab = signal<'ruta' | 'mapa' | 'completadas'>('ruta');
-    firmaGuia = signal<ParadaDisplay | null>(null);
-    firmasMap = new Map<string, string>();
+    paradas = signal<ParadaMapa[]>([]);
     cargando = signal(true);
-    saliendo = signal(false);
+    iniciando = signal(false);
 
     private mapa!: google.maps.Map;
-    private markers: google.maps.marker.AdvancedMarkerElement[] = [];
+    private markers: google.maps.Marker[] = [];
+    private driverMarker: google.maps.Marker | null = null;
     private routePolyline: google.maps.Polyline | null = null;
+    private segmentPolylines: google.maps.Polyline[] = [];
 
     readonly activeViaje = computed(() => this.viajes()[0] || null);
 
     get fechaActual(): string {
         const hoy = new Date();
-        return hoy.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-    }
-
-    get guiasPendientes(): ParadaDisplay[] {
-        return this.paradas().filter((p) => p.estado !== 'FINALIZADO');
-    }
-
-    get guiasCompletadas(): ParadaDisplay[] {
-        return this.paradas().filter((p) => p.estado === 'FINALIZADO');
-    }
-
-    get avance(): number {
-        const total = this.paradas().length;
-        if (!total) return 0;
-        return Math.round((this.guiasCompletadas.length / total) * 100);
-    }
-
-    get totalPrecio(): number {
-        return this.paradas().reduce((s, p) => s + p.precioCarga, 0);
-    }
-
-    get totalPeso(): number {
-        return this.paradas().reduce((s, p) => s + p.pesoKg, 0);
+        return hoy.toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
     }
 
     get viajeAbierto(): boolean {
@@ -163,50 +158,20 @@ export class MiRutaComponent implements OnInit {
                         .map((p) => ({
                             id: p.id_factura,
                             ordenVisita: p.orden_visita,
-                            numeroGuia: p.codigo_guia || p.numero_factura,
+                            numeroGuia: p.codigo_guia || '',
+                            numeroFactura: p.numero_factura || '',
                             nombreCliente: p.nombre_cliente || '',
-                            cliente: p.nombre_cliente || '',
-                            direccionEntrega: p.direccion || '',
+                            direccion: p.direccion || '',
                             estado: p.estado_factura || 'embarque',
-                            pesoKg: 0,
-                            precioCarga: Number(p.monto_dolares) || 0,
-                            municipio: '',
-                            rifCliente: '',
                             latitud: p.latitud,
                             longitud: p.longitud,
-                            eventos: [],
                         })),
                 );
-
-                const user = this.authService.getCurrentUser();
-                const nombre = user?.user_metadata?.['nombre_completo'] || 'Chofer';
-                const cedula = user?.user_metadata?.['cedula'] ?? '';
-                this.session.set({
-                    id: user?.id || '',
-                    nombre,
-                    documento: cedula ? `V-${cedula}` : '',
-                    telefono: '',
-                    vehiculo: {
-                        id: viaje.id_vehiculo,
-                        placa: (viaje as any).placa_vehiculo || '—',
-                        marca: '',
-                        modelo: '',
-                        anio: 0,
-                        tipo: 'VEHÍCULO',
-                    },
-                    ruta: {
-                        codigo: viaje.id_viaje.substring(0, 8).toUpperCase(),
-                        fecha: viaje.fecha_viaje || new Date().toISOString().split('T')[0],
-                    },
-                });
             } else {
                 this.paradas.set([]);
-                this.session.set(null);
             }
 
-            if (this.activeViaje()?.estado === 'proceso') {
-                setTimeout(() => this.mostrarRutaEnMapa(), 100);
-            }
+            setTimeout(() => this.mostrarRutaEnMapa(), 100);
         } catch (err) {
             console.error('Error al cargar viaje', err);
             this.messageService.add({
@@ -217,7 +182,247 @@ export class MiRutaComponent implements OnInit {
         }
     }
 
-    async salir() {
+    private initMapa() {
+        if (this.mapa || !this.mapaEl()) return;
+        const el = this.mapaEl()!.nativeElement;
+        if (!el) return;
+        if (el.clientHeight === 0) {
+            setTimeout(() => this.initMapa(), 150);
+            return;
+        }
+        this.mapa = new google.maps.Map(el, {
+            center: { lat: environment.warehouseLat, lng: environment.warehouseLng },
+            zoom: 10,
+            streetViewControl: false,
+            fullscreenControl: false,
+            mapTypeControl: false,
+            styles: [
+                { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+                {
+                    featureType: 'transit',
+                    elementType: 'labels.icon',
+                    stylers: [{ visibility: 'off' }],
+                },
+            ],
+        });
+        this.mapaListo.set(true);
+    }
+
+    private limpiarRuta() {
+        this.markers.forEach((m) => m.setMap(null));
+        this.markers = [];
+        this.limpiarPolyline();
+        this.limpiarSegmentos();
+        if (this.driverMarker) {
+            this.driverMarker.setMap(null);
+            this.driverMarker = null;
+        }
+    }
+
+    private limpiarPolyline() {
+        if (this.routePolyline) {
+            this.routePolyline.setMap(null);
+            this.routePolyline = null;
+        }
+    }
+
+    private limpiarSegmentos() {
+        this.segmentPolylines.forEach((p) => p.setMap(null));
+        this.segmentPolylines = [];
+    }
+
+    private dibujarPolyline(path: LatLng[]) {
+        this.limpiarPolyline();
+        if (path.length < 2) return;
+        this.routePolyline = new google.maps.Polyline({
+            path: path.map((p) => ({ lat: p.lat, lng: p.lng })),
+            geodesic: true,
+            strokeColor: '#22c55e',
+            strokeOpacity: 0.85,
+            strokeWeight: 5,
+            map: this.mapa,
+        });
+    }
+
+    /** Dibuja la ruta por tramos siguiendo las calles: una polyline por cada
+     *  leg de Google (almacén → parada 1, parada 1 → parada 2, …). Cada leg
+     *  usa su path detallado (street-following), no solo los extremos de las
+     *  maniobras. */
+    private dibujarRutaPorTramos(legs: { path: LatLng[] }[]) {
+        this.limpiarSegmentos();
+        if (legs.length < 1) return;
+
+        for (const leg of legs) {
+            const path = leg.path;
+            if (path.length < 2) continue;
+            this.segmentPolylines.push(
+                new google.maps.Polyline({
+                    path: path.map((p) => ({ lat: p.lat, lng: p.lng })),
+                    geodesic: true,
+                    strokeColor: '#22c55e',
+                    strokeOpacity: 0.85,
+                    strokeWeight: 5,
+                    map: this.mapa,
+                }),
+            );
+        }
+    }
+
+    private mostrarRutaEnMapa() {
+        this.initMapa();
+        if (!this.mapa) return;
+
+        this.markers.forEach((m) => m.setMap(null));
+        this.markers = [];
+
+        const conCoords = this.paradas()
+            .filter((p) => p.latitud != null && p.longitud != null)
+            .sort((a, b) => a.ordenVisita - b.ordenVisita);
+
+        const warehouse: Waypoint = {
+            lat: environment.warehouseLat,
+            lng: environment.warehouseLng,
+            name: 'Almacén',
+        };
+
+        this.agregarMarcadorAlmacen(warehouse);
+        conCoords.forEach((p, i) =>
+            this.agregarMarcadorEntrega(i, {
+                lat: p.latitud!,
+                lng: p.longitud!,
+                name: `${p.nombreCliente} - ${p.numeroGuia || p.numeroFactura}`,
+            }),
+        );
+
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({ lat: warehouse.lat, lng: warehouse.lng });
+        conCoords.forEach((p) => bounds.extend({ lat: p.latitud!, lng: p.longitud! }));
+        this.mapa.fitBounds(bounds, 80);
+
+        this.navigation.inicializarPosicion(warehouse);
+
+        const pos = this.navigation.posicionDriver();
+        if (pos) this.moverMarcadorChofer(pos);
+
+        const rutaPersistida = this.activeViaje()?.ruta_detallada;
+        if (rutaPersistida && rutaPersistida.legs && rutaPersistida.legs.length > 0) {
+            this.dibujarRutaPorTramos(rutaPersistida.legs);
+        } else if (rutaPersistida && rutaPersistida.path.length > 1) {
+            this.dibujarPolyline(rutaPersistida.path);
+        }
+
+        const navegando = this.navigation.navegando();
+        const path = this.navigation.path();
+        if (navegando && path.length > 0) {
+            this.dibujarPolyline(path);
+        }
+
+        if (this.viajeEnProceso) {
+            this.iniciarNavegacion();
+        } else if (this.navigation.navegando()) {
+            this.navigation.detener();
+        }
+    }
+
+    private async iniciarNavegacion(rutaPrecomputada?: RutaPersistida | null) {
+        const conCoords = this.paradas()
+            .filter((p) => p.latitud != null && p.longitud != null)
+            .sort((a, b) => a.ordenVisita - b.ordenVisita);
+
+        const paradasNav: ParadaNavegacion[] = conCoords.map((p) => ({
+            id: p.id,
+            ordenVisita: p.ordenVisita,
+            numeroGuia: p.numeroGuia,
+            numeroFactura: p.numeroFactura,
+            nombreCliente: p.nombreCliente,
+            latitud: p.latitud!,
+            longitud: p.longitud!,
+        }));
+
+        const warehouse: Waypoint = {
+            lat: environment.warehouseLat,
+            lng: environment.warehouseLng,
+            name: 'Almacén',
+        };
+
+        const rutaPersistida = rutaPrecomputada ?? this.activeViaje()?.ruta_detallada;
+        const ok = await this.navigation.iniciarNavegacion(paradasNav, warehouse, rutaPersistida);
+        if (!ok && this.viajeEnProceso) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Sin navegación',
+                detail: 'No se pudo calcular la ruta detallada para este viaje.',
+            });
+        }
+    }
+
+    private moverMarcadorChofer(pos: LatLng) {
+        if (!this.mapa) return;
+        const icon = {
+            url:
+                'data:image/svg+xml;charset=utf-8,' +
+                encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="14" fill="#2563eb" stroke="#fff" stroke-width="3"/><circle cx="15" cy="15" r="6" fill="#fff"/></svg>',
+                ),
+            scaledSize: new google.maps.Size(30, 30),
+            anchor: new google.maps.Point(15, 15),
+        };
+        if (!this.driverMarker) {
+            this.driverMarker = new google.maps.Marker({
+                position: { lat: pos.lat, lng: pos.lng },
+                map: this.mapa,
+                icon,
+                title: 'Tu posición',
+                zIndex: 99,
+            });
+        } else {
+            this.driverMarker.setPosition({ lat: pos.lat, lng: pos.lng });
+        }
+        if (this.navigation.navegando() && this.siguiendo()) {
+            this.mapa.panTo({ lat: pos.lat, lng: pos.lng });
+        }
+    }
+
+    private agregarMarcadorAlmacen(wp: Waypoint) {
+        const icon = {
+            url:
+                'data:image/svg+xml;charset=utf-8,' +
+                encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#8b5cf6" stroke="#fff" stroke-width="3"/><path d="M14 6l8 7h-3v8h-4v-5h-2v5H9v-8H6l8-7z" fill="#fff"/></svg>',
+                ),
+            scaledSize: new google.maps.Size(28, 28),
+            anchor: new google.maps.Point(14, 14),
+        };
+        const marker = new google.maps.Marker({
+            position: { lat: wp.lat, lng: wp.lng },
+            map: this.mapa,
+            icon,
+            title: wp.name,
+        });
+        this.markers.push(marker);
+    }
+
+    private agregarMarcadorEntrega(index: number, wp: Waypoint) {
+        const numero = index + 1;
+        const icon = {
+            url:
+                'data:image/svg+xml;charset=utf-8,' +
+                encodeURIComponent(
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#f59e0b" stroke="#fff" stroke-width="2"/><text x="13" y="13" dy=".35em" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff" font-family="Arial, sans-serif">${numero}</text></svg>`,
+                ),
+            scaledSize: new google.maps.Size(26, 26),
+            anchor: new google.maps.Point(13, 13),
+        };
+        const marker = new google.maps.Marker({
+            position: { lat: wp.lat, lng: wp.lng },
+            map: this.mapa,
+            icon,
+            title: wp.name,
+        });
+        this.markers.push(marker);
+    }
+
+    async iniciarViaje() {
         const viaje = this.activeViaje();
         if (!viaje || !this.viajeAbierto) return;
 
@@ -231,12 +436,12 @@ export class MiRutaComponent implements OnInit {
             return;
         }
 
-        this.saliendo.set(true);
+        this.iniciando.set(true);
         try {
             const waypoints: Waypoint[] = conCoords.map((p) => ({
                 lat: p.latitud!,
                 lng: p.longitud!,
-                name: `${p.nombreCliente} - ${p.numeroGuia}`,
+                name: `${p.nombreCliente} - ${p.numeroGuia || p.numeroFactura}`,
             }));
             const warehouse: Waypoint = {
                 lat: environment.warehouseLat,
@@ -249,251 +454,83 @@ export class MiRutaComponent implements OnInit {
                 ? result.order.map((idx) => conCoords[idx].id)
                 : conCoords.map((p) => p.id);
 
-            await this.viajeService.iniciarViaje(viaje.id_viaje, orderedIds);
-            await this.cargarViaje();
+            // Modo prueba: solo se persiste el orden de paradas (actualizar_orden_viaje).
+            // NO se cambia el estado del viaje ni de las facturas (iniciar_viaje).
+            await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, orderedIds);
+
+            const detallada = result
+                ? await this.googleOptimization.getRutaDetallada(
+                      result.order.map((idx) => waypoints[idx]),
+                      warehouse,
+                      warehouse,
+                  )
+                : null;
+            if (detallada) {
+                await this.viajeService.guardarRutaViaje(viaje.id_viaje, detallada);
+            }
+
+            await this.iniciarNavegacion(detallada);
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Viaje iniciado',
-                detail: 'Las facturas pasaron a proceso y la ruta fue optimizada.',
+                summary: 'Simulación lista',
+                detail: 'La ruta fue optimizada y la navegación iniciada desde el almacén.',
             });
-            this.cambiarTab('mapa');
         } catch (err) {
-            console.error('Error al iniciar viaje', err);
+            console.error('Error al iniciar simulación', err);
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo iniciar el viaje. Intenta nuevamente.',
+                detail: 'No se pudo iniciar la simulación. Intenta nuevamente.',
             });
         } finally {
-            this.saliendo.set(false);
+            this.iniciando.set(false);
         }
     }
 
-    private mostrarRutaEnMapa() {
-        this.initMapa();
-        if (!this.mapa) return;
-
-        this.limpiarRuta();
-
-        const paradas = this.paradas()
-            .filter((p) => p.latitud != null && p.longitud != null)
-            .sort((a, b) => a.ordenVisita - b.ordenVisita);
-
-        if (paradas.length < 1) return;
-
-        const waypoints: Waypoint[] = paradas.map((p) => ({
-            lat: p.latitud!,
-            lng: p.longitud!,
-            name: `${p.nombreCliente} - ${p.numeroGuia}`,
-        }));
-        const warehouse: Waypoint = {
-            lat: environment.warehouseLat,
-            lng: environment.warehouseLng,
-            name: 'Almacén',
-        };
-
-        this.googleOptimization.computeRoute(waypoints, warehouse, warehouse).then((result) => {
-            if (!result || !this.mapa) return;
-            this.routePolyline = new google.maps.Polyline({
-                path: result.path,
-                geodesic: true,
-                strokeColor: '#22c55e',
-                strokeOpacity: 0.85,
-                strokeWeight: 5,
-                map: this.mapa,
-            });
-            const bounds = new google.maps.LatLngBounds();
-            result.path.forEach((p) => bounds.extend(p));
-            this.mapa.fitBounds(bounds, 80);
-            this.agregarMarcadorAlmacen(warehouse);
-            result.order.forEach((idx, i) => this.agregarMarcadorEntrega(i, waypoints[idx]));
-        });
+    toggleSimulacion() {
+        this.navigation.toggleSimulacion();
     }
 
-    private initMapa() {
-        if (this.mapa || !this.mapaEl()) return;
-        const el = this.mapaEl()!.nativeElement;
-        if (!el || el.clientHeight === 0) return;
-        this.mapa = new google.maps.Map(el, {
-            center: { lat: environment.warehouseLat, lng: environment.warehouseLng },
-            zoom: 10,
-            mapId: 'mi-ruta-chofer',
-        });
+    togglePausa() {
+        this.navigation.togglePausa();
     }
 
-    private limpiarRuta() {
-        this.markers.forEach((m) => (m.map = null));
-        this.markers = [];
-        if (this.routePolyline) {
-            this.routePolyline.setMap(null);
-            this.routePolyline = null;
-        }
+    readonly modoOpciones = [
+        { label: 'Modo normal', value: 'gps' },
+        { label: 'Modo simulación', value: 'simulacion' },
+    ];
+
+    get modoNavegacion(): string {
+        return this.navigation.simulando() ? 'simulacion' : 'gps';
     }
 
-    private agregarMarcadorAlmacen(wp: Waypoint) {
-        const content = document.createElement('div');
-        content.innerHTML =
-            '<div style="width:28px;height:28px;background:#8b5cf6;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
-        const marker = new google.maps.marker.AdvancedMarkerElement({
-            position: { lat: wp.lat, lng: wp.lng },
-            map: this.mapa,
-            content: content.firstElementChild as HTMLElement,
-            title: wp.name,
-        });
-        this.markers.push(marker);
+    set modoNavegacion(v: string) {
+        this.navigation.setModoSimulacion(v === 'simulacion');
     }
 
-    private agregarMarcadorEntrega(index: number, wp: Waypoint) {
-        const content = document.createElement('div');
-        content.innerHTML = `<div style="width:24px;height:24px;background:#f59e0b;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff;">${index + 1}</div>`;
-        const marker = new google.maps.marker.AdvancedMarkerElement({
-            position: { lat: wp.lat, lng: wp.lng },
-            map: this.mapa,
-            content: content.firstElementChild as HTMLElement,
-            title: wp.name,
-        });
-        this.markers.push(marker);
+    reiniciarSimulacion() {
+        this.navigation.reiniciarSimulacion();
     }
 
-    getEstadoLabel(estado: string): string {
-        switch (estado) {
-            case 'embarque':
-                return 'Embarque';
-            case 'proceso':
-                return 'En proceso';
-            case 'finalizado':
-            case 'FINALIZADO':
-                return 'Finalizado';
-            case 'incidencia':
-                return 'Incidencia';
-            default:
-                return estado;
-        }
+    toggleSeguimiento() {
+        this.siguiendo.update((v) => !v);
     }
 
-    getEstadoSeverity(
-        estado: string,
-    ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        switch (estado) {
-            case 'embarque':
-                return 'info';
-            case 'proceso':
-                return 'warn';
-            case 'finalizado':
-            case 'FINALIZADO':
-                return 'success';
-            case 'incidencia':
-                return 'danger';
-            default:
-                return 'secondary';
-        }
+    toggleVerPasos() {
+        this.verPasos.update((v) => !v);
     }
 
-    toggleGuia(guia: ParadaDisplay) {
-        if (this.selectedGuia()?.id === guia.id) {
-            this.selectedGuia.set(null);
-        } else {
-            this.selectedGuia.set(guia);
-        }
+    formatearDistancia(m: number): string {
+        if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+        return `${Math.round(m)} m`;
     }
 
-    abrirFirma(guia: ParadaDisplay) {
-        this.firmaGuia.set(guia);
+    formatearDuracion(s: number): string {
+        if (s >= 60) return `${Math.round(s / 60)} min`;
+        return `${Math.round(s)} s`;
     }
 
-    onFirmaConfirmada(event: { firma: string; observaciones: string }) {
-        const guia = this.firmaGuia();
-        if (!guia) return;
-
-        this.firmasMap.set(guia.id, event.firma);
-
-        const updated = this.paradas().map((p) => {
-            if (p.id === guia.id) {
-                const ahora = new Date();
-                const fecha = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-                const hora = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
-                return {
-                    ...p,
-                    estado: 'FINALIZADO' as const,
-                    fechaLlegadaCliente: `${fecha} ${hora}`,
-                    fechaRegreso: `${fecha} ${hora}`,
-                    observaciones: event.observaciones || p.observaciones,
-                    eventos: [
-                        ...p.eventos,
-                        {
-                            id: `ev-${Date.now()}`,
-                            idGuia: p.id,
-                            tipo: 'LLEGADA_CLIENTE' as const,
-                            fecha: `${fecha} ${hora}`,
-                            descripcion: 'Entrega completada con firma digital',
-                        },
-                        {
-                            id: `ev-${Date.now() + 1}`,
-                            idGuia: p.id,
-                            tipo: 'REGRESO_BASE' as const,
-                            fecha: `${fecha} ${hora}`,
-                            descripcion: 'Regreso a base',
-                        },
-                    ],
-                };
-            }
-            return p;
-        });
-
-        this.paradas.set(updated);
-        this.firmaGuia.set(null);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Entrega completada',
-            detail: `${guia.nombreCliente} — ${guia.numeroGuia}`,
-        });
-    }
-
-    onFirmaCancelada() {
-        this.firmaGuia.set(null);
-    }
-
-    moverGuia(index: number, direction: number) {
-        const pendientes = [...this.guiasPendientes];
-        const completadas = this.guiasCompletadas;
-        const target = index + direction;
-        if (target < 0 || target >= pendientes.length) return;
-        [pendientes[index], pendientes[target]] = [pendientes[target], pendientes[index]];
-        this.paradas.set([...pendientes, ...completadas]);
-    }
-
-    toggleReordering() {
-        this.reordering.update((v) => !v);
-    }
-
-    cambiarTab(tab: 'ruta' | 'mapa' | 'completadas') {
-        this.activeTab.set(tab);
-        if (tab === 'mapa') {
-            setTimeout(() => {
-                this.initMapa();
-                if (this.viajeEnProceso) this.mostrarRutaEnMapa();
-            }, 100);
-        }
-    }
-
-    getColorBorde(estado: string): string {
-        switch (estado) {
-            case 'proceso':
-                return 'border-l-blue-500';
-            case 'embarque':
-                return 'border-l-yellow-500';
-            case 'FINALIZADO':
-            case 'finalizado':
-                return 'border-l-green-500';
-            case 'incidencia':
-                return 'border-l-red-500';
-            default:
-                return 'border-l-surface-300';
-        }
-    }
-
-    tieneFirma(guiaId: string): boolean {
-        return this.firmasMap.has(guiaId);
-    }
+    iconoManiobra = iconoManiobra;
+    limpiarHtmlInstruccion = limpiarHtmlInstruccion;
 }

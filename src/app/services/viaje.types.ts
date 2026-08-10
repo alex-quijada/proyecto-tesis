@@ -21,15 +21,36 @@ export interface ParadaViaje {
     monto_dolares?: number | null;
 }
 
+export interface PasoRutaPersistido {
+    legIndex: number;
+    stepIndex: number;
+    instruccion: string;
+    maniobra: string;
+    distancia: number;
+    duracion: number;
+    inicio: { lat: number; lng: number };
+    fin: { lat: number; lng: number };
+}
+
+export interface RutaPersistida {
+    path: { lat: number; lng: number }[];
+    distancia: number;
+    duracion: number;
+    pasos: PasoRutaPersistido[];
+    legs?: { path: { lat: number; lng: number }[] }[];
+}
+
 export interface ViajeChofer {
     id_viaje: string;
     id_chofer: string;
     id_vehiculo: string;
     fecha_viaje?: string;
     estado: string;
+    placa_vehiculo?: string;
     distancia_total_km?: number | null;
     duracion_total_min?: number | null;
     fecha_creacion?: string;
+    ruta_detallada?: RutaPersistida | null;
     paradas: ParadaViaje[];
 }
 

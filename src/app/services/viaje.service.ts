@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '@/app/auth/service/auth.service';
-import { CrearViajeResult, ViajeChofer, ViajeAdmin } from './viaje.types';
+import { CrearViajeResult, ViajeChofer, ViajeAdmin, RutaPersistida } from './viaje.types';
 
 @Injectable({ providedIn: 'root' })
 export class ViajeService {
@@ -44,6 +44,24 @@ export class ViajeService {
 
         if (error) throw error;
         return data as CrearViajeResult;
+    }
+
+    async actualizarOrdenViaje(idViaje: string, idsFacturasOrdenadas: string[]): Promise<void> {
+        const { error } = await this.supabase.rpc('actualizar_orden_viaje', {
+            p_id_viaje: idViaje,
+            p_ids_facturas_ordenadas: idsFacturasOrdenadas,
+        });
+
+        if (error) throw error;
+    }
+
+    async guardarRutaViaje(idViaje: string, ruta: RutaPersistida): Promise<void> {
+        const { error } = await this.supabase.rpc('guardar_ruta_viaje', {
+            p_id_viaje: idViaje,
+            p_ruta_detallada: ruta,
+        });
+
+        if (error) throw error;
     }
 
     async obtenerViajeChofer(): Promise<ViajeChofer[]> {
