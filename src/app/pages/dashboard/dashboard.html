@@ -1,14 +1,176 @@
-<div style="width: 100%; height: 600px">
-    <app-map></app-map>
+<div class="grid grid-cols-12 gap-8">
+    @if (loading()) {
+        <div class="col-span-12 lg:col-span-3">
+            <p-skeleton height="8rem"></p-skeleton>
+        </div>
+        <div class="col-span-12 lg:col-span-3">
+            <p-skeleton height="8rem"></p-skeleton>
+        </div>
+        <div class="col-span-12 lg:col-span-3">
+            <p-skeleton height="8rem"></p-skeleton>
+        </div>
+        <div class="col-span-12 lg:col-span-3">
+            <p-skeleton height="8rem"></p-skeleton>
+        </div>
+    } @else {
+        @for (kpi of kpis(); track kpi.label) {
+            <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+                <div class="card mb-0">
+                    <div class="flex justify-between mb-4">
+                        <div>
+                            <span class="block text-muted-color font-medium mb-4">{{
+                                kpi.label
+                            }}</span>
+                            <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">
+                                @if (kpi.icon === 'pi pi-dollar') {
+                                    ${{ kpi.value | number: '1.2-2' }}
+                                } @else {
+                                    {{ kpi.value }}
+                                }
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center justify-center rounded-border"
+                            style="width: 2.5rem; height: 2.5rem; background: {{ kpi.color }}22"
+                        >
+                            <i class="{{ kpi.icon }} text-xl!" [style.color]="kpi.color"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <div class="col-span-12 xl:col-span-7">
+        <div class="card mb-0">
+            <div class="flex items-center justify-between mb-4">
+                <div class="font-semibold text-xl">Mapa Operativo</div>
+                <span class="text-muted-color text-sm">
+                    {{ facturasPendientes().length }} entregas pendientes
+                </span>
+            </div>
+            <div
+                #mapaElement
+                class="w-full rounded-border border border-surface"
+                style="height: 480px"
+            ></div>
+        </div>
+    </div>
+
+    <div class="col-span-12 xl:col-span-5">
+        <div class="card mb-0">
+            <div class="flex items-center justify-between mb-4">
+                <div class="font-semibold text-xl">Viajes Activos</div>
+                <button
+                    pButton
+                    type="button"
+                    label="Ver viajes"
+                    icon="pi pi-arrow-right"
+                    iconPos="right"
+                    size="small"
+                    severity="secondary"
+                    text
+                    (click)="irAViajes()"
+                ></button>
+            </div>
+
+            @if (loading()) {
+                <p-skeleton height="480px"></p-skeleton>
+            } @else if (!viajesActivos().length) {
+                <div
+                    class="flex flex-col items-center justify-center text-muted-color"
+                    style="height: 480px"
+                >
+                    <i class="pi pi-inbox text-3xl! mb-3"></i>
+                    <span>No hay viajes activos en este momento.</span>
+                </div>
+            } @else {
+                <div class="overflow-y-auto rounded-border" style="height: 480px">
+                    <p-table [value]="viajesActivos()" [rows]="5" [paginator]="true">
+                        <ng-template #header>
+                            <tr>
+                                <th>Chofer</th>
+                                <th>Vehículo</th>
+                                <th>Facturas</th>
+                                <th>Avance</th>
+                                <th>Estado</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-viaje>
+                            <tr>
+                                <td>{{ viaje.chofer }}</td>
+                                <td>{{ viaje.placaVehiculo }}</td>
+                                <td>{{ viaje.totalFacturas }}</td>
+                                <td>{{ viaje.facturasProceso }}/{{ viaje.totalFacturas }}</td>
+                                <td>
+                                    <p-tag
+                                        [value]="estadoLabel(viaje.estado)"
+                                        [severity]="estadoSeverity(viaje.estado)"
+                                    ></p-tag>
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-span-12 xl:col-span-6">
+        <div class="card mb-0">
+            <div class="font-semibold text-xl mb-4">Guías pendientes por municipio</div>
+            @if (municipioData()) {
+                <p-chart
+                    type="bar"
+                    [data]="municipioData()"
+                    [options]="municipioOptions()"
+                ></p-chart>
+            } @else {
+                <div class="flex flex-col items-center justify-center py-10 text-muted-color">
+                    <i class="pi pi-chart-bar text-3xl! mb-3"></i>
+                    <span>Sin datos para graficar.</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-span-12 xl:col-span-6">
+        <div class="card mb-0">
+            <div class="font-semibold text-xl mb-4">Atajos</div>
+            <div class="grid grid-cols-2 gap-4">
+                <button
+                    pButton
+                    type="button"
+                    label="Carga de guías"
+                    icon="pi pi-file"
+                    class="p-button-outlined w-full"
+                    (click)="router.navigate(['/app/rutas/carga'])"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Choferes"
+                    icon="pi pi-users"
+                    class="p-button-outlined w-full"
+                    (click)="router.navigate(['/app/choferes'])"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Vehículos"
+                    icon="pi pi-truck"
+                    class="p-button-outlined w-full"
+                    (click)="router.navigate(['/app/vehiculos'])"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Clientes"
+                    icon="pi pi-building"
+                    class="p-button-outlined w-full"
+                    (click)="router.navigate(['/app/clientes'])"
+                ></button>
+            </div>
+        </div>
+    </div>
 </div>
-<!-- <div class="grid grid-cols-12 gap-8">
-    <app-stats-widget class="contents" />
-    <div class="col-span-12 xl:col-span-6">
-        <app-recent-sales-widget />
-        <app-best-selling-widget />
-    </div>
-    <div class="col-span-12 xl:col-span-6">
-        <app-revenue-stream-widget />
-        <app-notifications-widget />
-    </div>
-</div> -->

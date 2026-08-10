@@ -20,9 +20,7 @@ export class GuiaDetalleComponent {
 
     private guiaId = this.route.snapshot.paramMap.get('id') || '';
 
-    guia = computed(() =>
-        this.store.guiasPendientesAgrupadas().find((g) => g.id === this.guiaId),
-    );
+    guia = computed(() => this.store.guiasPendientesAgrupadas().find((g) => g.id === this.guiaId));
 
     totalFacturas(): number {
         const guia = this.guia();
