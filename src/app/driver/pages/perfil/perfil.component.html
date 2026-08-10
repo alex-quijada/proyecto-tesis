@@ -1,6 +1,15 @@
 <div
-    class="bg-white dark:bg-surface-800 px-4 pt-6 pb-5 text-center border-b border-surface-200 dark:border-surface-700"
+    class="relative bg-white dark:bg-surface-800 px-4 pt-6 pb-5 text-center border-b border-surface-200 dark:border-surface-700"
 >
+    <p-button
+        icon="pi pi-arrow-left"
+        text
+        rounded
+        severity="secondary"
+        (onClick)="volver()"
+        styleClass="absolute! left-4 top-5"
+        ariaLabel="Volver"
+    />
     <div
         class="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary-900/30 mx-auto flex items-center justify-center text-xl font-bold text-primary border-2 border-primary/20 mb-2.5"
     >

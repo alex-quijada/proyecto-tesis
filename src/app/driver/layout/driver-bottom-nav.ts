@@ -34,8 +34,16 @@ import { DriverStoreService } from '../services/driver-store.service';
                     routerLinkActive="active"
                     class="flex flex-col items-center gap-0.5 cursor-pointer px-3 py-1 rounded-lg transition-colors min-w-0"
                 >
-                    <i class="pi pi-map text-xl"></i>
+                    <i class="pi pi-list text-xl"></i>
                     <span class="text-xs font-medium">Ruta</span>
+                </a>
+                <a
+                    routerLink="/driver/mapa"
+                    routerLinkActive="active"
+                    class="flex flex-col items-center gap-0.5 cursor-pointer px-3 py-1 rounded-lg transition-colors min-w-0"
+                >
+                    <i class="pi pi-map text-xl"></i>
+                    <span class="text-xs font-medium">Mapa</span>
                 </a>
                 <a
                     routerLink="/driver/historial"
@@ -44,14 +52,6 @@ import { DriverStoreService } from '../services/driver-store.service';
                 >
                     <i class="pi pi-history text-xl"></i>
                     <span class="text-xs font-medium">Historial</span>
-                </a>
-                <a
-                    routerLink="/driver/perfil"
-                    routerLinkActive="active"
-                    class="flex flex-col items-center gap-0.5 cursor-pointer px-3 py-1 rounded-lg transition-colors min-w-0"
-                >
-                    <i class="pi pi-user text-xl"></i>
-                    <span class="text-xs font-medium">Perfil</span>
                 </a>
             </div>
         </div>

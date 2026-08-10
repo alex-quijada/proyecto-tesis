@@ -29,6 +29,11 @@ export default [
                     import('./pages/ruta/ruta.component').then((m) => m.RutaComponent),
             },
             {
+                path: 'mapa',
+                loadComponent: () =>
+                    import('./pages/viajes/mi-ruta.component').then((m) => m.MiRutaComponent),
+            },
+            {
                 path: 'historial',
                 loadComponent: () =>
                     import('./pages/historial/historial.component').then(

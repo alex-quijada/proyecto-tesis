@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
 import { DriverStoreService } from '../services/driver-store.service';
+import { CapitalizePipe } from '../pipes/capitalize.pipe';
 
 @Component({
     selector: 'app-driver-topbar',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, CapitalizePipe],
     template: `
         <div
             class="bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 px-4 py-3"
@@ -18,7 +19,7 @@ import { DriverStoreService } from '../services/driver-store.service';
                     <div
                         class="text-lg font-semibold text-surface-800 dark:text-surface-100 truncate"
                     >
-                        {{ store.driverInfo()?.nombre || 'Chofer' }}
+                        {{ store.driverInfo()?.nombre || 'Chofer' | capitalize }}
                     </div>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0 ml-3">

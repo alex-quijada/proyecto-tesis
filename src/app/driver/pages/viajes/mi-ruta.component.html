@@ -470,44 +470,6 @@
         </div>
     }
 
-    <!-- ===== BOTTOM NAVIGATION ===== -->
-    <div
-        class="fixed bottom-0 left-0 right-0 bg-white dark:bg-surface-800 border-t border-surface-200 dark:border-surface-700 px-4 py-2 z-20 shadow-lg"
-    >
-        <div class="flex items-center justify-around">
-            <button
-                class="flex flex-col items-center gap-0.5 cursor-pointer bg-transparent border-none"
-                (click)="cambiarTab('ruta')"
-                [ngClass]="activeTab() === 'ruta' ? 'text-primary' : 'text-surface-400'"
-            >
-                <i class="pi pi-list text-lg"></i>
-                <span class="text-[10px] font-medium">Ruta</span>
-            </button>
-            <button
-                class="flex flex-col items-center gap-0.5 cursor-pointer bg-transparent border-none"
-                (click)="cambiarTab('mapa')"
-                [ngClass]="activeTab() === 'mapa' ? 'text-primary' : 'text-surface-400'"
-            >
-                <i class="pi pi-map text-lg"></i>
-                <span class="text-[10px] font-medium">Mapa</span>
-            </button>
-            <button
-                class="flex flex-col items-center gap-0.5 cursor-pointer bg-transparent border-none"
-                (click)="cambiarTab('completadas')"
-                [ngClass]="activeTab() === 'completadas' ? 'text-primary' : 'text-surface-400'"
-            >
-                <i class="pi pi-check-circle text-lg"></i>
-                <span class="text-[10px] font-medium">Completadas</span>
-            </button>
-            <div class="flex flex-col items-center gap-0.5 text-surface-400">
-                <i class="pi pi-user text-lg"></i>
-                <span class="text-[10px] font-medium">{{
-                    session()?.vehiculo?.placa || 'Sin veh.'
-                }}</span>
-            </div>
-        </div>
-    </div>
-
     <!-- ===== FIRMA DIALOG ===== -->
     <app-firma-dialog
         [guia]="firmaGuia()"

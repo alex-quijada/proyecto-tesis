@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 
 import { ButtonModule } from 'primeng/button';
 
@@ -13,4 +13,9 @@ import { DriverStoreService } from '../../services/driver-store.service';
 })
 export class PerfilComponent {
     store = inject(DriverStoreService);
+    private location = inject(Location);
+
+    volver() {
+        this.location.back();
+    }
 }
