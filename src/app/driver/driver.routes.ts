@@ -17,6 +17,13 @@ export default [
                     import('./pages/home/home.component').then((m) => m.HomeComponent),
             },
             {
+                path: 'guia/:id',
+                loadComponent: () =>
+                    import('./pages/guia-detalle/guia-detalle.component').then(
+                        (m) => m.GuiaDetalleComponent,
+                    ),
+            },
+            {
                 path: 'ruta',
                 loadComponent: () =>
                     import('./pages/ruta/ruta.component').then((m) => m.RutaComponent),
