@@ -15,7 +15,11 @@ import { DriverBottomNav } from './driver-bottom-nav';
     imports: [CommonModule, RouterModule, ToastModule, DriverTopbar, DriverBottomNav],
     providers: [MessageService, DriverStoreService, NavigationService],
     template: `
-        <div class="min-h-screen bg-surface-50 dark:bg-surface-950 pb-20">
+        <div
+            class="min-h-screen pb-20"
+            [class.bg-surface-50]="!fondoMapa()"
+            [class.dark:bg-surface-950]="!fondoMapa()"
+        >
             <p-toast position="top-center" />
             @if (mostrarTopbar()) {
                 <app-driver-topbar />
@@ -30,6 +34,8 @@ export class DriverLayout implements OnInit {
     private store = inject(DriverStoreService);
 
     mostrarTopbar = signal(true);
+    // El mapa nativo (Android) se dibuja debajo del WebView: sin fondo opaco.
+    fondoMapa = signal(false);
 
     ngOnInit() {
         this.store.cargarDatos();
@@ -38,6 +44,7 @@ export class DriverLayout implements OnInit {
             if (event instanceof NavigationEnd) {
                 const esPerfil = event.url.startsWith('/driver/perfil');
                 this.mostrarTopbar.set(!esPerfil);
+                this.fondoMapa.set(event.url.startsWith('/driver/mapa'));
             }
         });
     }

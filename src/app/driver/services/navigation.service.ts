@@ -1,5 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation, Position } from '@capacitor/geolocation';
 
 import {
     GoogleMapsOptimizationService,
@@ -49,11 +51,12 @@ export class NavigationService {
     private paradas: ParadaNavegacion[] = [];
     private warehouse: Waypoint = { lat: 0, lng: 0, name: '' };
 
-    private watchId: number | null = null;
+    private watchId: number | string | null = null;
     private simInterval: ReturnType<typeof setInterval> | null = null;
     private simDistanciaAcumulada = 0;
     private simDistAcum: number[] = [];
     private ultimoReRuteo = 0;
+    private readonly esNativo = Capacitor.isNativePlatform();
 
     async iniciarNavegacion(
         paradas: ParadaNavegacion[],
@@ -183,6 +186,10 @@ export class NavigationService {
     }
 
     private iniciarGps() {
+        if (this.esNativo) {
+            void this.iniciarGpsNativo();
+            return;
+        }
         if (!('geolocation' in navigator)) {
             this.messageService.add({
                 severity: 'warn',
@@ -207,11 +214,65 @@ export class NavigationService {
         );
     }
 
-    private detenerGps() {
-        if (this.watchId !== null) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = null;
+    private async iniciarGpsNativo() {
+        try {
+            const permisos = await Geolocation.requestPermissions({ permissions: ['location'] });
+            if (permisos.location !== 'granted') {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS denegado',
+                    detail: 'Se requiere el permiso de ubicación. Usa el modo Simular.',
+                });
+                return;
+            }
+        } catch (err) {
+            console.error('Error solicitando permisos GPS', err);
         }
+
+        const callback = (position: Position | null, err?: unknown) => {
+            if (err || !position) {
+                console.error('Error de geolocalización', err);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Error de GPS',
+                    detail: 'No se pudo obtener tu ubicación. Usa el modo Simular.',
+                });
+                return;
+            }
+            this.manejarPosicion(position.coords.latitude, position.coords.longitude);
+        };
+
+        try {
+            const id = await Geolocation.watchPosition(
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 5000,
+                    timeout: 15000,
+                    interval: 1000,
+                    minimumUpdateInterval: 1000,
+                },
+                callback,
+            );
+            this.watchId = id;
+        } catch (err) {
+            console.error('Error iniciando geolocalización', err);
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Error de GPS',
+                detail: 'No se pudo obtener tu ubicación. Usa el modo Simular.',
+            });
+        }
+    }
+
+    private detenerGps() {
+        if (this.watchId === null) return;
+        if (this.esNativo) {
+            const id = this.watchId as string;
+            void Geolocation.clearWatch({ id }).catch((err) => console.error('clearWatch', err));
+        } else {
+            navigator.geolocation.clearWatch(this.watchId as number);
+        }
+        this.watchId = null;
     }
 
     private precalcularSim() {

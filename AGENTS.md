@@ -71,7 +71,7 @@ Config in `supabase/config.toml` (project_id: `proyecto-tesis`). Edge Functions 
 | `src/environments/environment.development.ts` | Dev (gitignored) |
 | `*.example.ts` | Template — copy to the non-example file |
 
-Contains `supabaseUrl`, `supabaseKey`, `mapboxKey`.
+Contains `supabaseUrl`, `supabaseKey`.
 
 ## Key conventions
 
@@ -85,8 +85,10 @@ Contains `supabaseUrl`, `supabaseKey`, `mapboxKey`.
 ## OpenCode skills in use
 
 - `angular-developer` — Angular patterns, PrimeNG, signals, routes
+- `google-maps-platform` — Google Maps Platform (JS API, SDKs Android/iOS, Routes, Places)
 - `supabase` — Auth, Edge Functions, client lib
 - `supabase-postgres-best-practices` — RPCs, migrations, RLS
+- `android-cli` — Android CLI oficial (build, device/emulator, install APK, screenshots, layout, docs)
 
 ## Mock-based prototyping
 
@@ -171,3 +173,16 @@ Most admin CRUD pages currently use mock data arrays. To move to real data, repl
 - `00048_quitar_imagenes_vehiculos.sql` (pushed): se eliminó la columna `vehiculos.imagen_url` y toda su lógica. Se dropearon y recrearon los RPCs `obtener_vehiculos`/`crear_vehiculo`/`actualizar_vehiculo` sin `p_imagen_url`, y se borró el bucket de storage `vehiculos-imagenes` (objetos + policies). Nota: los triggers de storage (`protect_objects_delete`/`protect_buckets_delete`) bloquean borrados directos salvo `SET storage.allow_delete_query = 'true'` (sesión) — la migración usa ese GUC para limpiar storage; `SET LOCAL` no funciona fuera de bloque transaccional.
 - Front: eliminado `ChoferVehiculo.imagen_url` de `chofer.service.ts` (único uso en `src/`). El admin de vehículos ya no usaba imágenes.
 - Scripts de carga actualizados sin `imagen_url`: `upload_vehiculos.sql`, `upload_vehicles.sql`, `upload_trucks.sql`, `upload_camiones.sh`, `upload_trucks.sh`.
+
+### Capacitor — APK Android (plan `PLAN_CAPACITOR.md`)
+- **Fase 1 (bootstrap) lista**: `capacitor.config.ts` (`appId com.tesis.driver`, `appName "Sakai Driver"`, `webDir dist/sakai-ng/browser`), carpeta `android/`, deps `@capacitor/{core,cli,android}` 8.5.0 + `@capacitor/google-maps` 8.0.1 + `@capacitor/geolocation` 8.2.1, script `build:android` (`ng build && npx cap sync android`) y `deploy:android` (adb install -r + monkey launch). `AndroidManifest.xml` ya tiene `INTERNET` + `ACCESS_FINE/COARSE_LOCATION` y el `<meta-data com.google.android.geo.API_KEY>` con `androidGoogleMapsKey`.
+- **Fase 2 (mapa del chofer → SDK nativo) lista**: `mi-ruta.component.ts` (`/driver/mapa`) migró de `google.maps.*` a `@capacitor/google-maps`:
+  - HTML: `<div #mapaElement>` → `<capacitor-google-map #mapaElement class="absolute inset-0">` (component con `CUSTOM_ELEMENTS_SCHEMA`; CSS `display:block; width/height 100%`).
+  - `GoogleMap.create({ id: 'mi-ruta-chofer', element, apiKey: Capacitor.isNativePlatform() ? environment.androidGoogleMapsKey : environment.googleMapsKey, config })`; markers por `addMarkers` (almacén `tintColor` morado #8b5cf6, entregas numeradas ámbar #f59e0b — sin SVG, no soportado en nativo; el número va en `title` y en web el glyph del Pin), polylines por `addPolylines` (una por leg, verde #22c55e), encuadre por `fitBounds(new LatLngBounds({southwest,center,northeast}), 80)`, seguimiento por `setCamera({coordinate, animate:true})`.
+  - **Marcador del chofer**: nativo+GPS → `enableCurrentLocation(true)` (punto azul nativo, sin marcador propio); web o simulación → se recrea `removeMarker`+`addMarker` con throttle ~1 s en nativo. Se hace `enableCurrentLocation(false)` al volver a simulación.
+  - `navigation.service.ts`: GPS nativo con `@capacitor/geolocation` (`requestPermissions` + `watchPosition` con `interval:1000`, `clearWatch({id})`); web conserva `navigator.geolocation`. La lógica de navegación (pasos/llegadas/re-ruteo/simulación) no cambió. Se cambió el tipo `watchId` a `number | string | null`.
+  - **Transparencia del WebView (obligatorio en Android)**: `DriverLayout` quita `bg-surface-50`/`dark:bg-surface-950` cuando la URL es `/driver/mapa` (signal `fondoMapa` + `NavigationEnd`); `mi-ruta` agrega la clase `mapa-nativo` a `<html>` en `afterNextRender` (se limpia en destroy) y `styles.scss` tiene `html.mapa-nativo body { background-color: transparent !important }`. En destroy también se hace `mapa.destroy()`.
+- **Fase 3 (envs) lista**: `androidGoogleMapsKey` ya estaba en `environment.ts`/`environment.development.ts` y en los `*.example.ts` (placeholder).
+- **Fase 4 (APK debug)**: `gradlew assembleDebug` → `android/app/build/outputs/apk/debug/app-debug.apk`; instalado en dispositivo (adb install -r) y lanzado. En logcat el SDK nativo inicializa (`MapsInitializer: loadedRenderer: LATEST`); el `Uncaught TypeError: reading 'triggerEvent'` al arranque es del bridge de Capacitor al restaurar el WebView de la sesión previa (benigno, no crash). **Verificado en dispositivo**: el mapa nativo renderiza (markers + ruta + GPS con `enableCurrentLocation`); permisos de ubicación concedidos.
+- **Bug corregido en prueba en dispositivo — `NG0203: effect()`**: los `effect()` de `mi-ruta.component.ts` estaban DENTRO del callback de `afterNextRender`, que NO preserva el contexto de inyección → error en consola JS. Fix: se movieron al cuerpo del constructor (el `afterNextRender` solo agrega la clase `mapa-nativo`). Los effects son reactivos a señales, así que no dependen del render para ejecutarse. Regla: `effect()` siempre en constructor/inicializador de campo, NUNCA dentro de `afterNextRender`/callbacks async.
+- Sin cambios (lo decide el plan): `index.html` (script JS API se mantiene para Directions/Places en el WebView), `google-maps-optimization.service.ts` (Directions), `google-search.service.ts` (Places), `map.ts`/`dashboard.ts` del admin (JS API).

@@ -1,4 +1,11 @@
 /* Transición suave al actualizar el mapa */
-[class*="tab-"] {
+[class*='tab-'] {
     transition: opacity 0.2s ease;
+}
+
+/* El elemento del plugin viene sin tamaño por defecto: se adapta al contenedor */
+capacitor-google-map {
+    display: block;
+    width: 100%;
+    height: 100%;
 }

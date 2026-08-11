@@ -2,4 +2,9 @@
 @use 'primeicons/primeicons.css';
 @use '@/assets/layout/layout.scss';
 @use '@/assets/demo/demo.scss';
-@import 'mapbox-gl/dist/mapbox-gl.css';
+
+/* El mapa nativo de Android se renderiza debajo del WebView: el fondo debe ser
+   transparente en la página del mapa del chofer (/driver/mapa). */
+html.mapa-nativo body {
+    background-color: transparent !important;
+}
