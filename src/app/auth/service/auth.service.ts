@@ -12,6 +12,7 @@ import { Usuario } from '../../admin/pages/usuarios/data/usuarios-mock';
 import { Chofer } from '../../admin/pages/choferes/data/choferes-mock';
 import { environment } from '@/environments/environment';
 import { esErrorDuplicado } from '@/app/services/errores.util';
+import { ConnectivityService } from '@/app/services/connectivity.service';
 
 @Injectable({
     providedIn: 'root',
@@ -26,6 +27,8 @@ export class AuthService {
     });
     private supabase: SupabaseClient = this.supabaseClient;
     private router = inject(Router);
+    private connectivity = inject(ConnectivityService);
+    private reinicioRefreshProgramado = false;
 
     get client(): SupabaseClient {
         return this.supabaseClient;
@@ -339,6 +342,21 @@ export class AuthService {
     }
 
     private async recuperarSesionOExpirar() {
+        // Sin conexión no se puede refrescar el token: NO cerrar la sesión.
+        // Se conserva la sesión vigente del storage y se reintenta al reconectar.
+        if (!this.connectivity.isOnline()) {
+            console.warn('[Auth] TOKEN_REFRESH_FAILED sin conexión: se mantiene la sesión local.');
+            try {
+                const { data } = await this.supabase.auth.getSession();
+                const sesion = data.session;
+                if (sesion?.user) this.userSubject.next(sesion.user);
+            } catch {
+                /* ignora */
+            }
+            this.programarReintentoRefresh();
+            return;
+        }
+
         console.warn('[Auth] TOKEN_REFRESH_FAILED: reintentando refresh...');
         try {
             const { data } = await this.supabase.auth.refreshSession();
@@ -368,6 +386,21 @@ export class AuthService {
         }
 
         this.cerrarSesionExpirada('falló el refresh y no hay sesión vigente');
+    }
+
+    /** Reintenta el refresh del token una sola vez al recuperar la conexión. */
+    private programarReintentoRefresh() {
+        if (this.reinicioRefreshProgramado) return;
+        this.reinicioRefreshProgramado = true;
+
+        const alReconectar = () => {
+            window.removeEventListener('online', alReconectar);
+            this.reinicioRefreshProgramado = false;
+            void this.supabase.auth.refreshSession().then(({ data }) => {
+                if (data.session?.user) this.userSubject.next(data.session.user);
+            });
+        };
+        window.addEventListener('online', alReconectar);
     }
 
     private traducirErrorUsuario(funcMsg: string): string {

@@ -10,9 +10,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
@@ -32,7 +33,7 @@ import {
     Waypoint,
 } from '../../map/map/google-maps-optimization.service';
 import { ViajeService } from '@/app/services/viaje.service';
-import { ViajeGroup, CrearViajeResult } from '@/app/services/viaje.types';
+import { ViajeAdmin, ViajeGroup, CrearViajeResult } from '@/app/services/viaje.types';
 
 interface DiaCronograma {
     dia: string;
@@ -95,14 +96,16 @@ const MAPA_DIA: Record<number, string> = {
         SkeletonModule,
         OrderListModule,
         DialogModule,
+        ConfirmDialogModule,
         DatePickerModule,
     ],
-    providers: [MessageService],
+    providers: [MessageService, ConfirmationService],
     templateUrl: './optimizacion-rutas.component.html',
     styleUrl: './optimizacion-rutas.component.css',
 })
 export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     private messageService = inject(MessageService);
+    private confirmationService = inject(ConfirmationService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private rutaService = inject(RutaService);
     private municipioService = inject(MunicipioService);
@@ -154,6 +157,10 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     ultimoOrdenFacturas = signal<string[]>([]);
     fechaViaje = signal<Date>(new Date());
 
+    viajesAdmin = signal<ViajeAdmin[]>([]);
+    viajesAbierto = signal(false);
+    loadingViajes = signal(false);
+
     constructor() {
         afterNextRender(() => this.initMap());
     }
@@ -197,6 +204,82 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             );
         }
         this.loadingCronograma.set(false);
+        void this.cargarViajesAdmin();
+    }
+
+    async cargarViajesAdmin() {
+        this.loadingViajes.set(true);
+        try {
+            const data = await this.viajeService.obtenerViajes();
+            this.viajesAdmin.set(data);
+        } catch (err) {
+            console.error('Error al cargar viajes', err);
+        } finally {
+            this.loadingViajes.set(false);
+        }
+    }
+
+    reiniciarViaje(viaje: ViajeAdmin) {
+        this.confirmationService.confirm({
+            message: `¿Reiniciar el viaje de ${viaje.chofer || 'este chofer'}? El viaje volverá a "programado" y sus ${viaje.total_facturas ?? 0} facturas a "embarque" (se borra la firma).`,
+            header: 'Reiniciar viaje',
+            icon: 'pi pi-refresh',
+            acceptLabel: 'Reiniciar',
+            acceptIcon: 'pi pi-check',
+            rejectLabel: 'Cancelar',
+            accept: () => void this.confirmarReinicio(viaje),
+        });
+    }
+
+    private async confirmarReinicio(viaje: ViajeAdmin) {
+        try {
+            await this.viajeService.reiniciarViaje(viaje.id_viaje);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Viaje reiniciado',
+                detail: `El viaje de ${viaje.chofer || ''} volvió a programado.`,
+            });
+            await this.cargarViajesAdmin();
+        } catch (err: any) {
+            console.error('Error al reiniciar viaje', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo reiniciar el viaje.',
+            });
+        }
+    }
+
+    estadoViajeSeverity(
+        estado: string,
+    ): 'info' | 'warn' | 'success' | 'secondary' | 'danger' | 'contrast' {
+        switch (estado) {
+            case 'proceso':
+                return 'info';
+            case 'programado':
+                return 'warn';
+            case 'finalizado':
+                return 'success';
+            case 'cancelado':
+                return 'danger';
+            default:
+                return 'secondary';
+        }
+    }
+
+    estadoViajeLabel(estado: string): string {
+        switch (estado) {
+            case 'proceso':
+                return 'En Proceso';
+            case 'programado':
+                return 'Programado';
+            case 'finalizado':
+                return 'Finalizado';
+            case 'cancelado':
+                return 'Cancelado';
+            default:
+                return estado;
+        }
     }
 
     ngOnDestroy() {
@@ -667,9 +750,10 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
 
     private initMap() {
         this.mapa = new google.maps.Map(this.mapaEl().nativeElement, {
-            center: { lat: 10.96, lng: -63.85 },
-            zoom: 10,
+            center: { lat: 10.96, lng: -64.1 },
+            zoom: 10.5,
             mapId: 'optimizacion-rutas',
+            disableDefaultUI: true,
         });
         google.maps.event.addListenerOnce(this.mapa, 'idle', () => {
             this.mapaCargado.set(true);

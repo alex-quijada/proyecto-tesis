@@ -92,6 +92,7 @@ export const ESTADOS_GUIA = [
     { label: 'En Carga de Mercancía', value: 'EN_CARGA_MERCANCIA', severity: 'warn' },
     { label: 'En Proceso', value: 'EN_PROCESO', severity: 'info' },
     { label: 'En Espera', value: 'EN_ESPERA', severity: 'warn' },
+    { label: 'Entregando', value: 'ENTREGANDO', severity: 'info' },
     { label: 'Finalizado', value: 'FINALIZADO', severity: 'success' },
     { label: 'Incidencias', value: 'INCIDENCIAS', severity: 'danger' },
 ];
@@ -101,6 +102,7 @@ export const ESTADOS_FACTURA = [
     { label: 'Embarque', value: 'embarque', severity: 'warn' },
     { label: 'En Proceso', value: 'proceso', severity: 'info' },
     { label: 'En Espera', value: 'espera', severity: 'warn' },
+    { label: 'Entregando', value: 'entrega', severity: 'info' },
     { label: 'Incidencia', value: 'incidencia', severity: 'danger' },
     { label: 'Finalizado', value: 'finalizado', severity: 'success' },
 ];

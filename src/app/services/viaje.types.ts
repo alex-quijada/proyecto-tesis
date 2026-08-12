@@ -15,6 +15,7 @@ export interface ParadaViaje {
     codigo_guia?: string;
     nombre_cliente?: string;
     direccion?: string;
+    municipio?: string;
     latitud?: number | null;
     longitud?: number | null;
     estado_factura?: string;
@@ -60,6 +61,8 @@ export interface ViajeAdmin extends ViajeChofer {
     total_facturas?: number;
     facturas_embarque?: number;
     facturas_proceso?: number;
+    facturas_espera?: number;
+    facturas_entrega?: number;
 }
 
 export interface CrearViajeResult {

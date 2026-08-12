@@ -100,12 +100,41 @@ export class ChoferService {
     async finalizarEntrega(
         idFactura: string,
         observacion?: string | null,
+        firma?: string | null,
     ): Promise<FinalizarEntregaResult> {
         const { data, error } = await this.supabase.rpc('finalizar_entrega', {
             p_id_factura: idFactura,
             p_observacion: observacion || null,
+            p_firma: firma || null,
         });
         if (error) throw new Error(`Error al finalizar la entrega: ${error.message}`);
         return (data || {}) as FinalizarEntregaResult;
+    }
+
+    /** Llegada GPS al punto: las facturas del punto pasan a 'espera'. */
+    async llegarAParada(idsFacturas: string[]): Promise<{ total_actualizadas: number }> {
+        const { data, error } = await this.supabase.rpc('llegar_a_parada', {
+            p_ids_facturas: idsFacturas,
+        });
+        if (error) throw new Error(`Error al marcar la llegada: ${error.message}`);
+        return (data || {}) as { total_actualizadas: number };
+    }
+
+    /** Botón "Iniciar entrega": las facturas del punto pasan a 'entrega'. */
+    async iniciarEntrega(idsFacturas: string[]): Promise<{ total_actualizadas: number }> {
+        const { data, error } = await this.supabase.rpc('iniciar_entrega', {
+            p_ids_facturas: idsFacturas,
+        });
+        if (error) throw new Error(`Error al iniciar la entrega: ${error.message}`);
+        return (data || {}) as { total_actualizadas: number };
+    }
+
+    /** Reporta una incidencia en la factura (estado → 'incidencia'). */
+    async reportarIncidencia(idFactura: string, observacion?: string | null): Promise<void> {
+        const { error } = await this.supabase.rpc('reportar_incidencia', {
+            p_id_factura: idFactura,
+            p_observacion: observacion || null,
+        });
+        if (error) throw new Error(`Error al reportar la incidencia: ${error.message}`);
     }
 }

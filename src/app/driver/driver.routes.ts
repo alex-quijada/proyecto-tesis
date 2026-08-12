@@ -13,11 +13,13 @@ export default [
             },
             {
                 path: 'home',
+                data: { animation: 'home' },
                 loadComponent: () =>
                     import('./pages/home/home.component').then((m) => m.HomeComponent),
             },
             {
                 path: 'guia/:id',
+                data: { animation: 'guia' },
                 loadComponent: () =>
                     import('./pages/guia-detalle/guia-detalle.component').then(
                         (m) => m.GuiaDetalleComponent,
@@ -25,16 +27,19 @@ export default [
             },
             {
                 path: 'ruta',
+                data: { animation: 'ruta' },
                 loadComponent: () =>
                     import('./pages/ruta/ruta.component').then((m) => m.RutaComponent),
             },
             {
                 path: 'mapa',
+                data: { animation: 'mapa' },
                 loadComponent: () =>
                     import('./pages/viajes/mi-ruta.component').then((m) => m.MiRutaComponent),
             },
             {
                 path: 'historial',
+                data: { animation: 'historial' },
                 loadComponent: () =>
                     import('./pages/historial/historial.component').then(
                         (m) => m.HistorialComponent,
@@ -42,6 +47,7 @@ export default [
             },
             {
                 path: 'perfil',
+                data: { animation: 'perfil' },
                 loadComponent: () =>
                     import('./pages/perfil/perfil.component').then((m) => m.PerfilComponent),
             },

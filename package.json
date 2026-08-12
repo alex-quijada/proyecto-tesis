@@ -13,6 +13,7 @@
     },
     "private": true,
     "dependencies": {
+        "@angular/animations": "21.0.6",
         "@angular/common": "^21",
         "@angular/compiler": "^21",
         "@angular/core": "^21",
@@ -25,6 +26,7 @@
         "@capacitor/core": "^8.5.0",
         "@capacitor/geolocation": "^8.2.1",
         "@capacitor/google-maps": "^8.0.1",
+        "@capacitor/preferences": "8.0.1",
         "@primeuix/themes": "^2.0.0",
         "@supabase/supabase-js": "^2.105.4",
         "@tailwindcss/postcss": "^4.1.11",

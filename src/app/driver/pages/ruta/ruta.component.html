@@ -1,28 +1,45 @@
 <div class="px-4 pt-4 space-y-3">
+    @if (!cargando() && store.datosOffline()) {
+        <div
+            class="flex items-center gap-2 bg-sky-50 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/30 text-sky-700 dark:text-sky-400 rounded-xl px-3 py-2.5 text-sm"
+        >
+            <i class="pi pi-wifi"></i>
+            <span class="flex-1">Estás viendo la ruta guardada sin conexión</span>
+        </div>
+    }
     <!-- Avance del día -->
     <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider"
-                >Avance del día</span
-            >
-            <span class="text-base font-bold text-primary"
-                >{{ completedCount() }}/{{ paradas().length }}</span
-            >
-        </div>
-        <div class="w-full h-2.5 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
+        @if (cargando()) {
+            <p-skeleton width="30%" height="0.75rem" styleClass="mb-3"></p-skeleton>
+            <p-skeleton width="100%" height="0.625rem" styleClass="rounded-full"></p-skeleton>
+            <div class="flex justify-between mt-2">
+                <p-skeleton width="25%" height="0.75rem"></p-skeleton>
+                <p-skeleton width="25%" height="0.75rem"></p-skeleton>
+            </div>
+        } @else {
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider"
+                    >Avance del día</span
+                >
+                <span class="text-base font-bold text-primary"
+                    >{{ completedCount() }}/{{ paradas().length }}</span
+                >
+            </div>
             <div
-                class="h-full bg-primary rounded-full transition-all duration-700"
-                [style.width.%]="
-                    paradas().length
-                        ? (completedCount() / paradas().length) * 100
-                        : 0
-                "
-            ></div>
-        </div>
-        <div class="flex justify-between text-xs text-surface-400 mt-1.5">
-            <span>{{ guiasPendientes().length }} pendientes</span>
-            <span>{{ completedCount() }} completadas</span>
-        </div>
+                class="w-full h-2.5 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden"
+            >
+                <div
+                    class="h-full bg-primary rounded-full transition-all duration-700"
+                    [style.width.%]="
+                        paradas().length ? (completedCount() / paradas().length) * 100 : 0
+                    "
+                ></div>
+            </div>
+            <div class="flex justify-between text-xs text-surface-400 mt-1.5">
+                <span>{{ guiasPendientes().length }} pendientes</span>
+                <span>{{ completedCount() }} completadas</span>
+            </div>
+        }
     </div>
 
     @if (activeViaje(); as viaje) {
@@ -74,12 +91,30 @@
     }
 
     @if (cargando()) {
-        <div
-            class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
-        >
-            <i class="pi pi-spin pi-spinner text-4xl block mb-2"></i>
-            <p class="text-sm font-semibold text-surface-500">Cargando viaje...</p>
-        </div>
+        @for (_ of [1, 2, 3]; track $index) {
+            <div
+                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 border-l-surface-300 p-4"
+            >
+                <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <p-skeleton width="45%" height="1rem"></p-skeleton>
+                            <p-skeleton
+                                width="4rem"
+                                height="1.5rem"
+                                styleClass="rounded-full"
+                            ></p-skeleton>
+                        </div>
+                        <p-skeleton width="70%" height="0.875rem"></p-skeleton>
+                        <p-skeleton width="55%" height="0.875rem"></p-skeleton>
+                    </div>
+                    <div class="text-right ml-2 flex-shrink-0">
+                        <p-skeleton width="4.5rem" height="0.875rem" styleClass="mb-2"></p-skeleton>
+                        <p-skeleton shape="circle" size="2rem"></p-skeleton>
+                    </div>
+                </div>
+            </div>
+        }
     } @else if (!activeViaje()) {
         <div
             class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
@@ -132,44 +167,36 @@
                 <div class="p-4">
                     <div class="flex items-start justify-between">
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="text-base font-semibold truncate">{{ guia.cliente }}</span>
-                                <p-tag
-                                    [value]="store.getEstadoLabel(guia.estado)"
-                                    [severity]="store.getEstadoSeverity(guia.estado)"
-                                    styleClass="text-sm"
-                                />
-                            </div>
+                            <span class="text-base font-semibold truncate block">{{
+                                guia.cliente
+                            }}</span>
                             <div
                                 class="text-base text-surface-400 mt-1.5 flex items-center gap-3 flex-wrap"
                             >
                                 <span class="flex items-center gap-1"
-                                    ><i class="pi pi-map-marker"></i>{{ guia.ruta || guia.direccion }}</span
+                                    ><i class="pi pi-map-marker"></i
+                                    >{{ guia.ruta || guia.direccion }}</span
                                 >
                                 <span class="flex items-center gap-1"
                                     ><i class="pi pi-box"></i>{{ guia.numeroFactura }}</span
                                 >
                                 <span class="flex items-center gap-1"
                                     ><i class="pi pi-dollar"></i
-                                    >{{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}</span
+                                    >{{
+                                        guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0'
+                                    }}</span
                                 >
                             </div>
                         </div>
-                        <div class="text-right ml-2 flex-shrink-0">
-                            <span class="font-mono text-sm font-semibold text-primary block mb-1">{{
+                        <div class="text-right ml-2 flex-shrink-0 flex flex-col items-end gap-1.5">
+                            <span class="font-mono text-sm font-semibold text-primary">{{
                                 guia.numeroGuia
                             }}</span>
-                            @if (!reordering() && guia.estado !== 'FINALIZADO' && guia.estado !== 'CANCELADO') {
-                                <p-button
-                                    icon="pi pi-check-circle"
-                                    severity="success"
-                                    text
-                                    size="small"
-                                    pTooltip="Completar entrega"
-                                    tooltipPosition="left"
-                                    (click)="$event.stopPropagation(); abrirFirma(guia)"
-                                />
-                            }
+                            <p-tag
+                                [value]="store.getEstadoLabel(guia.estado)"
+                                [severity]="store.getEstadoSeverity(guia.estado)"
+                                styleClass="text-sm"
+                            />
                         </div>
                     </div>
                     @if (selectedGuia()?.id === guia.id) {
@@ -211,12 +238,15 @@
                                     class="flex justify-between mt-2 pt-2 border-t border-surface-100 dark:border-surface-700"
                                 >
                                     <span class="text-surface-400">Notas:</span
-                                    ><span class="text-right max-w-48">{{ guia.observaciones }}</span>
+                                    ><span class="text-right max-w-48">{{
+                                        guia.observaciones
+                                    }}</span>
                                 </div>
                             }
                             @if (guia.eventos.length > 0) {
                                 <div class="mt-2">
-                                    <span class="text-xs font-semibold text-surface-400 block mb-1.5"
+                                    <span
+                                        class="text-xs font-semibold text-surface-400 block mb-1.5"
                                         >Eventos</span
                                     >
                                     @for (ev of guia.eventos; track ev.id) {
@@ -232,6 +262,22 @@
                                             </div>
                                         </div>
                                     }
+                                </div>
+                            }
+                            @if (
+                                !reordering() &&
+                                guia.estado !== 'FINALIZADO' &&
+                                guia.estado !== 'CANCELADO'
+                            ) {
+                                <div class="pt-2">
+                                    <p-button
+                                        icon="pi pi-check-circle"
+                                        label="Completar entrega"
+                                        severity="success"
+                                        size="small"
+                                        styleClass="w-full"
+                                        (click)="$event.stopPropagation(); abrirFirma(guia)"
+                                    />
                                 </div>
                             }
                         </div>

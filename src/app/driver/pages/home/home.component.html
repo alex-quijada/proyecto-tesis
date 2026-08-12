@@ -1,248 +1,321 @@
 <div class="px-4 pt-4 space-y-4">
-    <div class="text-base text-surface-600 font-medium">
-        @if (store.pendingGuiasCount() > 0) {
-            Tienes <span class="font-bold text-primary">{{ store.pendingGuiasCount() }}</span>
-            {{ store.pendingGuiasCount() === 1 ? 'guía por entregar' : 'guías por entregar' }}
-        } @else {
-            No tienes guías pendientes
-        }
-    </div>
-
-    @for (guia of store.guiasPendientesAgrupadas(); track guia.id) {
-        <div
-            class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 overflow-hidden transition-all duration-200 cursor-pointer"
-            [ngClass]="[store.getColorBorde(guia.facturas[0]?.estado || 'nuevo')]"
-            (click)="abrirGuia(guia)"
-        >
-            <div class="p-4">
-                <div class="flex items-start justify-between mb-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <span class="font-mono text-base font-bold text-primary truncate">{{
-                            guia.numeroGuia
-                        }}</span>
-                        <p-tag
-                            [value]="
-                                guia.facturas.length === 1
-                                    ? '1 factura'
-                                    : guia.facturas.length + ' facturas'
-                            "
-                            severity="secondary"
-                            styleClass="text-sm"
-                        />
+    @if (store.cargando()) {
+        <!-- Skeleton: guías pendientes -->
+        <p-skeleton width="60%" height="1.25rem" styleClass="mb-1"></p-skeleton>
+        @for (_ of [1, 2, 3]; track $index) {
+            <div
+                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 border-l-surface-300 p-4"
+            >
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <p-skeleton width="7rem" height="1.25rem"></p-skeleton>
+                        <p-skeleton
+                            width="4rem"
+                            height="1.5rem"
+                            styleClass="rounded-full"
+                        ></p-skeleton>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <div class="text-base font-bold text-primary">
-                            {{ totalFacturas(guia) | currency: 'USD' : 'symbol' : '1.0-0' }}
-                        </div>
-                        <i class="pi pi-chevron-up text-sm text-surface-400"></i>
-                    </div>
+                    <p-skeleton width="4rem" height="1.25rem"></p-skeleton>
                 </div>
-
                 <div class="space-y-2.5">
-                    <div class="flex items-start gap-2">
-                        <span class="text-sm text-surface-400 w-24 flex-shrink-0">Sucursal:</span>
-                        <span
-                            class="text-base font-semibold text-surface-700 dark:text-surface-200"
-                            >{{ guia.empresaSuministro }}</span
-                        >
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="text-sm text-surface-400 w-24 flex-shrink-0">Ruta:</span>
-                        <span class="text-base text-surface-500">{{ guia.ruta }}</span>
-                    </div>
+                    <p-skeleton width="80%" height="1rem"></p-skeleton>
+                    <p-skeleton width="55%" height="1rem"></p-skeleton>
                 </div>
             </div>
-        </div>
-    } @empty {
-        <div
-            class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
-        >
-            <i class="pi pi-check-circle text-4xl block mb-2 text-green-400"></i>
-            <p class="text-sm font-semibold text-surface-500">Sin guías pendientes</p>
-            <p class="text-xs mt-1">Todas las entregas fueron completadas</p>
-        </div>
-    }
-
-    <!-- Route creation -->
-    <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
-        <h2 class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">
-            Creación de Ruta
-        </h2>
-        <div class="grid grid-cols-2 gap-3">
-            <div
-                class="bg-surface-50 dark:bg-surface-700 rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
-                (click)="irARuta()"
-            >
-                <div
-                    class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2"
-                >
-                    <i class="pi pi-sync text-2xl"></i>
-                </div>
-                <p class="text-base font-semibold text-surface-700 dark:text-surface-200">
-                    Crear automáticamente
-                </p>
-                <p class="text-sm text-surface-400 mt-1 leading-snug">
-                    Selecciona guías y el sistema creará la ruta
-                </p>
-            </div>
-            <div
-                class="bg-surface-50 dark:bg-surface-700 rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
-                (click)="irARuta()"
-            >
-                <div
-                    class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2"
-                >
-                    <i class="pi pi-pencil text-2xl"></i>
-                </div>
-                <p class="text-base font-semibold text-surface-700 dark:text-surface-200">
-                    Crear manualmente
-                </p>
-                <p class="text-sm text-surface-400 mt-1 leading-snug">
-                    Crea tu propia ruta con tus guías
-                </p>
+        }
+        <!-- Skeleton: creación de ruta -->
+        <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+            <p-skeleton width="35%" height="0.75rem" styleClass="mb-3"></p-skeleton>
+            <div class="grid grid-cols-2 gap-3">
+                <p-skeleton height="6rem" styleClass="rounded-xl"></p-skeleton>
+                <p-skeleton height="6rem" styleClass="rounded-xl"></p-skeleton>
             </div>
         </div>
-    </div>
-
-    <!-- Recent history -->
-    <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-semibold text-surface-400 uppercase tracking-wider">
-                Historial
-            </h2>
-            <button
-                class="text-sm text-primary font-medium hover:underline cursor-pointer bg-transparent border-none"
-                (click)="irAHistorial()"
-            >
-                Ver Todo
-            </button>
-        </div>
-        @for (guia of store.historialReciente(); track guia.id; let last = $last) {
-            <div
-                class="cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/50 rounded-xl"
-                [ngClass]="{ 'mb-2': !last }"
-                (click)="toggleHistory(guia)"
-            >
+        <!-- Skeleton: historial -->
+        <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+            <p-skeleton width="30%" height="0.75rem" styleClass="mb-3"></p-skeleton>
+            @for (_ of [1, 2]; track $index) {
                 <div class="flex items-start gap-3 p-2.5">
-                    <div
-                        class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                        [ngClass]="
-                            guia.estado === 'CANCELADO'
-                                ? 'bg-red-100 dark:bg-red-900/20'
-                                : 'bg-green-100 dark:bg-green-900/30'
-                        "
-                    >
-                        <i
-                            class="text-sm"
-                            [ngClass]="
-                                guia.estado === 'CANCELADO'
-                                    ? 'pi pi-times text-red-500'
-                                    : 'pi pi-check text-green-600'
-                            "
-                        ></i>
+                    <p-skeleton shape="circle" size="2.25rem"></p-skeleton>
+                    <div class="flex-1 space-y-2">
+                        <p-skeleton width="60%" height="1rem"></p-skeleton>
+                        <p-skeleton width="40%" height="0.75rem"></p-skeleton>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between">
-                            <span
-                                class="text-base font-semibold text-surface-700 dark:text-surface-200 truncate"
-                                >{{ guia.cliente }}</span
-                            >
-                            <span
-                                class="text-sm font-semibold whitespace-nowrap ml-2"
-                                [ngClass]="
-                                    guia.estado === 'CANCELADO' ? 'text-red-500' : 'text-green-600'
+                </div>
+            }
+        </div>
+    } @else {
+        @if (store.pendientesSincronizar() > 0) {
+            <div
+                class="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-xl px-3 py-2.5 text-sm"
+            >
+                <i class="pi pi-cloud-upload"></i>
+                <span class="flex-1">
+                    {{ store.pendientesSincronizar() }}
+                    {{
+                        store.pendientesSincronizar() === 1
+                            ? 'entrega guardada'
+                            : 'entregas guardadas'
+                    }}
+                    sin sincronizar
+                </span>
+                <i class="pi pi-spin pi-spinner" *ngIf="store.sincronizando()"></i>
+            </div>
+        } @else if (store.datosOffline()) {
+            <div
+                class="flex items-center gap-2 bg-sky-50 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/30 text-sky-700 dark:text-sky-400 rounded-xl px-3 py-2.5 text-sm"
+            >
+                <i class="pi pi-wifi"></i>
+                <span class="flex-1">Estás viendo datos guardados sin conexión</span>
+            </div>
+        }
+        <div class="text-base text-surface-600 font-medium">
+            @if (store.pendingGuiasCount() > 0) {
+                Tienes <span class="font-bold text-primary">{{ store.pendingGuiasCount() }}</span>
+                {{ store.pendingGuiasCount() === 1 ? 'guía por entregar' : 'guías por entregar' }}
+            } @else {
+                No tienes guías pendientes
+            }
+        </div>
+
+        @for (guia of store.guiasPendientesAgrupadas(); track guia.id) {
+            <div
+                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 overflow-hidden transition-all duration-200 cursor-pointer"
+                [ngClass]="[store.getColorBorde(guia.facturas[0]?.estado || 'nuevo')]"
+                (click)="abrirGuia(guia)"
+            >
+                <div class="p-4">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="font-mono text-base font-bold text-primary truncate">{{
+                                guia.numeroGuia
+                            }}</span>
+                            <p-tag
+                                [value]="
+                                    guia.facturas.length === 1
+                                        ? '1 factura'
+                                        : guia.facturas.length + ' facturas'
                                 "
-                                >{{
-                                    guia.estado === 'CANCELADO' ? 'Cancelado' : 'Finalizado'
-                                }}</span
-                            >
+                                severity="secondary"
+                                styleClass="text-sm"
+                            />
                         </div>
-                        <div class="text-base text-surface-400 mt-0.5">
-                            {{ guia.ruta }} ·
-                            {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}
-                        </div>
-                        @if (selectedHistory()?.id === guia.id) {
-                            <div
-                                class="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 text-base text-surface-500 space-y-2.5"
-                            >
-                                <div class="flex items-start gap-2">
-                                    <i class="pi pi-map-marker text-surface-400 mt-0.5"></i
-                                    ><span>{{ guia.direccion }}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-id-card text-surface-400"></i
-                                    ><span>RIF: {{ guia.rif }}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-building text-surface-400"></i
-                                    ><span>Sucursal: {{ guia.empresaSuministro }}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-calendar text-surface-400"></i
-                                    ><span>Entrega: {{ guia.fechaEntrega || '—' }}</span>
-                                </div>
-                                @if (guia.observaciones) {
-                                    <div class="flex items-start gap-2">
-                                        <i class="pi pi-comment text-surface-400 mt-0.5"></i
-                                        ><span class="text-surface-600">{{
-                                            guia.observaciones
-                                        }}</span>
-                                    </div>
-                                }
-                                @if (guia.incidencia) {
-                                    <div
-                                        class="mt-2 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800 space-y-1.5"
-                                    >
-                                        <div
-                                            class="flex items-center gap-1.5 text-red-600 font-semibold"
-                                        >
-                                            <i class="pi pi-exclamation-triangle"></i
-                                            ><span>Incidencia</span>
-                                        </div>
-                                        <div class="flex items-start gap-2">
-                                            <span class="text-surface-400">Tipo:</span
-                                            ><span
-                                                class="font-medium text-surface-700 dark:text-surface-200"
-                                                >{{ guia.incidencia.tipo }}</span
-                                            >
-                                        </div>
-                                        <div class="flex items-start gap-2">
-                                            <span class="text-surface-400">Guía:</span
-                                            ><span class="font-mono font-medium">{{
-                                                guia.incidencia.numeroGuia
-                                            }}</span>
-                                        </div>
-                                        <div class="flex items-start gap-2">
-                                            <span class="text-surface-400">Descripción:</span
-                                            ><span>{{ guia.incidencia.descripcion }}</span>
-                                        </div>
-                                        <div class="flex items-start gap-2">
-                                            <span class="text-surface-400">Reporte:</span
-                                            ><span>{{ guia.incidencia.horaReporte }}</span>
-                                        </div>
-                                        @if (guia.incidencia.foto) {
-                                            <div class="pt-1">
-                                                <div
-                                                    class="w-full h-28 bg-surface-200 dark:bg-surface-600 rounded-lg flex items-center justify-center text-surface-400"
-                                                >
-                                                    <i class="pi pi-image text-xl mr-1.5"></i>
-                                                    Foto de incidencia
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
+                        <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                            <div class="text-base font-bold text-primary">
+                                {{ totalFacturas(guia) | currency: 'USD' : 'symbol' : '1.0-0' }}
                             </div>
-                        }
+                            <i class="pi pi-chevron-up text-sm text-surface-400"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <div class="flex items-start gap-2">
+                            <span class="text-sm text-surface-400 w-24 flex-shrink-0"
+                                >Sucursal:</span
+                            >
+                            <span
+                                class="text-base font-semibold text-surface-700 dark:text-surface-200"
+                                >{{ guia.empresaSuministro }}</span
+                            >
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-sm text-surface-400 w-24 flex-shrink-0">Ruta:</span>
+                            <span class="text-base text-surface-500">{{ guia.ruta }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         } @empty {
-            <div class="text-center py-6 text-surface-400 text-sm">
-                <i class="pi pi-inbox text-3xl block mb-1.5"></i><span>Sin entregas aún</span>
+            <div
+                class="text-center py-12 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm"
+            >
+                <i class="pi pi-check-circle text-4xl block mb-2 text-green-400"></i>
+                <p class="text-sm font-semibold text-surface-500">Sin guías pendientes</p>
+                <p class="text-xs mt-1">Todas las entregas fueron completadas</p>
             </div>
         }
-    </div>
+
+        <!-- Route creation -->
+        <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+            <h2 class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">
+                Creación de Ruta
+            </h2>
+            <div class="grid grid-cols-2 gap-3">
+                <div
+                    class="bg-surface-50 dark:bg-surface-700 rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
+                    (click)="irARuta()"
+                >
+                    <div
+                        class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2"
+                    >
+                        <i class="pi pi-sync text-2xl"></i>
+                    </div>
+                    <p class="text-base font-semibold text-surface-700 dark:text-surface-200">
+                        Crear automáticamente
+                    </p>
+                    <p class="text-sm text-surface-400 mt-1 leading-snug">
+                        Selecciona guías y el sistema creará la ruta
+                    </p>
+                </div>
+                <div
+                    class="bg-surface-50 dark:bg-surface-700 rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow"
+                    (click)="irARuta()"
+                >
+                    <div
+                        class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2"
+                    >
+                        <i class="pi pi-pencil text-2xl"></i>
+                    </div>
+                    <p class="text-base font-semibold text-surface-700 dark:text-surface-200">
+                        Crear manualmente
+                    </p>
+                    <p class="text-sm text-surface-400 mt-1 leading-snug">
+                        Crea tu propia ruta con tus guías
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent history -->
+        <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xs font-semibold text-surface-400 uppercase tracking-wider">
+                    Historial
+                </h2>
+                <button
+                    class="text-sm text-primary font-medium hover:underline cursor-pointer bg-transparent border-none"
+                    (click)="irAHistorial()"
+                >
+                    Ver Todo
+                </button>
+            </div>
+            @for (guia of store.historialReciente(); track guia.id; let last = $last) {
+                <div
+                    class="cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/50 rounded-xl"
+                    [ngClass]="{ 'mb-2': !last }"
+                    (click)="toggleHistory(guia)"
+                >
+                    <div class="flex items-start gap-3 p-2.5">
+                        <div
+                            class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                            [ngClass]="
+                                guia.estado === 'CANCELADO'
+                                    ? 'bg-red-100 dark:bg-red-900/20'
+                                    : 'bg-green-100 dark:bg-green-900/30'
+                            "
+                        >
+                            <i
+                                class="text-sm"
+                                [ngClass]="
+                                    guia.estado === 'CANCELADO'
+                                        ? 'pi pi-times text-red-500'
+                                        : 'pi pi-check text-green-600'
+                                "
+                            ></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-base font-semibold text-surface-700 dark:text-surface-200 truncate"
+                                    >{{ guia.cliente }}</span
+                                >
+                                <span
+                                    class="text-sm font-semibold whitespace-nowrap ml-2"
+                                    [ngClass]="
+                                        guia.estado === 'CANCELADO'
+                                            ? 'text-red-500'
+                                            : 'text-green-600'
+                                    "
+                                    >{{
+                                        guia.estado === 'CANCELADO' ? 'Cancelado' : 'Finalizado'
+                                    }}</span
+                                >
+                            </div>
+                            <div class="text-base text-surface-400 mt-0.5">
+                                {{ guia.ruta }} ·
+                                {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}
+                            </div>
+                            @if (selectedHistory()?.id === guia.id) {
+                                <div
+                                    class="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 text-base text-surface-500 space-y-2.5"
+                                >
+                                    <div class="flex items-start gap-2">
+                                        <i class="pi pi-map-marker text-surface-400 mt-0.5"></i
+                                        ><span>{{ guia.direccion }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-id-card text-surface-400"></i
+                                        ><span>RIF: {{ guia.rif }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-building text-surface-400"></i
+                                        ><span>Sucursal: {{ guia.empresaSuministro }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-calendar text-surface-400"></i
+                                        ><span>Entrega: {{ guia.fechaEntrega || '—' }}</span>
+                                    </div>
+                                    @if (guia.observaciones) {
+                                        <div class="flex items-start gap-2">
+                                            <i class="pi pi-comment text-surface-400 mt-0.5"></i
+                                            ><span class="text-surface-600">{{
+                                                guia.observaciones
+                                            }}</span>
+                                        </div>
+                                    }
+                                    @if (guia.incidencia) {
+                                        <div
+                                            class="mt-2 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800 space-y-1.5"
+                                        >
+                                            <div
+                                                class="flex items-center gap-1.5 text-red-600 font-semibold"
+                                            >
+                                                <i class="pi pi-exclamation-triangle"></i
+                                                ><span>Incidencia</span>
+                                            </div>
+                                            <div class="flex items-start gap-2">
+                                                <span class="text-surface-400">Tipo:</span
+                                                ><span
+                                                    class="font-medium text-surface-700 dark:text-surface-200"
+                                                    >{{ guia.incidencia.tipo }}</span
+                                                >
+                                            </div>
+                                            <div class="flex items-start gap-2">
+                                                <span class="text-surface-400">Guía:</span
+                                                ><span class="font-mono font-medium">{{
+                                                    guia.incidencia.numeroGuia
+                                                }}</span>
+                                            </div>
+                                            <div class="flex items-start gap-2">
+                                                <span class="text-surface-400">Descripción:</span
+                                                ><span>{{ guia.incidencia.descripcion }}</span>
+                                            </div>
+                                            <div class="flex items-start gap-2">
+                                                <span class="text-surface-400">Reporte:</span
+                                                ><span>{{ guia.incidencia.horaReporte }}</span>
+                                            </div>
+                                            @if (guia.incidencia.foto) {
+                                                <div class="pt-1">
+                                                    <div
+                                                        class="w-full h-28 bg-surface-200 dark:bg-surface-600 rounded-lg flex items-center justify-center text-surface-400"
+                                                    >
+                                                        <i class="pi pi-image text-xl mr-1.5"></i>
+                                                        Foto de incidencia
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            } @empty {
+                <div class="text-center py-6 text-surface-400 text-sm">
+                    <i class="pi pi-inbox text-3xl block mb-1.5"></i><span>Sin entregas aún</span>
+                </div>
+            }
+        </div>
+    }
 </div>
-
-

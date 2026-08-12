@@ -1,0 +1,219 @@
+<div class="card h-[calc(100vh-8.4rem)] flex flex-col overflow-hidden">
+    <div class="flex items-center gap-3 mb-4 shrink-0 flex-wrap">
+        <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">
+            Monitoreo en Tiempo Real
+        </h1>
+
+        <div class="flex items-center gap-2">
+            @if (conectado()) {
+                <p-tag value="En vivo" severity="success" icon="pi pi-circle-fill" />
+            } @else {
+                <p-tag value="Reconectando" severity="warn" icon="pi pi-spin pi-spinner" />
+            }
+            <span class="text-xs text-surface-400"> Actualizado {{ formatoActualizacion() }} </span>
+        </div>
+
+        <div class="ml-auto flex items-center gap-2">
+            <p-button
+                label="Refrescar"
+                icon="pi pi-refresh"
+                severity="secondary"
+                text
+                size="small"
+                [loading]="cargando()"
+                (onClick)="refrescar()"
+                pTooltip="Recargar viajes y posiciones"
+                tooltipPosition="left"
+            />
+        </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 overflow-hidden">
+        <!-- COLUMNA IZQUIERDA: choferes -->
+        <div
+            class="w-full lg:w-96 shrink-0 h-[38vh] lg:h-auto min-h-0 flex flex-col border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-0 dark:bg-surface-900 overflow-hidden"
+        >
+            <div
+                class="px-4 py-3 border-b border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 shrink-0"
+            >
+                <div class="flex items-center justify-between">
+                    <h2
+                        class="text-base font-semibold text-surface-700 dark:text-surface-200 flex items-center"
+                    >
+                        <i class="pi pi-users mr-2 text-primary"></i>
+                        Choferes en ruta
+                    </h2>
+                    <p-selectbutton
+                        [options]="filtroOpciones"
+                        [ngModel]="filtro()"
+                        (ngModelChange)="filtro.set($event)"
+                        optionLabel="label"
+                        optionValue="value"
+                        size="small"
+                    />
+                </div>
+
+                <div class="flex items-center gap-2 mt-2 flex-wrap">
+                    <span class="text-xs text-surface-500 flex items-center gap-1">
+                        <i class="pi pi-truck text-blue-500"></i>
+                        {{ totales().enRuta }} en ruta
+                    </span>
+                    <span class="text-xs text-surface-500 flex items-center gap-1">
+                        <i class="pi pi-clock text-amber-500"></i>
+                        {{ totales().enEspera }} por iniciar
+                    </span>
+                    <span class="text-xs text-surface-500 flex items-center gap-1">
+                        <i class="pi pi-circle-fill text-emerald-500" style="font-size: 8px"></i>
+                        {{ totales().online }} en línea
+                    </span>
+                    <span class="text-xs text-surface-500 flex items-center gap-1">
+                        <i class="pi pi-circle-fill text-gray-400" style="font-size: 8px"></i>
+                        {{ totales().offline }} inactivos
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex-1 min-h-0 p-3">
+                @if (cargando()) {
+                    <div class="h-full flex flex-col gap-2">
+                        @for (_ of [1, 2, 3, 4, 5]; track _) {
+                            <p-skeleton height="86px" borderRadius="8px" />
+                        }
+                    </div>
+                } @else if (monitoreoFiltrado().length === 0) {
+                    <div class="h-full flex flex-col items-center justify-center text-muted-color">
+                        <i class="pi pi-inbox text-3xl! mb-3"></i>
+                        <span>No hay choferes que mostrar.</span>
+                        <span class="text-xs mt-1">Las posiciones se reciben en vivo.</span>
+                    </div>
+                } @else {
+                    <div class="h-full overflow-y-auto flex flex-col gap-2">
+                        @for (c of monitoreoFiltrado(); track c.idChofer) {
+                            <div
+                                class="rounded-lg border p-3 cursor-pointer transition-all duration-150"
+                                (click)="seleccionarChofer(c.idChofer)"
+                                [class.bg-primary-50]="choferSeleccionado() === c.idChofer"
+                                [class.dark:bg-primary-950]="choferSeleccionado() === c.idChofer"
+                                [class.border-surface-200]="choferSeleccionado() !== c.idChofer"
+                                [class.dark:border-surface-700]="
+                                    choferSeleccionado() !== c.idChofer
+                                "
+                                [class.bg-surface-0]="choferSeleccionado() !== c.idChofer"
+                                [class.dark:bg-surface-900]="choferSeleccionado() !== c.idChofer"
+                                [style.border-left]="'4px solid ' + c.color"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="w-2.5 h-2.5 rounded-full shrink-0"
+                                        [style.background]="c.online ? c.color : '#9ca3af'"
+                                        pTooltip="{{ c.online ? 'En línea' : 'Sin conexión' }}"
+                                        tooltipPosition="top"
+                                    ></span>
+                                    <span
+                                        class="text-sm font-semibold text-surface-800 dark:text-surface-100 truncate"
+                                    >
+                                        {{ c.nombre }}
+                                    </span>
+                                    <p-tag
+                                        [value]="estadoLabel(c.estadoViaje)"
+                                        [severity]="estadoSeverity(c.estadoViaje)"
+                                        styleClass="ml-auto shrink-0"
+                                    />
+                                </div>
+
+                                <div class="flex items-center gap-1.5 mt-1.5 text-sm">
+                                    <i class="pi pi-map text-surface-400 text-xs"></i>
+                                    <span
+                                        class="text-surface-700 dark:text-surface-300 font-medium truncate"
+                                    >
+                                        {{ rutaLabel(c) }}
+                                    </span>
+                                    @if (c.placa) {
+                                        <span class="text-xs text-surface-400 ml-auto shrink-0">
+                                            {{ c.placa }}
+                                        </span>
+                                    }
+                                </div>
+
+                                @if (c.totalEntregas > 0) {
+                                    <div class="mt-2">
+                                        <div
+                                            class="h-1.5 w-full rounded-full bg-surface-100 dark:bg-surface-700 overflow-hidden"
+                                        >
+                                            <div
+                                                class="h-full rounded-full transition-all duration-500"
+                                                [style.width.%]="progreso(c)"
+                                                [style.background]="c.color"
+                                            ></div>
+                                        </div>
+                                        <div class="flex justify-between mt-1 text-xs">
+                                            <span class="text-emerald-600 dark:text-emerald-400">
+                                                {{ c.entregasHechas }} entregas hechas
+                                            </span>
+                                            <span class="text-surface-500">
+                                                {{ c.entregasPendientes }} por hacer
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="flex justify-between mt-1.5 text-xs text-surface-400">
+                                    <span>
+                                        <i class="pi pi-history mr-1"></i>
+                                        {{ relativo(c.actualizadoEn) }}
+                                    </span>
+                                    <span class="{{ c.online ? 'text-emerald-500' : '' }}">
+                                        {{ c.online ? 'En línea' : 'Sin conexión' }}
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: mapa -->
+        <div
+            class="flex-1 min-h-0 flex flex-col border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-0 dark:bg-surface-900 overflow-hidden"
+        >
+            <div class="relative flex-1 min-h-0">
+                <div #mapaElement class="absolute inset-0 w-full h-full"></div>
+
+                @if (!mapaListo()) {
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <p-skeleton width="100%" height="100%" />
+                    </div>
+                }
+
+                <div
+                    class="absolute top-3 left-3 flex flex-col gap-1 bg-surface-0/90 dark:bg-surface-900/90 backdrop-blur rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-2 text-xs shadow-sm"
+                >
+                    <span class="text-surface-500 font-medium mb-0.5">Leyenda</span>
+                    <span class="flex items-center gap-1.5">
+                        <span
+                            class="w-3 h-3 rounded-full inline-block"
+                            style="background: #8b5cf6"
+                        ></span>
+                        Almacén central
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <i class="pi pi-truck text-blue-500 text-sm"></i>
+                        Chofer en ruta
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <i class="pi pi-truck text-gray-400 text-sm"></i>
+                        Chofer sin conexión
+                    </span>
+                </div>
+
+                <div
+                    class="absolute bottom-3 right-3 text-xs text-surface-500 bg-surface-0/90 dark:bg-surface-900/90 backdrop-blur rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-1.5 shadow-sm"
+                >
+                    <i class="pi pi-mouse mr-1"></i>
+                    Haz clic en un chofer para centrar su ruta
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

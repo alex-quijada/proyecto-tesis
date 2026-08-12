@@ -54,7 +54,10 @@ export class DashboardService {
         const facturasPendientes = guias.flatMap((g) =>
             g.facturas.filter(
                 (f) =>
-                    f.idEstado === 'nuevo' || f.idEstado === 'embarque' || f.idEstado === 'espera',
+                    f.idEstado === 'nuevo' ||
+                    f.idEstado === 'embarque' ||
+                    f.idEstado === 'espera' ||
+                    f.idEstado === 'entrega',
             ),
         );
 
@@ -66,7 +69,8 @@ export class DashboardService {
                             (f) =>
                                 f.idEstado === 'nuevo' ||
                                 f.idEstado === 'embarque' ||
-                                f.idEstado === 'espera',
+                                f.idEstado === 'espera' ||
+                                f.idEstado === 'entrega',
                         ),
                     )
                     .map((g) => g.id),
@@ -88,7 +92,8 @@ export class DashboardService {
                         (f) =>
                             f.idEstado === 'nuevo' ||
                             f.idEstado === 'embarque' ||
-                            f.idEstado === 'espera',
+                            f.idEstado === 'espera' ||
+                            f.idEstado === 'entrega',
                     )
                     .map(
                         (f): FacturaPendiente => ({
@@ -118,7 +123,10 @@ export class DashboardService {
         for (const g of guias) {
             const pendiente = g.facturas.some(
                 (f) =>
-                    f.idEstado === 'nuevo' || f.idEstado === 'embarque' || f.idEstado === 'espera',
+                    f.idEstado === 'nuevo' ||
+                    f.idEstado === 'embarque' ||
+                    f.idEstado === 'espera' ||
+                    f.idEstado === 'entrega',
             );
             if (!pendiente) continue;
             const key = g.municipio || '';

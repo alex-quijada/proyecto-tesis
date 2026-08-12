@@ -64,6 +64,15 @@ export class ViajeService {
         if (error) throw error;
     }
 
+    /** Reinicia un viaje (solo staff): vuelve a 'programado' y sus facturas a 'embarque'. */
+    async reiniciarViaje(idViaje: string): Promise<void> {
+        const { error } = await this.supabase.rpc('reiniciar_viaje', {
+            p_id_viaje: idViaje,
+        });
+
+        if (error) throw error;
+    }
+
     async obtenerViajeChofer(): Promise<ViajeChofer[]> {
         const { data, error } = await this.supabase.rpc('obtener_viaje_chofer');
 

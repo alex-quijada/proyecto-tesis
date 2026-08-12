@@ -6,7 +6,8 @@ export type Empresa =
     | 'INVERSIONES MALESI, C.A.'
     | 'INVERSIONES METROPOLITANA C.A.'
     | 'INVERSIONES MALEPA, C.A.'
-    | 'GUUAO C.A.';
+    | 'GUUAO C.A.'
+    | 'DISTRIBUIDORA METROPOLIS C.A.';
 
 export interface DatosGuia {
     codigoGuia: string;

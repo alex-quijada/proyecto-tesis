@@ -1,9 +1,14 @@
 import { Injectable, OnDestroy, inject, signal, computed } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ESTADOS_FACTURA } from '@/app/admin/pages/rutas/data/rutas-mock';
 import { Chofer } from '@/app/admin/pages/choferes/data/choferes-mock';
+import { ViajeService } from '@/app/services/viaje.service';
+import { ViajeChofer } from '@/app/services/viaje.types';
+import { ConnectivityService } from '@/app/services/connectivity.service';
+import { OfflineStorageService } from './offline-storage.service';
 import { ChoferService, ChoferGuia, ChoferVehiculo } from './chofer.service';
 
 export interface Incidencia {
@@ -58,6 +63,15 @@ export interface DriverInfo {
     fechaIngreso?: string;
 }
 
+export interface EntregaPendiente {
+    idFactura: string;
+    numeroFactura: string;
+    cliente: string;
+    firma: string;
+    observaciones?: string;
+    ts: number;
+}
+
 export interface GuiaPendiente {
     id: string;
     numeroGuia: string;
@@ -93,15 +107,29 @@ function normalizarMunicipio(nombre: string): string {
 export class DriverStoreService implements OnDestroy {
     private authService = inject(AuthService);
     private choferService = inject(ChoferService);
+    private viajeService = inject(ViajeService);
     private messageService = inject(MessageService);
+    private connectivity = inject(ConnectivityService);
+    private offlineStorage = inject(OfflineStorageService);
 
     readonly driverInfo = signal<DriverInfo | null>(null);
     readonly guiasAsignadas = signal<Entrega[]>([]);
+    readonly viajesChofer = signal<ViajeChofer[]>([]);
+    readonly viajesCargados = signal(false);
+    readonly cargandoViajes = signal(false);
     readonly firmasMap = new Map<string, string>();
+    readonly cargando = signal(true);
+    readonly datosOffline = signal(false);
+    readonly pendientesSincronizar = signal(0);
+    readonly sincronizando = signal(false);
 
     readonly now = signal(new Date());
     private guiaStartTimes = new Map<string, Date>();
     private timerId: ReturnType<typeof setInterval> | null = null;
+    private uid: string | null = null;
+    private realtimeCanal: RealtimeChannel | null = null;
+    private debounceRealtime: ReturnType<typeof setTimeout> | null = null;
+    private escuchandoReconexion = false;
 
     readonly guiasPendientes = computed(() =>
         this.guiasAsignadas().filter((g) => g.estado !== 'finalizado' && g.estado !== 'cancelado'),
@@ -147,6 +175,8 @@ export class DriverStoreService implements OnDestroy {
         await this.authService.waitForInitialization();
         const user = this.authService.getCurrentUser();
         if (!user) return;
+        this.uid = user.id;
+        this.cargarPendientes();
 
         const setDriverInfo = (chofer?: Chofer) => {
             const nombreCompleto =
@@ -190,20 +220,266 @@ export class DriverStoreService implements OnDestroy {
             }));
             this.guiasAsignadas.set(this.mapearEntregas(guias));
             this.initGuiaStartTimes();
+            this.datosOffline.set(false);
+            await this.offlineStorage.guardar(this.uid, 'guias', this.guiasAsignadas());
         } catch (err) {
             console.error('Error cargando guías del chofer:', err);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudieron cargar tus guías. Intenta de nuevo.',
-            });
+            const caché = await this.offlineStorage.leer<Entrega[]>(this.uid, 'guias');
+            if (caché && caché.data.length > 0) {
+                this.guiasAsignadas.set(caché.data);
+                this.initGuiaStartTimes();
+                this.datosOffline.set(true);
+                console.info('[Offline] Guías cargadas desde la caché local.');
+            } else {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron cargar tus guías. Intenta de nuevo.',
+                });
+            }
         }
 
+        await this.cargarViajes();
+        this.initRealtime();
+
         this.initTimer();
+        this.cargando.set(false);
+        this.escucharReconexion();
+    }
+
+    /**
+     * Carga el viaje activo del chofer una sola vez por sesión (caché en memoria).
+     * Las páginas Ruta y Mapa leen `viajesChofer()` del store en lugar de
+     * llamar al RPC en cada ngOnInit → navegar entre ventanas es instantáneo.
+     */
+    async cargarViajes(force = false) {
+        if (!force && this.viajesCargados()) return;
+        this.cargandoViajes.set(true);
+        try {
+            const viajes = await this.viajeService.obtenerViajeChofer();
+            this.viajesChofer.set(viajes);
+            this.viajesCargados.set(true);
+            if (this.uid) await this.offlineStorage.guardar(this.uid, 'viajes', viajes);
+        } catch (err) {
+            console.error('Error cargando el viaje del chofer:', err);
+            if (this.uid) {
+                const caché = await this.offlineStorage.leer<ViajeChofer[]>(this.uid, 'viajes');
+                if (caché && caché.data.length > 0) {
+                    this.viajesChofer.set(caché.data);
+                    this.viajesCargados.set(true);
+                    this.datosOffline.set(true);
+                    console.info('[Offline] Viaje cargado desde la caché local.');
+                }
+            }
+        } finally {
+            this.cargandoViajes.set(false);
+        }
+    }
+
+    async recargarViajes() {
+        await this.cargarViajes(true);
+    }
+
+    // ---------------- Fase 2: Realtime ----------------
+
+    /**
+     * Suscribe al chofer a los cambios de su viaje en la BD. Ante cualquier
+     * INSERT/UPDATE/DELETE que pueda ver (RLS), recarga el viaje con debounce.
+     */
+    private initRealtime() {
+        const user = this.authService.getCurrentUser();
+        if (!user) return;
+        this.realtimeCanal = this.authService.client
+            .channel(`viajes-chofer-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'viajes',
+                    filter: `id_chofer=eq.${user.id}`,
+                },
+                () => this.notificarCambioViaje(),
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'itinerario_viaje' },
+                () => this.notificarCambioViaje(),
+            )
+            .subscribe();
+    }
+
+    private notificarCambioViaje() {
+        if (this.debounceRealtime) clearTimeout(this.debounceRealtime);
+        this.debounceRealtime = setTimeout(() => {
+            void this.cargarViajes(true);
+        }, 500);
+    }
+
+    // ---------------- Fase 4: reconexión ----------------
+
+    /** Al reconectar: refetch completo + sincronizar la cola de firmas. */
+    private readonly alReconectar = () => {
+        void this.sincronizarPendientes();
+        void this.cargarViajes(true);
+        void this.recargarGuias().catch(() => undefined);
+    };
+
+    private escucharReconexion() {
+        if (this.escuchandoReconexion) return;
+        this.escuchandoReconexion = true;
+        window.addEventListener('online', this.alReconectar);
+
+        this.connectivity.checkNow().then((online) => {
+            if (online) void this.sincronizarPendientes();
+        });
+    }
+
+    // ---------------- Fase 5: cola de firmas offline ----------------
+
+    private async cargarPendientes() {
+        if (!this.uid) return;
+        const caché = await this.offlineStorage.leer<EntregaPendiente[]>(this.uid, 'pendientes');
+        this.pendientesSincronizar.set(caché?.data.length ?? 0);
+    }
+
+    async finalizarEntrega(entrega: Entrega, firma: string, observaciones: string) {
+        const hoy = this.fechaHoy();
+
+        try {
+            await this.choferService.finalizarEntrega(entrega.id, observaciones || null, firma);
+            this.firmasMap.set(entrega.id, firma);
+        } catch (err) {
+            // Sin red (o fallo de red): encolar y marcar localmente como finalizado.
+            if (this.uid) {
+                const caché = await this.offlineStorage.leer<EntregaPendiente[]>(
+                    this.uid,
+                    'pendientes',
+                );
+                const pendientes = caché?.data ?? [];
+                pendientes.push({
+                    idFactura: entrega.id,
+                    numeroFactura: entrega.numeroFactura,
+                    cliente: entrega.cliente,
+                    firma,
+                    observaciones,
+                    ts: Date.now(),
+                });
+                await this.offlineStorage.guardar(this.uid, 'pendientes', pendientes);
+                this.pendientesSincronizar.set(pendientes.length);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Entrega guardada localmente',
+                    detail: 'Se sincronizará cuando recuperes conexión.',
+                });
+            } else {
+                throw err;
+            }
+        }
+
+        this.firmasMap.set(entrega.id, firma);
+        this.guiasAsignadas.update((list) =>
+            list.map((g) =>
+                g.id === entrega.id
+                    ? {
+                          ...g,
+                          estado: 'finalizado',
+                          fechaEntrega: hoy,
+                          observaciones: observaciones || g.observaciones,
+                      }
+                    : g,
+            ),
+        );
+
+        await this.recargarGuias().catch(() => undefined);
+    }
+
+    /** Llegada GPS a un punto de entrega: sus facturas pasan a 'espera'. */
+    async marcarParadaEnEspera(idsFacturas: string[]) {
+        if (!idsFacturas.length) return;
+        try {
+            await this.choferService.llegarAParada(idsFacturas);
+            await this.recargarViajes();
+        } catch (err) {
+            console.warn('[Entrega] Error al marcar la llegada', err);
+        }
+    }
+
+    /** Botón "Iniciar entrega": las facturas del punto pasan a 'entrega'. */
+    async iniciarEntrega(idsFacturas: string[]) {
+        if (!idsFacturas.length) return;
+        try {
+            await this.choferService.iniciarEntrega(idsFacturas);
+            await this.recargarViajes();
+        } catch (err) {
+            console.warn('[Entrega] Error al iniciar la entrega', err);
+            throw err;
+        }
+    }
+
+    /** Reporta una incidencia sobre una factura. */
+    async reportarIncidencia(idFactura: string, observaciones?: string) {
+        try {
+            await this.choferService.reportarIncidencia(idFactura, observaciones || null);
+            await this.recargarViajes();
+            await this.recargarGuias().catch(() => undefined);
+        } catch (err) {
+            console.warn('[Entrega] Error al reportar la incidencia', err);
+            throw err;
+        }
+    }
+
+    /** Envía la cola de firmas pendientes a la BD y la limpia. */
+    async sincronizarPendientes() {
+        if (!this.uid || this.sincronizando()) return;
+        const caché = await this.offlineStorage.leer<EntregaPendiente[]>(this.uid, 'pendientes');
+        const pendientes = caché?.data ?? [];
+        if (pendientes.length < 1) return;
+
+        this.sincronizando.set(true);
+        const restantes: EntregaPendiente[] = [];
+        try {
+            for (const p of pendientes) {
+                try {
+                    await this.choferService.finalizarEntrega(
+                        p.idFactura,
+                        p.observaciones || null,
+                        p.firma || null,
+                    );
+                } catch (err) {
+                    console.warn('[Offline] Firma pendiente no sincronizada:', p.idFactura, err);
+                    restantes.push(p);
+                }
+            }
+            if (restantes.length === 0) {
+                await this.offlineStorage.eliminar(this.uid, 'pendientes');
+                this.pendientesSincronizar.set(0);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Sincronizado',
+                    detail: 'Tus entregas guardadas se sincronizaron correctamente.',
+                });
+            } else {
+                await this.offlineStorage.guardar(this.uid, 'pendientes', restantes);
+                this.pendientesSincronizar.set(restantes.length);
+            }
+            await this.recargarGuias().catch(() => undefined);
+        } finally {
+            this.sincronizando.set(false);
+        }
     }
 
     ngOnDestroy() {
         if (this.timerId) clearInterval(this.timerId);
+        if (this.debounceRealtime) clearTimeout(this.debounceRealtime);
+        if (this.escuchandoReconexion) {
+            window.removeEventListener('online', this.alReconectar);
+            this.escuchandoReconexion = false;
+        }
+        if (this.realtimeCanal) {
+            void this.authService.client.removeChannel(this.realtimeCanal);
+            this.realtimeCanal = null;
+        }
     }
 
     async recargarGuias() {
@@ -255,6 +531,8 @@ export class DriverStoreService implements OnDestroy {
                 return 'border-l-blue-500';
             case 'espera':
                 return 'border-l-orange-500';
+            case 'entrega':
+                return 'border-l-fuchsia-500';
             case 'incidencia':
                 return 'border-l-red-500';
             case 'finalizado':
@@ -271,27 +549,6 @@ export class DriverStoreService implements OnDestroy {
 
     tieneFirma(id: string): boolean {
         return this.firmasMap.has(id);
-    }
-
-    async finalizarEntrega(entrega: Entrega, firma: string, observaciones: string) {
-        await this.choferService.finalizarEntrega(entrega.id, observaciones || null);
-        this.firmasMap.set(entrega.id, firma);
-
-        const hoy = this.fechaHoy();
-        this.guiasAsignadas.update((list) =>
-            list.map((g) =>
-                g.id === entrega.id
-                    ? {
-                          ...g,
-                          estado: 'finalizado',
-                          fechaEntrega: hoy,
-                          observaciones: observaciones || g.observaciones,
-                      }
-                    : g,
-            ),
-        );
-
-        await this.recargarGuias();
     }
 
     logout() {

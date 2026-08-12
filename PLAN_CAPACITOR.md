@@ -242,6 +242,11 @@ el SDK nativo; se ven los tramos por calles; el GPS sigue la posición real.
 
    Verificado: instalado (`adb install -r`) y lanzado en dispositivo
    (`R5CX61KZLKP`). Logcat: `MapsInitializer: loadedRenderer: LATEST`.
+   En `/driver/mapa` el **bottom sheet** inferior es colapsable
+   (`sheetExpandido`): colapsado solo header "Puntos de entrega", expandido
+   lista + selector modo + botón de acción. El botón "Iniciar viaje / Iniciar
+   simulación" **respeta el orden actual** de las paradas (no reordena ni
+   persiste orden; eso vive en `/driver/ruta`).
 
 3. Release firmado (para distribuir): PENDIENTE
    - Generar keystore release (`keytool`).
@@ -267,6 +272,7 @@ Modificados:
 - `src/app/driver/services/navigation.service.ts` (GPS vía Capacitor)
 - `android/app/src/main/AndroidManifest.xml` (permisos + API key)
 - `tsconfig.app.json` (tipos del plugin, solo si es necesario)
+- `package.json` (+ `@angular/animations@21.0.6` para las transiciones de ruta del driver)
 
 Sin cambios:
 

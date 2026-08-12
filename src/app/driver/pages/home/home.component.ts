@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
+import { SkeletonModule } from 'primeng/skeleton';
 
 import { DriverStoreService } from '../../services/driver-store.service';
 import { Entrega, GuiaPendiente } from '../../services/driver-store.service';
@@ -11,7 +12,7 @@ import { Entrega, GuiaPendiente } from '../../services/driver-store.service';
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, ButtonModule, TagModule],
+    imports: [CommonModule, ButtonModule, TagModule, SkeletonModule],
     templateUrl: './home.component.html',
 })
 export class HomeComponent {

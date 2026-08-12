@@ -8,6 +8,7 @@ import {
     computed,
     ElementRef,
     viewChild,
+    ViewChild,
     afterNextRender,
     effect,
 } from '@angular/core';
@@ -21,16 +22,20 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { DialogModule } from 'primeng/dialog';
+import { TextareaModule } from 'primeng/textarea';
 
 import { ViajeService } from '@/app/services/viaje.service';
-import { ViajeChofer } from '@/app/services/viaje.types';
 import { RutaPersistida } from '@/app/services/viaje.types';
 import {
     GoogleMapsOptimizationService,
     Waypoint,
 } from '../../../admin/pages/map/map/google-maps-optimization.service';
 import { environment } from '@/environments/environment';
+import { ConnectivityService } from '@/app/services/connectivity.service';
+import { DriverStoreService } from '../../services/driver-store.service';
 import { NavigationService, ParadaNavegacion } from '../../services/navigation.service';
+import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
 import { iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 
 interface ParadaMapa {
@@ -43,6 +48,21 @@ interface ParadaMapa {
     estado: string;
     latitud?: number | null;
     longitud?: number | null;
+    montoDolares?: number;
+    rif?: string;
+    observaciones?: string;
+}
+
+/** Punto de entrega: agrupa las facturas que comparten coordenadas (misma dirección). */
+interface PuntoEntrega {
+    key: string;
+    ordenVisita: number;
+    nombreCliente: string;
+    direccion: string;
+    latitud: number;
+    longitud: number;
+    facturaIds: string[];
+    facturas: ParadaMapa[];
 }
 
 @Component({
@@ -56,6 +76,9 @@ interface ParadaMapa {
         TagModule,
         TooltipModule,
         SelectButtonModule,
+        DialogModule,
+        TextareaModule,
+        FirmaDialogComponent,
     ],
     templateUrl: './mi-ruta.component.html',
     styleUrl: './mi-ruta.component.css',
@@ -65,7 +88,9 @@ export class MiRutaComponent implements OnInit {
     private viajeService = inject(ViajeService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private destroyRef = inject(DestroyRef);
+    private connectivity = inject(ConnectivityService);
     navigation = inject(NavigationService);
+    store = inject(DriverStoreService);
 
     private esNativo = Capacitor.isNativePlatform();
     private readonly apiKey = this.esNativo
@@ -119,17 +144,104 @@ export class MiRutaComponent implements OnInit {
             }
         });
 
+        // Re-sincroniza las paradas cuando el viaje/guías cambian (llegadas GPS,
+        // inicio de entrega, firmas, incidencias): mantiene el sheet al día.
+        effect(() => {
+            this.store.viajesChofer();
+            this.store.guiasAsignadas();
+            this.sincronizarParadas();
+        });
+
+        // Al completar todas las facturas del punto, volver al panel de navegación.
+        effect(() => {
+            const punto = this.puntoActual();
+            if (!punto) return;
+            const pendientes = punto.facturas.filter(
+                (f) => f.estado !== 'finalizado' && f.estado !== 'incidencia',
+            );
+            if (pendientes.length === 0) this.puntoEntrega.set(null);
+        });
+
         this.destroyRef.onDestroy(() => {
             window.removeEventListener('resize', medirOffsets);
             document.documentElement.classList.remove('mapa-nativo');
+            if (this.navigation.onLlegadaParada) this.navigation.onLlegadaParada = null;
             if (this.mapa) void this.mapa.destroy().catch(() => undefined);
         });
     }
 
-    viajes = signal<ViajeChofer[]>([]);
     paradas = signal<ParadaMapa[]>([]);
     cargando = signal(true);
     iniciando = signal(false);
+    sheetExpandido = signal(false);
+
+    @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
+
+    puntoEntrega = signal<number | null>(null);
+    entregando = signal(false);
+    firmaGuia = signal<ParadaMapa | null>(null);
+    incidenciaGuia = signal<ParadaMapa | null>(null);
+    incidenciaTexto = signal('');
+
+    /** Puntos de entrega: facturas agrupadas por coordenadas (misma dirección). */
+    readonly puntos = computed<PuntoEntrega[]>(() => {
+        const mapa = new Map<string, PuntoEntrega>();
+        const conCoords = this.paradas()
+            .filter((p) => p.latitud != null && p.longitud != null)
+            .sort((a, b) => a.ordenVisita - b.ordenVisita);
+        for (const p of conCoords) {
+            const key = `${p.latitud},${p.longitud}`;
+            let punto = mapa.get(key);
+            if (!punto) {
+                punto = {
+                    key,
+                    ordenVisita: p.ordenVisita,
+                    nombreCliente: p.nombreCliente,
+                    direccion: p.direccion,
+                    latitud: p.latitud!,
+                    longitud: p.longitud!,
+                    facturaIds: [],
+                    facturas: [],
+                };
+                mapa.set(key, punto);
+            }
+            punto.ordenVisita = Math.min(punto.ordenVisita, p.ordenVisita);
+            punto.facturaIds.push(p.id);
+            punto.facturas.push(p);
+        }
+        return Array.from(mapa.values()).sort((a, b) => a.ordenVisita - b.ordenVisita);
+    });
+
+    readonly puntoActual = computed<PuntoEntrega | null>(() => {
+        const idx = this.puntoEntrega();
+        if (idx === null || idx < 0) return null;
+        return this.puntos()[idx] ?? null;
+    });
+
+    readonly facturasEnEspera = computed(() =>
+        (this.puntoActual()?.facturas || []).filter((f) => f.estado === 'espera'),
+    );
+
+    readonly facturasEnEntrega = computed(() =>
+        (this.puntoActual()?.facturas || []).filter((f) => f.estado === 'entrega'),
+    );
+
+    readonly facturasPendientesPunto = computed(() =>
+        (this.puntoActual()?.facturas || []).filter(
+            (f) => f.estado !== 'finalizado' && f.estado !== 'incidencia',
+        ),
+    );
+
+    /** Objeto mínimo para el firma-dialog compartido. */
+    readonly firmaGuiaData = computed(() => {
+        const g = this.firmaGuia();
+        if (!g) return null;
+        return {
+            numeroGuia: g.numeroGuia,
+            cliente: g.nombreCliente,
+            precioCarga: g.montoDolares || 0,
+        };
+    });
 
     private mapa!: GoogleMap;
     private markerIds: string[] = [];
@@ -138,8 +250,10 @@ export class MiRutaComponent implements OnInit {
     private segmentPolylineIds: string[] = [];
     private currentLocationEnabled = false;
     private ultimoRefreshMarker = 0;
+    private sheetDragStartY = 0;
+    private sheetDragActivo = false;
 
-    readonly activeViaje = computed(() => this.viajes()[0] || null);
+    readonly activeViaje = computed(() => this.store.viajesChofer()[0] || null);
 
     get fechaActual(): string {
         const hoy = new Date();
@@ -159,45 +273,55 @@ export class MiRutaComponent implements OnInit {
     }
 
     async ngOnInit() {
-        await this.cargarViaje();
+        await this.store.cargarViajes();
+        this.sincronizarParadas();
         this.cargando.set(false);
+
+        // Llegada GPS a un punto → facturas del punto a 'espera' + abrir sheet de entrega.
+        this.navigation.onLlegadaParada = (idx: number) => this.alLlegarAPunto(idx);
+
+        setTimeout(() => void this.mostrarRutaEnMapa(), 100);
     }
 
-    private async cargarViaje() {
+    private async alLlegarAPunto(idx: number) {
+        const punto = this.puntos()[idx];
+        if (!punto) return;
+        this.puntoEntrega.set(idx);
         try {
-            const viajes = await this.viajeService.obtenerViajeChofer();
-            this.viajes.set(viajes);
+            await this.store.marcarParadaEnEspera(punto.facturaIds);
+        } catch {
+            /* el sheet sigue abierto aunque falle el RPC (offline) */
+        }
+    }
 
-            const viaje = viajes[0];
-            if (viaje) {
-                this.paradas.set(
-                    (viaje.paradas || [])
-                        .slice()
-                        .sort((a, b) => a.orden_visita - b.orden_visita)
-                        .map((p) => ({
+    private sincronizarParadas() {
+        const viaje = this.store.viajesChofer()[0] || null;
+        if (viaje) {
+            const entregas = this.store.guiasAsignadas();
+            this.paradas.set(
+                (viaje.paradas || [])
+                    .slice()
+                    .sort((a, b) => a.orden_visita - b.orden_visita)
+                    .map((p) => {
+                        const entrega = entregas.find((e) => e.id === p.id_factura);
+                        return {
                             id: p.id_factura,
                             ordenVisita: p.orden_visita,
-                            numeroGuia: p.codigo_guia || '',
-                            numeroFactura: p.numero_factura || '',
-                            nombreCliente: p.nombre_cliente || '',
-                            direccion: p.direccion || '',
-                            estado: p.estado_factura || 'embarque',
+                            numeroGuia: p.codigo_guia || entrega?.numeroGuia || p.id_guia || '',
+                            numeroFactura: p.numero_factura || entrega?.numeroFactura || '',
+                            nombreCliente: p.nombre_cliente || entrega?.cliente || 'Sin cliente',
+                            direccion: p.direccion || entrega?.direccion || '',
+                            estado: p.estado_factura || entrega?.estado || 'embarque',
                             latitud: p.latitud,
                             longitud: p.longitud,
-                        })),
-                );
-            } else {
-                this.paradas.set([]);
-            }
-
-            setTimeout(() => void this.mostrarRutaEnMapa(), 100);
-        } catch (err) {
-            console.error('Error al cargar viaje', err);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo cargar tu viaje.',
-            });
+                            montoDolares: Number(p.monto_dolares) || entrega?.precioCarga || 0,
+                            rif: entrega?.rif,
+                            observaciones: entrega?.observaciones,
+                        };
+                    }),
+            );
+        } else {
+            this.paradas.set([]);
         }
     }
 
@@ -405,18 +529,16 @@ export class MiRutaComponent implements OnInit {
     }
 
     private async iniciarNavegacion(rutaPrecomputada?: RutaPersistida | null) {
-        const conCoords = this.paradas()
-            .filter((p) => p.latitud != null && p.longitud != null)
-            .sort((a, b) => a.ordenVisita - b.ordenVisita);
+        const conPuntos = this.puntos();
 
-        const paradasNav: ParadaNavegacion[] = conCoords.map((p) => ({
-            id: p.id,
+        const paradasNav: ParadaNavegacion[] = conPuntos.map((p) => ({
+            id: p.key,
             ordenVisita: p.ordenVisita,
-            numeroGuia: p.numeroGuia,
-            numeroFactura: p.numeroFactura,
+            numeroGuia: p.facturas[0]?.numeroGuia || '',
+            numeroFactura: p.facturas[0]?.numeroFactura || '',
             nombreCliente: p.nombreCliente,
-            latitud: p.latitud!,
-            longitud: p.longitud!,
+            latitud: p.latitud,
+            longitud: p.longitud,
         }));
 
         const warehouse: Waypoint = {
@@ -507,8 +629,10 @@ export class MiRutaComponent implements OnInit {
         const viaje = this.activeViaje();
         if (!viaje || !this.viajeAbierto) return;
 
-        const conCoords = this.paradas().filter((p) => p.latitud != null && p.longitud != null);
-        if (conCoords.length < 1) {
+        // Se respeta el orden actual de las paradas (el definido por la ventana
+        // Ruta del chofer o el admin): no se reordena aquí.
+        const conPuntos = this.puntos();
+        if (conPuntos.length < 1) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Sin coordenadas',
@@ -519,33 +643,50 @@ export class MiRutaComponent implements OnInit {
 
         this.iniciando.set(true);
         try {
-            const waypoints: Waypoint[] = conCoords.map((p) => ({
-                lat: p.latitud!,
-                lng: p.longitud!,
-                name: `${p.nombreCliente} - ${p.numeroGuia || p.numeroFactura}`,
-            }));
             const warehouse: Waypoint = {
                 lat: environment.warehouseLat,
                 lng: environment.warehouseLng,
                 name: 'Almacén',
             };
 
-            const result = await this.googleOptimization.optimize(waypoints, warehouse, warehouse);
-            const orderedIds = result
-                ? result.order.map((idx) => conCoords[idx].id)
-                : conCoords.map((p) => p.id);
+            // Fuera de línea: usar la ruta detallada persistida en el viaje
+            // (calculada antes y guardada con guardarRutaViaje) sin Directions.
+            if (!this.connectivity.isOnline()) {
+                const persistida = viaje.ruta_detallada;
+                if (!persistida || persistida.pasos.length < 1) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Sin conexión',
+                        detail: 'No hay ruta precalculada guardada. Conecta a internet primero.',
+                    });
+                    this.iniciando.set(false);
+                    return;
+                }
+                await this.iniciarNavegacion(persistida);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Viaje iniciado',
+                    detail: 'Navegando con la ruta guardada (sin conexión).',
+                });
+                this.iniciando.set(false);
+                return;
+            }
 
-            // Modo prueba: solo se persiste el orden de paradas (actualizar_orden_viaje).
-            // NO se cambia el estado del viaje ni de las facturas (iniciar_viaje).
-            await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, orderedIds);
+            const waypoints: Waypoint[] = conPuntos.map((p) => ({
+                lat: p.latitud,
+                lng: p.longitud,
+                name: `${p.nombreCliente} - ${
+                    p.facturas[0]?.numeroGuia || p.facturas[0]?.numeroFactura
+                }`,
+            }));
 
-            const detallada = result
-                ? await this.googleOptimization.getRutaDetallada(
-                      result.order.map((idx) => waypoints[idx]),
-                      warehouse,
-                      warehouse,
-                  )
-                : null;
+            // Ruta detallada con el orden actual (getRutaDetallada usa
+            // optimizeWaypoints: false). No se persiste un orden nuevo.
+            const detallada = await this.googleOptimization.getRutaDetallada(
+                waypoints,
+                warehouse,
+                warehouse,
+            );
             if (detallada) {
                 await this.viajeService.guardarRutaViaje(viaje.id_viaje, detallada);
             }
@@ -554,15 +695,15 @@ export class MiRutaComponent implements OnInit {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Simulación lista',
-                detail: 'La ruta fue optimizada y la navegación iniciada desde el almacén.',
+                summary: 'Viaje iniciado',
+                detail: 'La navegación comenzó desde el almacén respetando el orden de tu ruta.',
             });
         } catch (err) {
-            console.error('Error al iniciar simulación', err);
+            console.error('Error al iniciar el viaje', err);
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo iniciar la simulación. Intenta nuevamente.',
+                detail: 'No se pudo iniciar el viaje. Intenta nuevamente.',
             });
         } finally {
             this.iniciando.set(false);
@@ -602,6 +743,39 @@ export class MiRutaComponent implements OnInit {
         this.verPasos.update((v) => !v);
     }
 
+    toggleSheet() {
+        this.sheetExpandido.update((v) => !v);
+    }
+
+    /** Gesto tipo "pull down / pull up" sobre el grabber del bottom sheet. */
+    onSheetDragStart(event: TouchEvent | MouseEvent) {
+        this.sheetDragStartY = this.eventY(event);
+        this.sheetDragActivo = true;
+    }
+
+    onSheetDragEnd(event: TouchEvent | MouseEvent) {
+        if (!this.sheetDragActivo) return;
+        this.sheetDragActivo = false;
+        const delta = this.eventY(event) - this.sheetDragStartY;
+        // Arrastre hacia abajo (>40px): cerrar. Hacia arriba (<-40px): abrir.
+        // Sin arrastre (tap): alternar.
+        if (Math.abs(delta) < 40) {
+            this.toggleSheet();
+        } else if (delta > 0) {
+            this.sheetExpandido.set(false);
+        } else {
+            this.sheetExpandido.set(true);
+        }
+    }
+
+    private eventY(event: TouchEvent | MouseEvent): number {
+        if (event instanceof TouchEvent) {
+            const touch = event.changedTouches?.[0] ?? event.touches?.[0];
+            return touch ? touch.clientY : 0;
+        }
+        return (event as MouseEvent).clientY;
+    }
+
     formatearDistancia(m: number): string {
         if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
         return `${Math.round(m)} m`;
@@ -614,4 +788,117 @@ export class MiRutaComponent implements OnInit {
 
     iconoManiobra = iconoManiobra;
     limpiarHtmlInstruccion = limpiarHtmlInstruccion;
+
+    // ---------------- Flujo de entrega ----------------
+
+    async iniciarEntregaPunto() {
+        const punto = this.puntoActual();
+        if (!punto) return;
+        this.entregando.set(true);
+        try {
+            await this.store.iniciarEntrega(punto.facturaIds);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Entrega iniciada',
+                detail: 'Marca cada factura como finalizada o reporta una incidencia.',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo iniciar la entrega.',
+            });
+        } finally {
+            this.entregando.set(false);
+        }
+    }
+
+    abrirFirma(factura: ParadaMapa) {
+        this.firmaGuia.set(factura);
+        if (this.firmaDialog) {
+            this.firmaDialog.guia = this.firmaGuiaData();
+            this.firmaDialog.open();
+        }
+    }
+
+    onFirmaCancelada() {
+        this.firmaGuia.set(null);
+    }
+
+    async onFirmaConfirmada(event: { firma: string; observaciones: string }) {
+        const factura = this.firmaGuia();
+        if (!factura) return;
+        try {
+            await this.store.finalizarEntrega(
+                this.crearEntregaStore(factura),
+                event.firma,
+                event.observaciones,
+            );
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Entrega completada',
+                detail: `${factura.nombreCliente} — ${factura.numeroFactura || factura.numeroGuia}`,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo guardar la entrega.',
+            });
+        } finally {
+            this.firmaGuia.set(null);
+        }
+    }
+
+    abrirIncidencia(factura: ParadaMapa) {
+        this.incidenciaGuia.set(factura);
+        this.incidenciaTexto.set('');
+    }
+
+    cerrarIncidencia() {
+        this.incidenciaGuia.set(null);
+        this.incidenciaTexto.set('');
+    }
+
+    async onIncidenciaConfirmada() {
+        const factura = this.incidenciaGuia();
+        if (!factura) return;
+        try {
+            await this.store.reportarIncidencia(factura.id, this.incidenciaTexto());
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Incidencia reportada',
+                detail: `${factura.nombreCliente} — ${factura.numeroFactura || factura.numeroGuia}`,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo reportar la incidencia.',
+            });
+        } finally {
+            this.cerrarIncidencia();
+        }
+    }
+
+    private crearEntregaStore(factura: ParadaMapa) {
+        return {
+            id: factura.id,
+            idGuia: '',
+            numeroGuia: factura.numeroGuia,
+            numeroFactura: factura.numeroFactura,
+            empresaSuministro: '',
+            cliente: factura.nombreCliente,
+            ruta: '',
+            direccion: factura.direccion,
+            rif: factura.rif || '',
+            precioCarga: factura.montoDolares || 0,
+            estado: factura.estado,
+            observaciones: factura.observaciones,
+            tuvoDevolucion: false,
+            eventos: [],
+            latitud: factura.latitud ?? undefined,
+            longitud: factura.longitud ?? undefined,
+        };
+    }
 }

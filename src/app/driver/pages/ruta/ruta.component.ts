@@ -1,16 +1,16 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { SkeletonModule } from 'primeng/skeleton';
 
 import { DriverStoreService } from '../../services/driver-store.service';
 import { Entrega } from '../../services/driver-store.service';
 import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
 import { ViajeService } from '@/app/services/viaje.service';
-import { ViajeChofer } from '@/app/services/viaje.types';
 import {
     GoogleMapsOptimizationService,
     Waypoint,
@@ -38,7 +38,14 @@ interface ParadaDisplay {
 @Component({
     selector: 'app-ruta',
     standalone: true,
-    imports: [CommonModule, ButtonModule, TagModule, TooltipModule, FirmaDialogComponent],
+    imports: [
+        CommonModule,
+        ButtonModule,
+        TagModule,
+        TooltipModule,
+        SkeletonModule,
+        FirmaDialogComponent,
+    ],
     templateUrl: './ruta.component.html',
 })
 export class RutaComponent implements OnInit {
@@ -47,7 +54,6 @@ export class RutaComponent implements OnInit {
     private viajeService = inject(ViajeService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
 
-    viajes = signal<ViajeChofer[]>([]);
     paradas = signal<ParadaDisplay[]>([]);
     selectedGuia = signal<ParadaDisplay | null>(null);
     firmaGuia = signal<ParadaDisplay | null>(null);
@@ -57,7 +63,7 @@ export class RutaComponent implements OnInit {
 
     @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
 
-    readonly activeViaje = computed(() => this.viajes()[0] || null);
+    readonly activeViaje = computed(() => this.store.viajesChofer()[0] || null);
 
     readonly guiasPendientes = computed(() =>
         this.paradas().filter((p) => p.estado !== 'finalizado' && p.estado !== 'cancelado'),
@@ -69,54 +75,54 @@ export class RutaComponent implements OnInit {
 
     readonly completedCount = computed(() => this.guiasCompletadas().length);
 
+    constructor() {
+        // Re-sincroniza las paradas cuando el store recibe el viaje o las
+        // guías (carga inicial, realtime, firma): así las tarjetas quedan
+        // siempre con el mismo formato aunque una fuente llegue después.
+        effect(() => {
+            this.store.viajesChofer();
+            this.store.guiasAsignadas();
+            this.sincronizarParadas();
+        });
+    }
+
     async ngOnInit() {
-        await this.cargarViaje();
+        await this.store.cargarViajes();
+        this.sincronizarParadas();
         this.cargando.set(false);
     }
 
-    private async cargarViaje() {
-        try {
-            const viajes = await this.viajeService.obtenerViajeChofer();
-            this.viajes.set(viajes);
-
-            const viaje = viajes[0];
-            if (viaje) {
-                const entregas = this.store.guiasAsignadas();
-                this.paradas.set(
-                    (viaje.paradas || [])
-                        .slice()
-                        .sort((a, b) => a.orden_visita - b.orden_visita)
-                        .map((p) => {
-                            const entrega = entregas.find((e) => e.id === p.id_factura);
-                            return {
-                                id: p.id_factura,
-                                ordenVisita: p.orden_visita,
-                                numeroGuia: p.codigo_guia || entrega?.numeroGuia || p.id_guia || '',
-                                numeroFactura: p.numero_factura || entrega?.numeroFactura || '',
-                                cliente: p.nombre_cliente || entrega?.cliente || 'Sin cliente',
-                                ruta: entrega?.ruta || '',
-                                direccion: p.direccion || entrega?.direccion || '',
-                                rif: entrega?.rif || '',
-                                precioCarga: Number(p.monto_dolares) || entrega?.precioCarga || 0,
-                                estado: p.estado_factura || entrega?.estado || 'embarque',
-                                observaciones: entrega?.observaciones,
-                                eventos: entrega?.eventos || [],
-                                latitud: p.latitud ?? entrega?.latitud,
-                                longitud: p.longitud ?? entrega?.longitud,
-                                empresaSuministro: entrega?.empresaSuministro,
-                            };
-                        }),
-                );
-            } else {
-                this.paradas.set([]);
-            }
-        } catch (err) {
-            console.error('Error al cargar viaje', err);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo cargar tu viaje.',
-            });
+    private sincronizarParadas() {
+        const viaje = this.store.viajesChofer()[0] || null;
+        if (viaje) {
+            const entregas = this.store.guiasAsignadas();
+            this.paradas.set(
+                (viaje.paradas || [])
+                    .slice()
+                    .sort((a, b) => a.orden_visita - b.orden_visita)
+                    .map((p) => {
+                        const entrega = entregas.find((e) => e.id === p.id_factura);
+                        return {
+                            id: p.id_factura,
+                            ordenVisita: p.orden_visita,
+                            numeroGuia: p.codigo_guia || entrega?.numeroGuia || p.id_guia || '',
+                            numeroFactura: p.numero_factura || entrega?.numeroFactura || '',
+                            cliente: p.nombre_cliente || entrega?.cliente || 'Sin cliente',
+                            ruta: p.municipio || entrega?.ruta || '',
+                            direccion: p.direccion || entrega?.direccion || '',
+                            rif: entrega?.rif || '',
+                            precioCarga: Number(p.monto_dolares) || entrega?.precioCarga || 0,
+                            estado: p.estado_factura || entrega?.estado || 'embarque',
+                            observaciones: entrega?.observaciones,
+                            eventos: entrega?.eventos || [],
+                            latitud: p.latitud ?? entrega?.latitud,
+                            longitud: p.longitud ?? entrega?.longitud,
+                            empresaSuministro: entrega?.empresaSuministro,
+                        };
+                    }),
+            );
+        } else {
+            this.paradas.set([]);
         }
     }
 
@@ -275,7 +281,8 @@ export class RutaComponent implements OnInit {
         try {
             await this.store.finalizarEntrega(entregaStore, event.firma, event.observaciones);
             this.selectedGuia.set(null);
-            await this.cargarViaje();
+            await this.store.recargarViajes();
+            this.sincronizarParadas();
             this.messageService.add({
                 severity: 'success',
                 summary: 'Entrega completada',

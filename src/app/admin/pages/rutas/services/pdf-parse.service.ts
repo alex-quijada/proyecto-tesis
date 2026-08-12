@@ -168,11 +168,13 @@ export class PdfNormalizerService {
     }
 
     private parsearEncabezado(texto: string): { empresa: Empresa | ''; codigoGuia: string } {
-        const m = texto.match(/^(.+?)\s+(batch\/out\/\d+)\s/i);
+        // BATCH/OUT/<n> | BATCH/OUT/<letras>/<n> | BATCH/OUT/<letras>/<letras>/<n> ... (siempre 5 dígitos al final)
+        const reCodigo = /batch\/out\/(?:[a-z0-9]+\/)*\d{5}\b/i;
+        const m = texto.match(/^(.+?)\s+(batch\/out\/(?:[a-z0-9]+\/)*\d{5})\b/i);
         if (m && !m[1].startsWith('CAMIÓN')) {
             return { empresa: m[1].trim() as Empresa, codigoGuia: m[2].toLowerCase() };
         }
-        const m2 = texto.match(/(batch\/out\/\d+)/i);
-        return { empresa: '', codigoGuia: m2 ? m2[1].toLowerCase() : '' };
+        const m2 = texto.match(reCodigo);
+        return { empresa: '', codigoGuia: m2 ? m2[0].toLowerCase() : '' };
     }
 }

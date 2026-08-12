@@ -10,6 +10,7 @@ import {
     Waypoint,
 } from '@/app/admin/pages/map/map/google-maps-optimization.service';
 import { RutaPersistida } from '@/app/services/viaje.types';
+import { ConnectivityService } from '@/app/services/connectivity.service';
 import { distanciaAPolyline, haversine, LatLng } from '../pages/viajes/navegacion.util';
 
 export interface ParadaNavegacion {
@@ -33,6 +34,7 @@ const SIM_INTERVALO_MS = 200;
 export class NavigationService {
     private messageService = inject(MessageService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
+    private connectivity = inject(ConnectivityService);
 
     readonly navegando = signal(false);
     readonly pasos = signal<PasoRuta[]>([]);
@@ -58,6 +60,9 @@ export class NavigationService {
     private ultimoReRuteo = 0;
     private readonly esNativo = Capacitor.isNativePlatform();
 
+    /** Hook invocado al detectar la llegada a una parada (antes de avanzar). */
+    onLlegadaParada: ((idx: number) => void) | null = null;
+
     async iniciarNavegacion(
         paradas: ParadaNavegacion[],
         warehouse: Waypoint,
@@ -78,6 +83,14 @@ export class NavigationService {
                 ...rutaPrecomputada,
                 legs: rutaPrecomputada.legs || [],
             };
+        } else if (!this.connectivity.isOnline()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Sin conexión',
+                detail: 'No se puede calcular la ruta. Conecta a internet o usa una ruta precalculada.',
+            });
+            this.navegando.set(false);
+            return false;
         } else {
             const waypoints: Waypoint[] = this.paradas.map((p) => ({
                 lat: p.latitud,
@@ -376,6 +389,7 @@ export class NavigationService {
         this.distRestanteParada.set(Math.round(dist));
 
         if (dist < UMBRAL_LLEGADA_M) {
+            this.onLlegadaParada?.(idx);
             if (idx < paradas.length - 1) {
                 this.paradaActual.set(idx + 1);
                 this.messageService.add({
@@ -394,6 +408,7 @@ export class NavigationService {
     }
 
     private comprobarReRuteo(pos: LatLng) {
+        if (!this.connectivity.isOnline()) return;
         if (this.simulando()) return;
         if (this.path().length < 1) return;
         const ahora = Date.now();

@@ -53,4 +53,11 @@ export default [
                 (m) => m.OptimizacionRutasComponent,
             ),
     },
+    {
+        path: 'rutas/seguimiento',
+        loadComponent: () =>
+            import('./pages/rutas/seguimiento/seguimiento.component').then(
+                (m) => m.SeguimientoComponent,
+            ),
+    },
 ] as Routes;

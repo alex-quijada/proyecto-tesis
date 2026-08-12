@@ -76,9 +76,10 @@ export class ConnectivityService {
         const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
 
         try {
-            const res = await fetch(`${environment.supabaseUrl}/rest/v1/`, {
+            const res = await fetch(`${environment.supabaseUrl}/auth/v1/health`, {
                 method: 'GET',
                 cache: 'no-store',
+                headers: { apikey: environment.supabaseKey },
                 signal: controller.signal,
             });
             const online = res.status < 500;

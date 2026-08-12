@@ -168,6 +168,7 @@ export class RutasComponent implements OnInit {
         const estados = facturas.map((f) => f.idEstado);
 
         if (estados.some((e) => e === 'incidencia')) return 'INCIDENCIAS';
+        if (estados.some((e) => e === 'entrega')) return 'ENTREGANDO';
         if (estados.some((e) => e === 'proceso')) return 'EN_PROCESO';
         if (estados.some((e) => e === 'espera')) return 'EN_ESPERA';
         if (estados.some((e) => e === 'embarque')) return 'EN_CARGA_MERCANCIA';
