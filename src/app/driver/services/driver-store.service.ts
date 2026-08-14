@@ -392,6 +392,9 @@ export class DriverStoreService implements OnDestroy {
         );
 
         await this.recargarGuias().catch(() => undefined);
+        // El mapa lee las paradas desde el viaje: recargar para que el sheet
+        // de entrega se limpie al quedar todas las facturas del punto finalizadas.
+        await this.recargarViajes().catch(() => undefined);
     }
 
     /** Llegada GPS a un punto de entrega: sus facturas pasan a 'espera'. */

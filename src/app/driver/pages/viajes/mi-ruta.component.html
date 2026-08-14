@@ -205,6 +205,16 @@
                             (onClick)="toggleSeguimiento()"
                             styleClass="flex-1 text-sm"
                         />
+                        <p-button
+                            [icon]="vista3d() ? 'pi pi-compass' : 'pi pi-map'"
+                            [label]="vista3d() ? 'Vista 3D' : 'Vista mapa'"
+                            [severity]="vista3d() ? 'primary' : 'secondary'"
+                            [outlined]="!vista3d()"
+                            pTooltip="Vista isométrica tipo navegación"
+                            tooltipPosition="top"
+                            (onClick)="toggleVista3d()"
+                            styleClass="flex-1 text-sm"
+                        />
                     </div>
                 </div>
             </div>

@@ -20,6 +20,19 @@ export function haversine(a: LatLng, b: LatLng): number {
 }
 
 /**
+ * Rumbo (bearing) en grados [0,360) entre dos coordenadas: 0 = norte,
+ * 90 = este, etc. Útil para orientar la cámara del mapa (vista 3D).
+ */
+export function calcularBearing(a: LatLng, b: LatLng): number {
+    const dLng = toRad(b.lng - a.lng);
+    const y = Math.sin(dLng) * Math.cos(toRad(b.lat));
+    const x =
+        Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
+        Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(dLng);
+    return (Math.atan2(y, x) * 180) / Math.PI;
+}
+
+/**
  * Distancia en metros desde una posición hasta el punto más cercano de un path
  * (polyline). Útil para detectar desvíos de la ruta.
  */

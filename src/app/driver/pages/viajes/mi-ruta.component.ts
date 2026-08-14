@@ -103,6 +103,7 @@ export class MiRutaComponent implements OnInit {
     bottomOffset = signal(68);
     siguiendo = signal(true);
     verPasos = signal(true);
+    vista3d = signal(true);
     private mapaListo = signal(false);
 
     constructor() {
@@ -574,10 +575,7 @@ export class MiRutaComponent implements OnInit {
             }
             await this.quitarMarcadorDriver();
             if (navegando && this.siguiendo()) {
-                await this.mapa.setCamera({
-                    coordinate: { lat: pos.lat, lng: pos.lng },
-                    animate: true,
-                });
+                await this.seguirCamara(pos);
             }
             return;
         }
@@ -609,11 +607,32 @@ export class MiRutaComponent implements OnInit {
         }
 
         if (navegando && this.siguiendo()) {
-            await this.mapa.setCamera({
-                coordinate: { lat: pos.lat, lng: pos.lng },
-                animate: true,
-            });
+            await this.seguirCamara(pos);
         }
+    }
+
+    /**
+     * Mueve la cámara siguiendo al chofer. Con `vista3d` activa usa la
+     * perspectiva isométrica tipo Google Maps Navigation: cámara inclinada
+     * 45° (angle), rotada según el rumbo y con zoom cercano.
+     */
+    private async seguirCamara(pos: LatLng) {
+        const config = {
+            coordinate: { lat: pos.lat, lng: pos.lng },
+            animate: true,
+            ...(this.vista3d()
+                ? { zoom: 17, angle: 45, bearing: this.navigation.rumbo() }
+                : {}),
+        };
+        try {
+            await this.mapa.setCamera(config);
+        } catch (err) {
+            console.error('Error siguiendo cámara', err);
+        }
+    }
+
+    toggleVista3d() {
+        this.vista3d.update((v) => !v);
     }
 
     private crearMarcadorEntrega(index: number, p: ParadaMapa): Marker {
@@ -671,6 +690,12 @@ export class MiRutaComponent implements OnInit {
                 this.iniciando.set(false);
                 return;
             }
+
+            // Cerrar el viaje: viaje → 'proceso' y todas sus facturas → 'proceso'
+            // (iniciar_viaje persiste también el orden actual de las paradas).
+            const idsOrdenadas = conPuntos.flatMap((p) => p.facturaIds);
+            await this.viajeService.iniciarViaje(viaje.id_viaje, idsOrdenadas);
+            await this.store.recargarViajes();
 
             const waypoints: Waypoint[] = conPuntos.map((p) => ({
                 lat: p.latitud,
