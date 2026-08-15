@@ -17,6 +17,10 @@ import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmationService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 
 import { environment } from '@/environments/environment';
 import { ViajeAdmin } from '@/app/services/viaje.types';
@@ -93,12 +97,16 @@ function colorDeChofer(id: string): string {
         SkeletonModule,
         SelectButtonModule,
         TooltipModule,
+        ConfirmDialogModule,
+        ToastModule,
     ],
-    providers: [SeguimientoService],
+    providers: [SeguimientoService, ConfirmationService, MessageService],
     templateUrl: './seguimiento.component.html',
 })
 export class SeguimientoComponent implements OnInit, OnDestroy {
     protected readonly service = inject(SeguimientoService);
+    private confirmationService = inject(ConfirmationService);
+    private messageService = inject(MessageService);
     private mapaEl = viewChild.required<ElementRef<HTMLDivElement>>('mapaElement');
 
     readonly cargando = this.service.cargando;
@@ -354,6 +362,42 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     refrescar() {
         void this.service.refrescar();
+    }
+
+    reiniciarViaje(c: ChoferMonitoreo) {
+        const viaje = this.viajes().find((v) => v.id_viaje === c.idViaje);
+        this.confirmationService.confirm({
+            message: `¿Reiniciar el viaje de ${c.nombre}? El viaje volverá a "programado" y sus ${
+                viaje?.total_facturas ?? 0
+            } facturas a "embarque" (se borra la firma).`,
+            header: 'Reiniciar viaje',
+            icon: 'pi pi-refresh',
+            acceptLabel: 'Reiniciar',
+            acceptIcon: 'pi pi-check',
+            rejectLabel: 'Cancelar',
+            accept: () => void this.confirmarReinicio(c),
+        });
+    }
+
+    private async confirmarReinicio(c: ChoferMonitoreo) {
+        if (!c.idViaje) return;
+        try {
+            await this.service.reiniciarViaje(c.idViaje);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Viaje reiniciado',
+                detail: `El viaje de ${c.nombre} volvió a programado.`,
+            });
+            await this.service.refrescar();
+            if (c.idViaje) await this.cargarHistorial(c.idViaje);
+        } catch (err: any) {
+            console.error('Error al reiniciar viaje', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo reiniciar el viaje.',
+            });
+        }
     }
 
     // ---------------- Mapa ----------------

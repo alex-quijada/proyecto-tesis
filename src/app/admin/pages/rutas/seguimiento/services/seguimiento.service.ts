@@ -53,6 +53,8 @@ export class SeguimientoService implements OnDestroy {
 
     private canal: RealtimeChannel | null = null;
     private debounceViaje: ReturnType<typeof setTimeout> | null = null;
+    private alReconectar: (() => void) | null = null;
+    private pendienteRefrescar = false;
 
     async cargar(): Promise<void> {
         try {
@@ -92,6 +94,11 @@ export class SeguimientoService implements OnDestroy {
         return (data as HistorialViajeRow[]) || [];
     }
 
+    /** Reinicia un viaje (solo staff): vuelve a 'programado' y sus facturas a 'embarque'. */
+    async reiniciarViaje(idViaje: string): Promise<void> {
+        await this.viajeService.reiniciarViaje(idViaje);
+    }
+
     private async obtenerPosiciones(): Promise<Record<string, PosicionChofer>> {
         const { data, error } = await this.authService.client.rpc('obtener_posiciones_choferes');
         if (error) throw error;
@@ -108,8 +115,25 @@ export class SeguimientoService implements OnDestroy {
         const user = this.authService.getCurrentUser();
         if (!user) return;
 
+        this.crearCanal(user.id);
+
+        if (!this.alReconectar) {
+            this.alReconectar = () => {
+                if (this.conectado()) return;
+                const id = this.authService.getCurrentUser()?.id;
+                if (!id) return;
+                if (this.canal) void this.authService.client.removeChannel(this.canal);
+                this.canal = null;
+                this.pendienteRefrescar = true;
+                this.crearCanal(id);
+            };
+            window.addEventListener('online', this.alReconectar);
+        }
+    }
+
+    private crearCanal(userId: string): void {
         this.canal = this.authService.client
-            .channel(`seguimiento-admin-${user.id}`)
+            .channel(`seguimiento-admin-${userId}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'posiciones_chofer' },
@@ -125,6 +149,10 @@ export class SeguimientoService implements OnDestroy {
             )
             .subscribe((status) => {
                 this.conectado.set(status === 'SUBSCRIBED');
+                if (status === 'SUBSCRIBED' && this.pendienteRefrescar) {
+                    this.pendienteRefrescar = false;
+                    void this.refrescar();
+                }
             });
     }
 
@@ -144,6 +172,10 @@ export class SeguimientoService implements OnDestroy {
 
     ngOnDestroy(): void {
         if (this.debounceViaje) clearTimeout(this.debounceViaje);
+        if (this.alReconectar) {
+            window.removeEventListener('online', this.alReconectar);
+            this.alReconectar = null;
+        }
         if (this.canal) {
             void this.authService.client.removeChannel(this.canal);
             this.canal = null;

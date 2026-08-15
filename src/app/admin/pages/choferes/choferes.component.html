@@ -31,13 +31,6 @@
 
         <ng-template #end>
             <p-button
-                *ngIf="!(choferSelected() && choferSelected().length > 0)"
-                label="Nuevo Personal"
-                icon="pi pi-plus"
-                severity="success"
-                (onClick)="openNew()"
-            />
-            <p-button
                 *ngIf="choferSelected() && choferSelected().length > 0"
                 label="Desactivar Seleccionados"
                 icon="pi pi-user-minus"
