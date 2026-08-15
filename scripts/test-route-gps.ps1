@@ -103,17 +103,17 @@ function Get-WsUrl {
 
 function Invoke-CdpEval([string]$ws, [string]$expr) {
     $client = [System.Net.WebSockets.ClientWebSocket]::new()
-    $null = $client.ConnectAsync([Uri]$ws, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+    $null = $client.ConnectAsync([Uri]$ws, [System.Threading.CancellationToken]::None).GetAwaiter().GetResult()
     $exprJson = $expr | ConvertTo-Json -Compress
     $msg = '{"id":1,"method":"Runtime.evaluate","params":{"expression":' + $exprJson + ',"returnByValue":true}}'
-    $bytes = [Text.Encoding]::UTF8.GetBytes($msg)
-    $null = $client.SendAsync([ArraySegment[byte]]::new($bytes), [WebSockets.WebSocketMessageType]::Text, $true, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($msg)
+    $null = $client.SendAsync([ArraySegment[byte]]::new($bytes), [System.Net.WebSockets.WebSocketMessageType]::Text, $true, [System.Threading.CancellationToken]::None).GetAwaiter().GetResult()
     Start-Sleep -Milliseconds 400
     $buffer = New-Object byte[] 65536
-    $sb = New-Object Text.StringBuilder
+    $sb = New-Object System.Text.StringBuilder
     do {
-        $recv = $client.ReceiveAsync([ArraySegment[byte]]::new($buffer), [Threading.CancellationToken]::None).GetAwaiter().GetResult()
-        $null = $sb.Append([Text.Encoding]::UTF8.GetString($buffer, 0, $recv.Count))
+        $recv = $client.ReceiveAsync([ArraySegment[byte]]::new($buffer), [System.Threading.CancellationToken]::None).GetAwaiter().GetResult()
+        $null = $sb.Append([System.Text.Encoding]::UTF8.GetString($buffer, 0, $recv.Count))
     } while (-not $recv.EndOfMessage)
     $client.Dispose()
     try { return ($sb.ToString() | ConvertFrom-Json).result.result.value } catch { return $null }
@@ -167,6 +167,7 @@ if ($DryRun) { Write-Host 'DRY RUN — sin mover GPS.'; exit 0 }
 # ============ 4) Recorrer el path ============
 $stopIndex = 0
 $arrived = @($false) * $stops.Count
+$todasEntregadas = $false
 $geoCount = 0
 $nextLog = 0
 
@@ -180,7 +181,7 @@ foreach ($pt in $path) {
     }
 
     # Detectar llegada a la próxima parada
-    if ($stopIndex -lt $stops.Count -and -not $arrived[$stopIndex]) {
+    if (-not $todasEntregadas -and $stopIndex -lt $stops.Count -and -not $arrived[$stopIndex]) {
         $s = $stops[$stopIndex]
         $d = Get-DistanceM ([double]$pt.lat) ([double]$pt.lng) ([double]$s.lat) ([double]$s.lng)
         if ($d -le $ArriveMeters) {
@@ -190,7 +191,9 @@ foreach ($pt in $path) {
 
             if ($ws) {
                 $deadline = (Get-Date).AddMinutes($TimeoutPerStopMin)
-                Write-Host '   Esperando a que finalices la entrega (firma/incidencia)...'
+                $ultimoLatido = (Get-Date)
+                Write-Host '   Esperando a que finalices la entrega...'
+                Write-Host '   Pasos: Iniciar entrega -> Finalizar entrega -> firma -> Confirmar.'
                 while ($true) {
                     $sheet = Invoke-CdpEval $ws "!!([...document.querySelectorAll('button')].find(b => /Iniciar entrega|Finalizar entrega/.test(b.innerText)))"
                     if ($sheet -ne $true) { break }
@@ -198,17 +201,22 @@ foreach ($pt in $path) {
                         Write-Warning "   Timeout esperando la entrega del punto $($stopIndex+1). Continuando..."
                         break
                     }
-                    Start-Sleep -Seconds 3
+                    if ((Get-Date) -gt $ultimoLatido.AddSeconds(15)) {
+                        Write-Host "   Aun esperando tu firma en el punto $($stopIndex+1) de $($stops.Count)... (toca Iniciar entrega y firma)"
+                        $ultimoLatido = (Get-Date)
+                    }
+                    Start-Sleep -Seconds 2
                 }
-                Write-Host "== Entrega del punto $($stopIndex+1) completada =="
+                Start-Sleep -Seconds 2
+                Write-Host "== OK Entrega del punto $($stopIndex+1) detectada - avanzando =="
             } else {
                 Start-Sleep -Seconds 8
             }
 
             $stopIndex++
             if ($stopIndex -ge $stops.Count) {
-                Write-Host '== Todas las entregas completadas =='
-                break
+                $todasEntregadas = $true
+                Write-Host '== Todas las entregas completadas - regresando al almacen =='
             }
         }
     }
@@ -216,4 +224,5 @@ foreach ($pt in $path) {
     Start-Sleep -Milliseconds ([int]($SecondsPerPoint * 1000))
 }
 
+if ($todasEntregadas) { Write-Host '== De vuelta en el almacen ==' }
 Write-Host "Ruta recorrida con $geoCount geo fixes."

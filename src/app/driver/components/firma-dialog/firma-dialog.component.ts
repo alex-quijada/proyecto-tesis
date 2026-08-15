@@ -202,7 +202,7 @@ export class FirmaDialogComponent implements AfterViewInit {
     private lastY = 0;
 
     checklistItems = [
-        { id: 'c1', label: 'Carga verificada contra guía', checked: false },
+        { id: 'c1', label: 'Carga verificada contra factura', checked: false },
         { id: 'c2', label: 'Documentos en orden', checked: false },
         { id: 'c3', label: 'Productos en buen estado', checked: false },
         { id: 'c4', label: 'Cliente notificado', checked: false },

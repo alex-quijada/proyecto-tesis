@@ -6,30 +6,90 @@
     <!-- Mapa a pantalla completa (SDK nativo vía @capacitor/google-maps) -->
     <capacitor-google-map #mapaElement class="absolute inset-0"></capacitor-google-map>
 
-    <!-- Overlay: texto del viaje -->
-    @if (activeViaje(); as viaje) {
+    <!-- Maniobra + siguientes pasos: franja desde arriba, redondeada abajo -->
+    @if (navigation.navegando()) {
         <div
-            class="absolute top-0 inset-x-0 z-10 p-4 bg-gradient-to-b from-black/70 via-black/40 to-transparent text-white"
+            class="absolute top-0 inset-x-0 z-10 bg-white dark:bg-surface-800 rounded-b-2xl shadow-md text-surface-900 dark:text-surface-100"
         >
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <h1 class="text-xl font-bold drop-shadow">Mapa del viaje</h1>
-                    <p class="text-sm opacity-80 drop-shadow">{{ fechaActual }}</p>
+            <!-- Maniobra grande -->
+            <div class="px-4 py-3 flex items-center gap-3">
+                <div
+                    class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center text-2xl flex-shrink-0"
+                >
+                    @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
+                        <i [class]="iconoManiobra(paso.maniobra)"></i>
+                    } @else {
+                        <i class="pi pi-arrow-up"></i>
+                    }
                 </div>
-                <div class="text-right">
-                    @if (viaje.placa_vehiculo) {
-                        <div class="flex items-center gap-1.5 text-sm font-semibold drop-shadow">
-                            <i class="pi pi-truck"></i>{{ viaje.placa_vehiculo }}
+                <div class="min-w-0 flex-1">
+                    @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
+                        <div class="text-base font-semibold truncate">
+                            {{ limpiarHtmlInstruccion(paso.instruccion) }}
                         </div>
+                        <div class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                            {{ formatearDistancia(navigation.distRestantePaso()) }} ·
+                            {{ formatearDuracion(paso.duracion) }}
+                        </div>
+                    } @else {
+                        <div class="text-base font-semibold">Preparando navegación...</div>
                     }
-                    @if (viajeEnProceso) {
-                        <p-tag
-                            value="En proceso"
-                            severity="warn"
-                            icon="pi pi-route"
-                            styleClass="mt-1"
-                        />
-                    }
+                </div>
+                @if (navigation.recalculando()) {
+                    <span class="text-xs text-primary flex items-center gap-1 flex-shrink-0">
+                        <i class="pi pi-spin pi-spinner"></i> Recalculando
+                    </span>
+                }
+            </div>
+
+            <!-- Próximos pasos: sheet colapsable (gestos táctiles) -->
+            <div
+                class="cursor-pointer touch-none border-t border-surface-100 dark:border-surface-700"
+                (touchstart)="onTopSheetDragStart($event)"
+                (touchend)="onTopSheetDragEnd($event)"
+                (mousedown)="onTopSheetDragStart($event)"
+                (mouseup)="onTopSheetDragEnd($event)"
+            >
+                <div
+                    class="flex items-center justify-between px-4 pt-2.5 pb-1 text-xs font-semibold text-surface-600 dark:text-surface-300"
+                >
+                    <span>
+                        Próximos pasos
+                        <span
+                            class="ml-1 inline-flex w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold items-center justify-center align-middle"
+                        >
+                            {{ pasosSiguientes().length }}
+                        </span>
+                    </span>
+                </div>
+
+                <!-- Siguientes 3 pasos -->
+                @if (pasosAbiertos()) {
+                    <div class="px-4 pb-2 max-h-[7rem] overflow-y-auto">
+                        @for (paso of pasosSiguientes(); track $index) {
+                            <div
+                                class="flex items-center gap-2 py-1 text-xs text-surface-600 dark:text-surface-300"
+                            >
+                                <i class="text-surface-400" [class]="iconoManiobra(paso.maniobra)"></i>
+                                <span class="truncate">{{
+                                    limpiarHtmlInstruccion(paso.instruccion)
+                                }}</span>
+                                <span class="text-surface-400 ml-auto flex-shrink-0">{{
+                                    formatearDistancia(paso.distancia)
+                                }}</span>
+                            </div>
+                        }
+                        @if (pasosSiguientes().length === 0) {
+                            <div class="text-xs text-surface-400 py-1">Último tramo del viaje</div>
+                        }
+                    </div>
+                }
+
+                <!-- Grabber debajo de todos los pasos -->
+                <div class="flex items-center justify-center pb-2">
+                    <div
+                        class="w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
+                    ></div>
                 </div>
             </div>
         </div>
@@ -37,185 +97,180 @@
 
     <!-- Overlay: panel de navegación -->
     @if (navigation.navegando() && !puntoActual()) {
-        <div class="absolute inset-x-0 bottom-0 z-10 p-3">
+        <div class="absolute inset-x-0 bottom-0 z-10">
             <div
-                class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-2xl shadow-lg overflow-hidden"
+                class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-t-2xl shadow-lg overflow-hidden"
             >
-                <!-- Próxima maniobra -->
+                <!-- Grabber arriba del todo: colapsa/expande "Puntos de entrega" (gestos táctiles) -->
+                <div
+                    class="flex items-center justify-center pt-2.5 pb-1 cursor-pointer touch-none"
+                    (touchstart)="onPuntosSheetDragStart($event)"
+                    (touchend)="onPuntosSheetDragEnd($event)"
+                    (mousedown)="onPuntosSheetDragStart($event)"
+                    (mouseup)="onPuntosSheetDragEnd($event)"
+                >
+                    <div
+                        class="w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
+                    ></div>
+                </div>
                 <div class="p-3 pb-2">
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary-900/30 text-primary flex items-center justify-center flex-shrink-0"
-                        >
-                            @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
-                                <i [class]="iconoManiobra(paso.maniobra)"></i>
-                            } @else {
-                                <i class="pi pi-arrow-up"></i>
-                            }
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
-                                <div
-                                    class="text-sm font-semibold text-surface-800 dark:text-surface-100 truncate"
-                                >
-                                    {{ limpiarHtmlInstruccion(paso.instruccion) }}
-                                </div>
-                                <div class="text-xs text-surface-400 mt-0.5">
-                                    {{ formatearDistancia(navigation.distRestantePaso()) }} ·
-                                    {{ formatearDuracion(paso.duracion) }}
-                                </div>
-                            } @else {
-                                <div
-                                    class="text-sm font-semibold text-surface-800 dark:text-surface-100"
-                                >
-                                    Preparando navegación...
-                                </div>
-                            }
-                        </div>
-                        @if (navigation.recalculando()) {
-                            <span
-                                class="text-xs text-primary flex items-center gap-1 flex-shrink-0"
-                            >
-                                <i class="pi pi-spin pi-spinner"></i> Recalculando
-                            </span>
-                        }
-                    </div>
-
                     <!-- Progreso de parada -->
                     @if (puntos()[navigation.paradaActual()]; as parada) {
                         <div class="flex items-center justify-between mt-2 text-xs">
-                            <span class="text-surface-500 dark:text-surface-400 truncate">
+                            <span
+                                class="text-surface-500 dark:text-surface-400 truncate flex items-center gap-2"
+                            >
                                 Parada {{ navigation.paradaActual() + 1 }}/{{
                                     navigation.totalParadas()
                                 }}
                                 · {{ parada.nombreCliente }}
+                                @if (navigation.simulando()) {
+                                    <span
+                                        class="flex items-center gap-1 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0"
+                                    >
+                                        <i class="pi pi-play"></i> Simulado
+                                    </span>
+                                }
                             </span>
                             <span class="text-surface-400 flex-shrink-0 ml-2">
                                 {{ formatearDistancia(navigation.distRestanteParada()) }}
                             </span>
                         </div>
                     }
-                </div>
 
-                <!-- Toggle Instrucciones / Puntos -->
-                <div class="px-3 flex gap-2">
-                    <p-button
-                        [label]="'Instrucciones'"
-                        [text]="verPasos()"
-                        [severity]="verPasos() ? 'secondary' : 'primary'"
-                        size="small"
-                        [outlined]="!verPasos()"
-                        (onClick)="verPasos() || toggleVerPasos()"
-                        styleClass="!py-1 !text-xs flex-1"
-                    />
-                    <p-button
-                        [label]="'Puntos'"
-                        [text]="!verPasos()"
-                        [severity]="!verPasos() ? 'secondary' : 'primary'"
-                        size="small"
-                        [outlined]="verPasos()"
-                        (onClick)="!verPasos() || toggleVerPasos()"
-                        styleClass="!py-1 !text-xs flex-1"
-                    />
-                </div>
-
-                <!-- Lista de pasos o de puntos -->
-                @if (verPasos()) {
-                    <div class="px-3 py-2 max-h-[7rem] overflow-y-auto">
-                        @for (paso of navigation.pasos(); track $index) {
+                    <!-- Barra de progreso de la ruta -->
+                    <div class="mt-2.5">
+                        <div
+                            class="h-1.5 w-full rounded-full bg-surface-200 dark:bg-surface-700 overflow-hidden"
+                        >
                             <div
-                                class="flex items-center gap-2 py-1 text-xs"
-                                [class.opacity-40]="$index < navigation.pasoActual()"
+                                class="h-full rounded-full bg-primary transition-all duration-500"
+                                [style.width.%]="progresoParadas()"
+                            ></div>
+                        </div>
+                        <div class="flex justify-between mt-1 text-[10px] text-surface-400">
+                            <span>{{ progresoParadas() }}% completado</span>
+                            <span
+                                >{{ navigation.paradaActual() }}/{{
+                                    navigation.totalParadas()
+                                }}
+                                puntos</span
                             >
-                                <i
-                                    [class]="
-                                        ($index === navigation.pasoActual()
-                                            ? 'text-primary '
-                                            : 'text-surface-400 ') + iconoManiobra(paso.maniobra)
-                                    "
-                                ></i>
-                                <span
-                                    class="truncate"
-                                    [class.font-semibold]="$index === navigation.pasoActual()"
-                                    [class.text-surface-700]="$index === navigation.pasoActual()"
-                                    [class.dark:text-surface-100]="
-                                        $index === navigation.pasoActual()
-                                    "
-                                >
-                                    {{ limpiarHtmlInstruccion(paso.instruccion) }}
-                                </span>
-                                <span class="text-surface-400 ml-auto flex-shrink-0">{{
-                                    formatearDistancia(paso.distancia)
-                                }}</span>
-                            </div>
-                        }
+                        </div>
                     </div>
-                } @else {
-                    <div class="px-3 py-2 max-h-[7rem] overflow-y-auto">
-                        @for (p of puntos(); track p.key; let i = $index) {
-                            <div class="flex items-center gap-2 mb-1.5 last:mb-0 text-xs">
-                                <div
-                                    class="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0"
-                                >
-                                    {{ i + 1 }}
-                                </div>
-                                <span class="truncate">{{ p.nombreCliente }}</span>
-                                <span class="text-surface-400 ml-auto flex-shrink-0">{{
-                                    p.facturas[0]?.numeroGuia || p.facturas[0]?.numeroFactura
-                                }}</span>
-                            </div>
-                        }
-                    </div>
-                }
+                </div>
 
-                <!-- Controles -->
-                <div class="p-3 pt-2 border-t border-surface-100 dark:border-surface-700">
-                    <div class="mb-2">
-                        <p-selectbutton
-                            [options]="modoOpciones"
-                            [(ngModel)]="modoNavegacion"
-                            optionLabel="label"
-                            optionValue="value"
-                            styleClass="w-full"
-                        />
+                <!-- Puntos de entrega: sheet colapsable (controlado por el grabber superior) -->
+                <div class="border-t border-surface-100 dark:border-surface-700">
+                    <div
+                        class="flex items-center justify-between px-4 pt-2 pb-1 text-xs font-semibold text-surface-600 dark:text-surface-300"
+                    >
+                        <span>
+                            Puntos de entrega
+                            <span
+                                class="ml-1 inline-flex w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold items-center justify-center align-middle"
+                            >
+                                {{ puntos().length }}
+                            </span>
+                        </span>
                     </div>
-                    <div class="flex gap-2">
-                        <p-button
-                            [label]="navigation.pausado() ? 'Reanudar' : 'Pausar'"
-                            [icon]="navigation.pausado() ? 'pi pi-play' : 'pi pi-pause'"
-                            severity="secondary"
-                            [outlined]="true"
-                            [disabled]="!navigation.simulando()"
-                            (onClick)="togglePausa()"
-                            styleClass="flex-1 text-sm"
-                        />
-                        <p-button
-                            icon="pi pi-refresh"
-                            label="Reiniciar"
-                            severity="danger"
-                            [text]="true"
-                            (onClick)="reiniciarSimulacion()"
-                            styleClass="flex-1 text-sm"
-                        />
-                        <p-button
-                            [icon]="siguiendo() ? 'pi pi-location' : 'pi pi-compass'"
-                            [label]="siguiendo() ? 'Seguir' : 'Seguir cámara'"
-                            [severity]="siguiendo() ? 'primary' : 'secondary'"
-                            [outlined]="!siguiendo()"
-                            (onClick)="toggleSeguimiento()"
-                            styleClass="flex-1 text-sm"
-                        />
-                        <p-button
-                            [icon]="vista3d() ? 'pi pi-compass' : 'pi pi-map'"
-                            [label]="vista3d() ? 'Vista 3D' : 'Vista mapa'"
-                            [severity]="vista3d() ? 'primary' : 'secondary'"
-                            [outlined]="!vista3d()"
-                            pTooltip="Vista isométrica tipo navegación"
-                            tooltipPosition="top"
-                            (onClick)="toggleVista3d()"
-                            styleClass="flex-1 text-sm"
-                        />
-                    </div>
+
+                    @if (puntosAbiertos()) {
+                        <div class="px-4 pb-2 max-h-[7rem] overflow-y-auto">
+                            @for (p of puntos(); track p.key; let i = $index) {
+                                <div
+                                    class="flex items-center gap-2 mb-1.5 last:mb-0 text-xs rounded-lg px-1.5 py-1 cursor-pointer transition-colors"
+                                    [class.bg-primary-50]="i === navigation.paradaActual()"
+                                    [class.dark:bg-primary-950]="i === navigation.paradaActual()"
+                                    [class.opacity-60]="!puntoTienePendientes(i)"
+                                    [class.hover:bg-surface-100]="puntoTienePendientes(i)"
+                                    [class.dark:hover:bg-surface-700]="puntoTienePendientes(i)"
+                                    (click)="abrirPunto(i)"
+                                >
+                                    @if (puntoTienePendientes(i)) {
+                                        <div
+                                            class="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                                        >
+                                            {{ i + 1 }}
+                                        </div>
+                                    } @else {
+                                        <div
+                                            class="w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                                        >
+                                            <i class="pi pi-check"></i>
+                                        </div>
+                                    }
+                                    <span class="truncate">{{ p.nombreCliente }}</span>
+                                    @if (!puntoTienePendientes(i)) {
+                                        <span
+                                            class="text-emerald-500 ml-auto flex-shrink-0 text-[10px]"
+                                            >Entregado</span
+                                        >
+                                    } @else {
+                                        <span class="text-surface-400 ml-auto flex-shrink-0">{{
+                                            p.facturas[0]?.numeroGuia || p.facturas[0]?.numeroFactura
+                                        }}</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Controles: colapsables (sin selector modo al navegar) -->
+                <div class="border-t border-surface-100 dark:border-surface-700">
+                    <button
+                        type="button"
+                        class="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-surface-500 dark:text-surface-400 cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
+                        (click)="toggleControles()"
+                    >
+                        <i class="pi pi-sliders-h"></i>
+                        Controles
+                        <i
+                            class="pi pi-chevron-down text-[10px] transition-transform duration-200"
+                            [class.rotate-180]="controlesAbiertos()"
+                        ></i>
+                    </button>
+                    @if (controlesAbiertos()) {
+                        <div class="px-3 pb-3 flex gap-2">
+                            @if (navigation.simulando()) {
+                                <p-button
+                                    [label]="navigation.pausado() ? 'Reanudar' : 'Pausar'"
+                                    [icon]="navigation.pausado() ? 'pi pi-play' : 'pi pi-pause'"
+                                    severity="secondary"
+                                    [outlined]="true"
+                                    (onClick)="togglePausa()"
+                                    styleClass="flex-1 text-sm"
+                                />
+                                <p-button
+                                    icon="pi pi-refresh"
+                                    label="Reiniciar"
+                                    severity="danger"
+                                    [text]="true"
+                                    (onClick)="reiniciarSimulacion()"
+                                    styleClass="flex-1 text-sm"
+                                />
+                            }
+                            <p-button
+                                [icon]="siguiendo() ? 'pi pi-location' : 'pi pi-compass'"
+                                [label]="siguiendo() ? 'Seguir' : 'Seguir cámara'"
+                                [severity]="siguiendo() ? 'primary' : 'secondary'"
+                                [outlined]="!siguiendo()"
+                                (onClick)="toggleSeguimiento()"
+                                styleClass="flex-1 text-sm"
+                            />
+                            <p-button
+                                [icon]="vista3d() ? 'pi pi-compass' : 'pi pi-map'"
+                                [label]="vista3d() ? 'Vista 3D' : 'Vista mapa'"
+                                [severity]="vista3d() ? 'primary' : 'secondary'"
+                                [outlined]="!vista3d()"
+                                pTooltip="Vista isométrica tipo navegación"
+                                tooltipPosition="top"
+                                (onClick)="toggleVista3d()"
+                                styleClass="flex-1 text-sm"
+                            />
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -224,9 +279,9 @@
     <!-- Overlay: entrega en curso (reemplaza el panel de navegación).
          Llegó al punto → "Iniciar entrega". Al iniciar → vista de facturas. -->
     @if (navigation.navegando() && puntoActual(); as punto) {
-        <div class="absolute inset-x-0 bottom-0 z-10 p-3">
+        <div class="absolute inset-x-0 bottom-0 z-10">
             <div
-                class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-2xl shadow-lg overflow-hidden"
+                class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-t-2xl shadow-lg overflow-hidden"
             >
                 @if (facturasEnEntrega().length > 0) {
                     <!-- VISTA DE ENTREGA (grande) -->
@@ -252,12 +307,32 @@
                                         <i class="pi pi-map-marker"></i>{{ punto.direccion }}
                                     </div>
                                 </div>
-                                <p-tag
-                                    value="Entregando"
-                                    severity="info"
-                                    icon="pi pi-truck"
-                                    styleClass="flex-shrink-0"
-                                />
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    <p-tag
+                                        value="Entregando"
+                                        severity="info"
+                                        icon="pi pi-truck"
+                                        styleClass="flex-shrink-0"
+                                    />
+                                    <p-button
+                                        icon="pi pi-chevron-down"
+                                        text
+                                        size="small"
+                                        severity="secondary"
+                                        (onClick)="cerrarVistaEntrega()"
+                                        pTooltip="Seguir navegando"
+                                        tooltipPosition="left"
+                                    />
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 text-xs">
+                                <span class="text-surface-500">
+                                    {{ puntoEntregadasCount() }}/{{ punto.facturas.length }}
+                                    facturas entregadas
+                                </span>
+                                <span class="font-semibold text-primary">
+                                    {{ puntoTotalMonto() | currency: 'USD' : 'symbol' : '1.0-0' }}
+                                </span>
                             </div>
                         </div>
 
@@ -331,15 +406,25 @@
                                     {{ punto.direccion }}
                                 </div>
                             </div>
-                            <p-tag
-                                [value]="
-                                    punto.facturas.length === 1
-                                        ? '1 factura'
-                                        : punto.facturas.length + ' facturas'
-                                "
-                                severity="secondary"
-                                styleClass="flex-shrink-0"
-                            />
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <p-tag
+                                    [value]="
+                                        punto.facturas.length === 1
+                                            ? '1 factura'
+                                            : punto.facturas.length + ' facturas'
+                                    "
+                                    severity="secondary"
+                                />
+                                <p-button
+                                    icon="pi pi-chevron-down"
+                                    text
+                                    size="small"
+                                    severity="secondary"
+                                    (onClick)="cerrarVistaEntrega()"
+                                    pTooltip="Seguir navegando"
+                                    tooltipPosition="left"
+                                />
+                            </div>
                         </div>
                         <p-button
                             label="Iniciar entrega"

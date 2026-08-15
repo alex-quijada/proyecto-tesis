@@ -104,6 +104,9 @@ export class MiRutaComponent implements OnInit {
     siguiendo = signal(true);
     verPasos = signal(true);
     vista3d = signal(true);
+    pasosAbiertos = signal(true);
+    puntosAbiertos = signal(false);
+    controlesAbiertos = signal(false);
     private mapaListo = signal(false);
 
     constructor() {
@@ -211,6 +214,12 @@ export class MiRutaComponent implements OnInit {
             punto.facturas.push(p);
         }
         return Array.from(mapa.values()).sort((a, b) => a.ordenVisita - b.ordenVisita);
+    });
+
+    /** Los 3 pasos siguientes al que se muestra en grande (maniobra actual). */
+    readonly pasosSiguientes = computed(() => {
+        const pasoActual = this.navigation.pasoActual();
+        return this.navigation.pasos().slice(pasoActual + 1, pasoActual + 4);
     });
 
     readonly puntoActual = computed<PuntoEntrega | null>(() => {
@@ -768,6 +777,46 @@ export class MiRutaComponent implements OnInit {
         this.verPasos.update((v) => !v);
     }
 
+    /** Gesto pull up/pull down sobre el grabber de los pasos (arriba). */
+    onTopSheetDragStart(event: TouchEvent | MouseEvent) {
+        this.sheetDragStartY = this.eventY(event);
+        this.sheetDragActivo = true;
+    }
+
+    onTopSheetDragEnd(event: TouchEvent | MouseEvent) {
+        this.resolverDragSheet(this.pasosAbiertos, event);
+    }
+
+    /** Gesto pull up/pull down sobre el grabber de "Puntos de entrega" (abajo). */
+    onPuntosSheetDragStart(event: TouchEvent | MouseEvent) {
+        this.sheetDragStartY = this.eventY(event);
+        this.sheetDragActivo = true;
+    }
+
+    onPuntosSheetDragEnd(event: TouchEvent | MouseEvent) {
+        this.resolverDragSheet(this.puntosAbiertos, event);
+    }
+
+    private resolverDragSheet(
+        sig: { set(v: boolean): void; update(f: (v: boolean) => boolean): void },
+        event: TouchEvent | MouseEvent,
+    ) {
+        if (!this.sheetDragActivo) return;
+        this.sheetDragActivo = false;
+        const delta = this.eventY(event) - this.sheetDragStartY;
+        if (Math.abs(delta) < 40) {
+            sig.update((v) => !v);
+        } else if (delta > 0) {
+            sig.set(false);
+        } else {
+            sig.set(true);
+        }
+    }
+
+    toggleControles() {
+        this.controlesAbiertos.update((v) => !v);
+    }
+
     toggleSheet() {
         this.sheetExpandido.update((v) => !v);
     }
@@ -925,5 +974,48 @@ export class MiRutaComponent implements OnInit {
             latitud: factura.latitud ?? undefined,
             longitud: factura.longitud ?? undefined,
         };
+    }
+
+    // ---------------- Helpers UX/UI ----------------
+
+    private puntoCompletado(p: PuntoEntrega): boolean {
+        return p.facturas.every((f) => f.estado === 'finalizado' || f.estado === 'incidencia');
+    }
+
+    /** % de puntos completados (facturas finalizado/incidencia). */
+    progresoParadas(): number {
+        const pts = this.puntos();
+        if (!pts.length) return 0;
+        const done = pts.filter((p) => this.puntoCompletado(p)).length;
+        return Math.round((done / pts.length) * 100);
+    }
+
+    puntoEntregadasCount(): number {
+        const p = this.puntoActual();
+        return p
+            ? p.facturas.filter(
+                  (f) => f.estado === 'finalizado' || f.estado === 'incidencia',
+              ).length
+            : 0;
+    }
+
+    puntoTotalMonto(): number {
+        const p = this.puntoActual();
+        return p?.facturas.reduce((s, f) => s + (f.montoDolares || 0), 0) ?? 0;
+    }
+
+    puntoTienePendientes(i: number): boolean {
+        const p = this.puntos()[i];
+        return !!p && !this.puntoCompletado(p);
+    }
+
+    /** Abre el sheet de entrega de un punto pendiente (desde la lista). */
+    abrirPunto(i: number) {
+        if (this.puntoTienePendientes(i)) this.puntoEntrega.set(i);
+    }
+
+    /** Colapsa la vista de entrega y vuelve al panel de navegación. */
+    cerrarVistaEntrega() {
+        this.puntoEntrega.set(null);
     }
 }

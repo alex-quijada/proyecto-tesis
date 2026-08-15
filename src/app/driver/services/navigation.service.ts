@@ -60,6 +60,7 @@ export class NavigationService {
     private simDistAcum: number[] = [];
     private ultimoReRuteo = 0;
     private ultimaPos: LatLng | null = null;
+    private ultimaLlegadaAnunciada = -1;
     private readonly esNativo = Capacitor.isNativePlatform();
 
     /** Hook invocado al detectar la llegada a una parada (antes de avanzar). */
@@ -78,6 +79,7 @@ export class NavigationService {
         this.totalParadas.set(this.paradas.length);
         this.paradaActual.set(0);
         this.pasoActual.set(0);
+        this.ultimaLlegadaAnunciada = -1;
 
         let ruta: RutaDetallada | null = null;
         if (rutaPrecomputada && rutaPrecomputada.pasos.length > 0) {
@@ -171,6 +173,7 @@ export class NavigationService {
         this.paradaActual.set(0);
         this.posicionDriver.set(null);
         this.ultimaPos = null;
+        this.ultimaLlegadaAnunciada = -1;
         this.rumbo.set(0);
         this.pausado.set(false);
         this.paradas = [];
@@ -182,6 +185,7 @@ export class NavigationService {
         this.simDistanciaAcumulada = 0;
         this.paradaActual.set(0);
         this.pasoActual.set(0);
+        this.ultimaLlegadaAnunciada = -1;
         this.distRestantePaso.set(0);
         this.distRestanteParada.set(0);
 
@@ -398,6 +402,10 @@ export class NavigationService {
         this.distRestanteParada.set(Math.round(dist));
 
         if (dist < UMBRAL_LLEGADA_M) {
+            // Anunciar la llegada una sola vez por parada (la última no avanza
+            // paradaActual, así que sin este latch el toast se repetía cada tick).
+            if (idx === this.ultimaLlegadaAnunciada) return;
+            this.ultimaLlegadaAnunciada = idx;
             this.onLlegadaParada?.(idx);
             if (idx < paradas.length - 1) {
                 this.paradaActual.set(idx + 1);
