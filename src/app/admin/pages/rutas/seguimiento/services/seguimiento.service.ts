@@ -22,6 +22,16 @@ interface PayloadPosicion {
     new?: PosicionChofer | null;
 }
 
+export interface HistorialViajeRow {
+    id_factura: string;
+    numero_factura: string;
+    nombre_cliente?: string | null;
+    orden_visita?: number | null;
+    estado: string;
+    observacion?: string | null;
+    fecha_cambio: string;
+}
+
 /**
  * Ventana de Monitoreo en Tiempo Real (admin). Mantiene los viajes
  * activos (`obtener_viajes`) y la última posición por chofer
@@ -72,6 +82,14 @@ export class SeguimientoService implements OnDestroy {
         } catch (err) {
             console.error('[Seguimiento] Error al refrescar datos', err);
         }
+    }
+
+    async obtenerHistorialViaje(idViaje: string): Promise<HistorialViajeRow[]> {
+        const { data, error } = await this.authService.client.rpc('obtener_historial_viaje', {
+            p_id_viaje: idViaje,
+        });
+        if (error) throw error;
+        return (data as HistorialViajeRow[]) || [];
     }
 
     private async obtenerPosiciones(): Promise<Record<string, PosicionChofer>> {

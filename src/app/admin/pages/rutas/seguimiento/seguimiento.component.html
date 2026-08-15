@@ -34,141 +34,391 @@
             class="w-full lg:w-96 shrink-0 h-[38vh] lg:h-auto min-h-0 flex flex-col border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-0 dark:bg-surface-900 overflow-hidden"
         >
             <div
-                class="px-4 py-3 border-b border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 shrink-0"
+                class="px-3 py-2.5 border-b border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 shrink-0"
             >
-                <div class="flex items-center justify-between">
-                    <h2
-                        class="text-base font-semibold text-surface-700 dark:text-surface-200 flex items-center"
-                    >
-                        <i class="pi pi-users mr-2 text-primary"></i>
-                        Choferes en ruta
-                    </h2>
-                    <p-selectbutton
-                        [options]="filtroOpciones"
-                        [ngModel]="filtro()"
-                        (ngModelChange)="filtro.set($event)"
-                        optionLabel="label"
-                        optionValue="value"
-                        size="small"
-                    />
-                </div>
+                @if (detalleChofer(); as c) {
+                    <div class="flex items-center gap-2">
+                        <p-button
+                            icon="pi pi-arrow-left"
+                            size="small"
+                            text
+                            rounded
+                            severity="secondary"
+                            pTooltip="Volver a la lista de choferes"
+                            tooltipPosition="bottom"
+                            (onClick)="cerrarDetalle()"
+                        />
+                        <h2
+                            class="text-sm font-semibold text-surface-700 dark:text-surface-200 flex items-center min-w-0"
+                        >
+                            <i class="pi pi-user mr-1.5 text-primary text-xs"></i>
+                            <span class="truncate">{{ c.nombre }}</span>
+                        </h2>
+                        <p-tag
+                            [value]="estadoLabel(c.estadoViaje)"
+                            [severity]="estadoSeverity(c.estadoViaje)"
+                            styleClass="ml-auto shrink-0"
+                        />
+                    </div>
+                } @else {
+                    <div class="flex items-center justify-between gap-2">
+                        <h2
+                            class="text-sm font-semibold text-surface-700 dark:text-surface-200 flex items-center"
+                        >
+                            <i class="pi pi-users mr-1.5 text-primary text-xs"></i>
+                            Choferes
+                        </h2>
+                        <p-selectbutton
+                            [options]="filtroOpciones"
+                            [ngModel]="filtro()"
+                            (ngModelChange)="filtro.set($event)"
+                            optionLabel="label"
+                            optionValue="value"
+                            size="small"
+                        />
+                    </div>
 
-                <div class="flex items-center gap-2 mt-2 flex-wrap">
-                    <span class="text-xs text-surface-500 flex items-center gap-1">
-                        <i class="pi pi-truck text-blue-500"></i>
-                        {{ totales().enRuta }} en ruta
-                    </span>
-                    <span class="text-xs text-surface-500 flex items-center gap-1">
-                        <i class="pi pi-clock text-amber-500"></i>
-                        {{ totales().enEspera }} por iniciar
-                    </span>
-                    <span class="text-xs text-surface-500 flex items-center gap-1">
-                        <i class="pi pi-circle-fill text-emerald-500" style="font-size: 8px"></i>
-                        {{ totales().online }} en línea
-                    </span>
-                    <span class="text-xs text-surface-500 flex items-center gap-1">
-                        <i class="pi pi-circle-fill text-gray-400" style="font-size: 8px"></i>
-                        {{ totales().offline }} inactivos
-                    </span>
-                </div>
+                    <div class="flex items-center gap-2.5 mt-1.5 flex-wrap text-[11px] text-surface-500">
+                        <span class="flex items-center gap-1">
+                            <i class="pi pi-truck text-blue-500"></i>
+                            {{ totales().enRuta }} en ruta
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i class="pi pi-clock text-amber-500"></i>
+                            {{ totales().enEspera }} por iniciar
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i class="pi pi-circle-fill text-emerald-500" style="font-size: 8px"></i>
+                            {{ totales().online }} en línea
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i class="pi pi-circle-fill text-gray-400" style="font-size: 8px"></i>
+                            {{ totales().offline }} inactivos
+                        </span>
+                    </div>
+                }
             </div>
 
             <div class="flex-1 min-h-0 p-3">
-                @if (cargando()) {
-                    <div class="h-full flex flex-col gap-2">
-                        @for (_ of [1, 2, 3, 4, 5]; track _) {
-                            <p-skeleton height="86px" borderRadius="8px" />
-                        }
-                    </div>
-                } @else if (monitoreoFiltrado().length === 0) {
-                    <div class="h-full flex flex-col items-center justify-center text-muted-color">
-                        <i class="pi pi-inbox text-3xl! mb-3"></i>
-                        <span>No hay choferes que mostrar.</span>
-                        <span class="text-xs mt-1">Las posiciones se reciben en vivo.</span>
-                    </div>
-                } @else {
-                    <div class="h-full overflow-y-auto flex flex-col gap-2">
-                        @for (c of monitoreoFiltrado(); track c.idChofer) {
+                @if (detalleChofer(); as c) {
+                    <div class="h-full flex flex-col">
+                        <div class="flex items-center gap-3 shrink-0">
                             <div
-                                class="rounded-lg border p-3 cursor-pointer transition-all duration-150"
-                                (click)="seleccionarChofer(c.idChofer)"
-                                [class.bg-primary-50]="choferSeleccionado() === c.idChofer"
-                                [class.dark:bg-primary-950]="choferSeleccionado() === c.idChofer"
-                                [class.border-surface-200]="choferSeleccionado() !== c.idChofer"
-                                [class.dark:border-surface-700]="
-                                    choferSeleccionado() !== c.idChofer
-                                "
-                                [class.bg-surface-0]="choferSeleccionado() !== c.idChofer"
-                                [class.dark:bg-surface-900]="choferSeleccionado() !== c.idChofer"
-                                [style.border-left]="'4px solid ' + c.color"
+                                class="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-surface-0 text-base font-bold"
+                                [style.background]="c.online ? c.color : '#9ca3af'"
                             >
+                                {{ c.nombre.charAt(0) }}
+                            </div>
+                            <div class="min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span
-                                        class="w-2.5 h-2.5 rounded-full shrink-0"
-                                        [style.background]="c.online ? c.color : '#9ca3af'"
-                                        pTooltip="{{ c.online ? 'En línea' : 'Sin conexión' }}"
-                                        tooltipPosition="top"
-                                    ></span>
                                     <span
                                         class="text-sm font-semibold text-surface-800 dark:text-surface-100 truncate"
                                     >
                                         {{ c.nombre }}
                                     </span>
-                                    <p-tag
-                                        [value]="estadoLabel(c.estadoViaje)"
-                                        [severity]="estadoSeverity(c.estadoViaje)"
-                                        styleClass="ml-auto shrink-0"
-                                    />
-                                </div>
-
-                                <div class="flex items-center gap-1.5 mt-1.5 text-sm">
-                                    <i class="pi pi-map text-surface-400 text-xs"></i>
                                     <span
-                                        class="text-surface-700 dark:text-surface-300 font-medium truncate"
-                                    >
-                                        {{ rutaLabel(c) }}
-                                    </span>
-                                    @if (c.placa) {
-                                        <span class="text-xs text-surface-400 ml-auto shrink-0">
-                                            {{ c.placa }}
-                                        </span>
-                                    }
+                                        class="w-2 h-2 rounded-full shrink-0"
+                                        [style.background]="c.online ? c.color : '#9ca3af'"
+                                        pTooltip="{{ c.online ? 'En línea' : 'Sin conexión' }}"
+                                        tooltipPosition="top"
+                                    ></span>
                                 </div>
+                                <div class="text-xs text-surface-500 truncate">
+                                    {{ c.placa || 'Sin vehículo' }} · {{ rutaLabel(c) }}
+                                </div>
+                            </div>
+                        </div>
 
-                                @if (c.totalEntregas > 0) {
-                                    <div class="mt-2">
-                                        <div
-                                            class="h-1.5 w-full rounded-full bg-surface-100 dark:bg-surface-700 overflow-hidden"
-                                        >
-                                            <div
-                                                class="h-full rounded-full transition-all duration-500"
-                                                [style.width.%]="progreso(c)"
-                                                [style.background]="c.color"
-                                            ></div>
-                                        </div>
-                                        <div class="flex justify-between mt-1 text-xs">
-                                            <span class="text-emerald-600 dark:text-emerald-400">
-                                                {{ c.entregasHechas }} entregas hechas
-                                            </span>
-                                            <span class="text-surface-500">
-                                                {{ c.entregasPendientes }} por hacer
-                                            </span>
-                                        </div>
-                                    </div>
-                                }
-
-                                <div class="flex justify-between mt-1.5 text-xs text-surface-400">
-                                    <span>
-                                        <i class="pi pi-history mr-1"></i>
-                                        {{ relativo(c.actualizadoEn) }}
+                        <!-- Progreso -->
+                        @if (c.totalEntregas > 0) {
+                            <div class="mt-3 shrink-0">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="font-medium text-emerald-600 dark:text-emerald-400">
+                                        {{ entregasConteo().hechas }} de {{ entregasConteo().total }}
+                                        entregas
                                     </span>
-                                    <span class="{{ c.online ? 'text-emerald-500' : '' }}">
-                                        {{ c.online ? 'En línea' : 'Sin conexión' }}
+                                    <span class="text-surface-500">
+                                        {{ entregasConteo().pendientes }} por hacer
                                     </span>
+                                </div>
+                                <div
+                                    class="h-1.5 w-full rounded-full bg-surface-100 dark:bg-surface-700 overflow-hidden"
+                                >
+                                    <div
+                                        class="h-full rounded-full transition-all duration-500"
+                                        [style.width.%]="progreso(c)"
+                                        [style.background]="c.color"
+                                    ></div>
                                 </div>
                             </div>
                         }
+
+                        <div class="flex-1 min-h-0 overflow-y-auto mt-4 pb-2 pr-0.5">
+                            <!-- Línea de tiempo del proceso -->
+                            <div>
+                                <h3
+                                    class="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3 flex items-center"
+                                >
+                                    <i class="pi pi-history mr-2 text-primary text-xs"></i>
+                                    Progreso del viaje
+                                </h3>
+
+                                @if (incidencias() > 0) {
+                                    <div
+                                        class="mb-4 p-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-300 text-xs flex items-center gap-2"
+                                    >
+                                        <i class="pi pi-exclamation-circle"></i>
+                                        {{ incidencias() === 1 ? '1 incidencia' : incidencias() + ' incidencias' }}
+                                        reportada(s)
+                                    </div>
+                                }
+
+                                @if (cargandoHistorial()) {
+                                    <div class="flex flex-col gap-3">
+                                        @for (_ of [1, 2, 3, 4, 5]; track _) {
+                                            <div class="flex items-center gap-3">
+                                                <p-skeleton shape="circle" size="2rem" />
+                                                <p-skeleton width="100%" height="16px" borderRadius="6px" />
+                                            </div>
+                                        }
+                                    </div>
+                                } @else if (errorHistorial()) {
+                                    <div
+                                        class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-300 text-xs"
+                                    >
+                                        {{ errorHistorial() }}
+                                    </div>
+                                } @else if (!c.idViaje) {
+                                    <div class="text-sm text-muted-color py-4 text-center">
+                                        Este chofer no tiene un viaje activo.
+                                    </div>
+                                } @else if (historial().length === 0) {
+                                    <div class="text-sm text-muted-color py-4 text-center">
+                                        Aún no hay actividad registrada para este viaje.
+                                    </div>
+                                } @else {
+                                    <div class="relative">
+                                        <div
+                                            class="absolute left-[0.94rem] top-2 bottom-2 w-px bg-surface-200 dark:bg-surface-700"
+                                        ></div>
+                                        <div class="flex flex-col gap-4">
+                                            @for (e of etapas(); track e.clave) {
+                                                <div class="relative flex gap-3">
+                                                    <div
+                                                        class="relative z-10 w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-surface-0 text-xs"
+                                                        [style.background]="e.fecha ? e.color : '#e2e8f0'"
+                                                        [class.opacity-50]="!e.fecha"
+                                                    >
+                                                        <i [class]="e.icono"></i>
+                                                    </div>
+                                                    <div class="min-w-0 pt-0.5">
+                                                        <div
+                                                            class="text-sm font-medium"
+                                                            [class.text-surface-300]="!e.fecha"
+                                                            [class.dark:text-surface-600]="!e.fecha"
+                                                            [class.text-surface-800]="e.fecha"
+                                                            [class.dark:text-surface-100]="e.fecha"
+                                                        >
+                                                            {{ e.label }}
+                                                        </div>
+                                                        <div class="text-xs text-surface-500">
+                                                            {{ formatFecha(e.fecha) }}
+                                                        </div>
+                                                        @if (e.duracion && e.fecha) {
+                                                            <span
+                                                                class="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-surface-100 dark:bg-surface-800 text-surface-500"
+                                                            >
+                                                                +{{ e.duracion }} desde la etapa anterior
+                                                            </span>
+                                                        }
+                                                        @if (e.fecha && e.clave === etapaActual()) {
+                                                            <span
+                                                                class="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-full text-primary bg-primary-50 dark:bg-primary-950 ml-1"
+                                                            >
+                                                                Etapa actual
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Entregas del viaje -->
+                            <div class="mt-6">
+                                <h3
+                                    class="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3 flex items-center gap-2"
+                                >
+                                    <i class="pi pi-inbox text-primary text-xs"></i>
+                                    Entregas del viaje
+                                    <span
+                                        class="ml-auto text-[11px] font-normal text-surface-500 bg-surface-100 dark:bg-surface-800 px-2 py-0.5 rounded-full"
+                                    >
+                                        {{ entregasConteo().pendientes }} pendientes
+                                    </span>
+                                </h3>
+
+                                @if (paradasDetalle().length === 0) {
+                                    <div class="text-sm text-muted-color py-3 text-center">
+                                        Sin entregas registradas.
+                                    </div>
+                                } @else {
+                                    <div class="relative">
+                                        <div
+                                            class="absolute left-[0.94rem] top-2 bottom-2 w-px bg-surface-200 dark:bg-surface-700"
+                                        ></div>
+                                        <div class="flex flex-col gap-4">
+                                            @for (p of paradasDetalle(); track p.idFactura) {
+                                                <div class="relative flex gap-3">
+                                                    <div
+                                                        class="relative z-10 w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold text-surface-0"
+                                                        [style.background]="
+                                                            p.estado === 'finalizado'
+                                                                ? '#10b981'
+                                                                : p.estado === 'incidencia'
+                                                                  ? '#ef4444'
+                                                                  : c.color
+                                                        "
+                                                        [class.opacity-50]="p.estado === 'espera'"
+                                                    >
+                                                        {{ $index + 1 }}
+                                                    </div>
+                                                    <div class="min-w-0 pt-0.5 flex-1">
+                                                        <div class="flex items-start justify-between gap-2">
+                                                            <div class="min-w-0">
+                                                                <div
+                                                                    class="text-sm font-medium text-surface-800 dark:text-surface-100 truncate"
+                                                                >
+                                                                    {{ p.numeroFactura }} ·
+                                                                    {{ p.cliente }}
+                                                                </div>
+                                                                <div
+                                                                    class="text-xs text-surface-500 truncate flex items-center gap-1"
+                                                                >
+                                                                    <i class="pi pi-map-marker"></i>
+                                                                    {{ p.municipio || '—' }}
+                                                                    @if (ultimaActividad().get(p.idFactura); as f) {
+                                                                        · {{ formatHora(f) }}
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                            <p-tag
+                                                                [value]="estadoFacturaLabel(p.estado)"
+                                                                [severity]="estadoFacturaSeverity(p.estado)"
+                                                                styleClass="shrink-0"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
+                } @else {
+                    @if (cargando()) {
+                        <div class="h-full flex flex-col gap-2">
+                            @for (_ of [1, 2, 3, 4, 5]; track _) {
+                                <p-skeleton height="86px" borderRadius="8px" />
+                            }
+                        </div>
+                    } @else if (monitoreoFiltrado().length === 0) {
+                        <div class="h-full flex flex-col items-center justify-center text-muted-color">
+                            <i class="pi pi-inbox text-3xl! mb-3"></i>
+                            <span>No hay choferes que mostrar.</span>
+                            <span class="text-xs mt-1">Las posiciones se reciben en vivo.</span>
+                        </div>
+                    } @else {
+                        <div class="h-full overflow-y-auto flex flex-col gap-2">
+                            @for (c of monitoreoFiltrado(); track c.idChofer) {
+                                <div
+                                    class="rounded-lg border p-3 cursor-pointer transition-all duration-150"
+                                    (click)="abrirDetalle(c)"
+                                    [class.bg-primary-50]="choferSeleccionado() === c.idChofer"
+                                    [class.dark:bg-primary-950]="choferSeleccionado() === c.idChofer"
+                                    [class.border-surface-200]="choferSeleccionado() !== c.idChofer"
+                                    [class.dark:border-surface-700]="
+                                        choferSeleccionado() !== c.idChofer
+                                    "
+                                    [class.bg-surface-0]="choferSeleccionado() !== c.idChofer"
+                                    [class.dark:bg-surface-900]="choferSeleccionado() !== c.idChofer"
+                                    [style.border-left]="'4px solid ' + c.color"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="w-2.5 h-2.5 rounded-full shrink-0"
+                                            [style.background]="c.online ? c.color : '#9ca3af'"
+                                            pTooltip="{{ c.online ? 'En línea' : 'Sin conexión' }}"
+                                            tooltipPosition="top"
+                                        ></span>
+                                        <span
+                                            class="text-sm font-semibold text-surface-800 dark:text-surface-100 truncate"
+                                        >
+                                            {{ c.nombre }}
+                                        </span>
+                                        <p-tag
+                                            [value]="estadoLabel(c.estadoViaje)"
+                                            [severity]="estadoSeverity(c.estadoViaje)"
+                                            styleClass="ml-auto shrink-0"
+                                        />
+                                    </div>
+
+                                    <div class="flex items-center gap-1.5 mt-1.5 text-sm">
+                                        <i class="pi pi-map text-surface-400 text-xs"></i>
+                                        <span
+                                            class="text-surface-700 dark:text-surface-300 font-medium truncate"
+                                        >
+                                            {{ rutaLabel(c) }}
+                                        </span>
+                                        @if (c.placa) {
+                                            <span class="text-xs text-surface-400 ml-auto shrink-0">
+                                                {{ c.placa }}
+                                            </span>
+                                        }
+                                    </div>
+
+                                    @if (c.totalEntregas > 0) {
+                                        <div class="mt-2">
+                                            <div
+                                                class="h-1.5 w-full rounded-full bg-surface-100 dark:bg-surface-700 overflow-hidden"
+                                            >
+                                                <div
+                                                    class="h-full rounded-full transition-all duration-500"
+                                                    [style.width.%]="progreso(c)"
+                                                    [style.background]="c.color"
+                                                ></div>
+                                            </div>
+                                            <div class="flex justify-between mt-1 text-xs">
+                                                <span class="text-emerald-600 dark:text-emerald-400">
+                                                    {{ c.entregasHechas }} entregas hechas
+                                                </span>
+                                                <span class="text-surface-500">
+                                                    {{ c.entregasPendientes }} por hacer
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <div class="flex justify-between mt-1.5 text-xs text-surface-400">
+                                        <span>
+                                            <i class="pi pi-history mr-1"></i>
+                                            {{ relativo(c.actualizadoEn) }}
+                                        </span>
+                                        <span class="flex items-center gap-2">
+                                            <span class="{{ c.online ? 'text-emerald-500' : '' }}">
+                                                {{ c.online ? 'En línea' : 'Sin conexión' }}
+                                            </span>
+                                            <i class="pi pi-chevron-right text-[10px]"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
             </div>
         </div>
@@ -211,7 +461,7 @@
                     class="absolute bottom-3 right-3 text-xs text-surface-500 bg-surface-0/90 dark:bg-surface-900/90 backdrop-blur rounded-lg border border-surface-200 dark:border-surface-700 px-3 py-1.5 shadow-sm"
                 >
                     <i class="pi pi-mouse mr-1"></i>
-                    Haz clic en un chofer para centrar su ruta
+                    Haz clic en un chofer para ver el detalle del viaje
                 </div>
             </div>
         </div>

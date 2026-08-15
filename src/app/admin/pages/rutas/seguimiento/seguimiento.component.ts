@@ -20,7 +20,11 @@ import { TooltipModule } from 'primeng/tooltip';
 
 import { environment } from '@/environments/environment';
 import { ViajeAdmin } from '@/app/services/viaje.types';
-import { SeguimientoService, PosicionChofer } from './services/seguimiento.service';
+import {
+    SeguimientoService,
+    PosicionChofer,
+    HistorialViajeRow,
+} from './services/seguimiento.service';
 
 interface ChoferMonitoreo {
     idChofer: string;
@@ -37,6 +41,23 @@ interface ChoferMonitoreo {
     longitud: number;
     actualizadoEn: Date;
     online: boolean;
+}
+
+interface EtapaViaje {
+    clave: string;
+    label: string;
+    icono: string;
+    color: string;
+    fecha: Date | null;
+    duracion: string | null;
+}
+
+interface ParadaDetalle {
+    idFactura: string;
+    numeroFactura: string;
+    cliente: string;
+    municipio: string;
+    estado: string;
 }
 
 const PALETA = [
@@ -94,6 +115,12 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     readonly choferSeleccionado = signal<string | null>(null);
     readonly tick = signal(Date.now());
     readonly mapaListo = signal(false);
+
+    readonly detalleAbierto = signal(false);
+    readonly detalleChofer = signal<ChoferMonitoreo | null>(null);
+    readonly historial = signal<HistorialViajeRow[]>([]);
+    readonly cargandoHistorial = signal(false);
+    readonly errorHistorial = signal('');
 
     private mapa!: google.maps.Map;
     private markers = new Map<string, google.maps.marker.AdvancedMarkerElement>();
@@ -173,6 +200,87 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         };
     });
 
+    private readonly ETAPAS_CONFIG: Record<string, { label: string; icono: string; color: string }> = {
+        embarque: { label: 'Carga asignada', icono: 'pi pi-box', color: '#8b5cf6' },
+        proceso: { label: 'Viaje iniciado', icono: 'pi pi-truck', color: '#3b82f6' },
+        espera: { label: 'Llegada a destino', icono: 'pi pi-map-marker', color: '#f59e0b' },
+        entrega: { label: 'Entrega en curso', icono: 'pi pi-bolt', color: '#06b6d4' },
+        finalizado: { label: 'Viaje completado', icono: 'pi pi-check-circle', color: '#10b981' },
+    };
+    private readonly ORDEN_ETAPAS = ['embarque', 'proceso', 'espera', 'entrega', 'finalizado'];
+
+    readonly etapas = computed<EtapaViaje[]>(() => {
+        const primeraPorEstado = new Map<string, Date>();
+        for (const r of this.historial()) {
+            const f = new Date(r.fecha_cambio);
+            const actual = primeraPorEstado.get(r.estado);
+            if (!actual || f.getTime() < actual.getTime()) primeraPorEstado.set(r.estado, f);
+        }
+
+        const etapas: EtapaViaje[] = [];
+        let anterior: Date | null = null;
+        for (const clave of this.ORDEN_ETAPAS) {
+            const cfg = this.ETAPAS_CONFIG[clave];
+            const fecha = primeraPorEstado.get(clave) ?? null;
+            const duracion =
+                fecha && anterior ? this.formatoDuracion(fecha.getTime() - anterior.getTime()) : null;
+            etapas.push({
+                clave,
+                label: cfg.label,
+                icono: cfg.icono,
+                color: cfg.color,
+                fecha,
+                duracion,
+            });
+            if (fecha) anterior = fecha;
+        }
+        return etapas;
+    });
+
+    readonly etapaActual = computed<string>(() => {
+        const filas = this.historial().filter((r) => r.estado !== 'incidencia');
+        if (filas.length === 0) return '';
+        const ultima = new Date(Math.max(...filas.map((r) => new Date(r.fecha_cambio).getTime())));
+        const ultimaFila = filas.find((r) => new Date(r.fecha_cambio).getTime() === ultima.getTime());
+        return ultimaFila?.estado ?? '';
+    });
+
+    readonly incidencias = computed<number>(
+        () => this.historial().filter((r) => r.estado === 'incidencia').length,
+    );
+
+    readonly paradasDetalle = computed<ParadaDetalle[]>(() => {
+        const c = this.detalleChofer();
+        if (!c?.idViaje) return [];
+        const viaje = this.viajes().find((v) => v.id_viaje === c.idViaje);
+        if (!viaje) return [];
+        return [...viaje.paradas]
+            .sort((a, b) => a.orden_visita - b.orden_visita)
+            .map((p) => ({
+                idFactura: p.id_factura,
+                numeroFactura: p.numero_factura,
+                cliente: p.nombre_cliente ?? '—',
+                municipio: p.municipio ?? '',
+                estado: p.estado_factura ?? '',
+            }));
+    });
+
+    readonly entregasConteo = computed(() => {
+        const paradas = this.paradasDetalle();
+        const hechas = paradas.filter((p) => p.estado === 'finalizado').length;
+        return { hechas, pendientes: paradas.length - hechas, total: paradas.length };
+    });
+
+    readonly ultimaActividad = computed<Map<string, Date>>(() => {
+        const mapa = new Map<string, Date>();
+        for (const r of this.historial()) {
+            const f = new Date(r.fecha_cambio);
+            const prev = mapa.get(r.id_factura);
+            if (!prev || f.getTime() > prev.getTime()) mapa.set(r.id_factura, f);
+        }
+        return mapa;
+    });
+
     constructor() {
         afterNextRender(() => this.initMap());
 
@@ -211,6 +319,37 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     seleccionarChofer(id: string | null) {
         this.choferSeleccionado.set(this.choferSeleccionado() === id ? null : id);
+    }
+
+    abrirDetalle(c: ChoferMonitoreo) {
+        this.seleccionarChofer(c.idChofer);
+        this.detalleChofer.set(c);
+        this.historial.set([]);
+        this.errorHistorial.set('');
+        this.detalleAbierto.set(true);
+        if (c.idViaje) void this.cargarHistorial(c.idViaje);
+    }
+
+    cerrarDetalle() {
+        this.detalleAbierto.set(false);
+        this.detalleChofer.set(null);
+        this.historial.set([]);
+        this.errorHistorial.set('');
+    }
+
+    async cargarHistorial(idViaje: string) {
+        this.cargandoHistorial.set(true);
+        this.errorHistorial.set('');
+        try {
+            this.historial.set(await this.service.obtenerHistorialViaje(idViaje));
+        } catch (err: any) {
+            console.error('[Seguimiento] Error al cargar historial del viaje', err);
+            this.errorHistorial.set(
+                err?.message || 'No se pudo cargar el historial del viaje.',
+            );
+        } finally {
+            this.cargandoHistorial.set(false);
+        }
     }
 
     refrescar() {
@@ -413,6 +552,73 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     progreso(c: ChoferMonitoreo): number {
         return c.totalEntregas > 0 ? Math.round((c.entregasHechas / c.totalEntregas) * 100) : 0;
+    }
+
+    private formatoDuracion(ms: number): string {
+        if (ms < 60_000) return 'menos de 1 min';
+        const min = Math.floor(ms / 60_000);
+        if (min < 60) return `${min} min`;
+        const h = Math.floor(min / 60);
+        return `${h}h ${min % 60} min`;
+    }
+
+    formatHora(fecha: Date | null): string {
+        if (!fecha) return '—';
+        return fecha.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    formatFecha(fecha: Date | null): string {
+        if (!fecha) return '';
+        const hoy = new Date();
+        const mismoDia =
+            fecha.getDate() === hoy.getDate() &&
+            fecha.getMonth() === hoy.getMonth() &&
+            fecha.getFullYear() === hoy.getFullYear();
+        return mismoDia
+            ? `hoy ${this.formatHora(fecha)}`
+            : fecha.toLocaleDateString('es-VE', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+              });
+    }
+
+    estadoFacturaLabel(estado: string): string {
+        switch (estado) {
+            case 'finalizado':
+                return 'Entregado';
+            case 'entrega':
+                return 'Entregando';
+            case 'espera':
+                return 'En espera';
+            case 'proceso':
+                return 'En camino';
+            case 'embarque':
+                return 'En carga';
+            case 'incidencia':
+                return 'Incidencia';
+            default:
+                return 'Nuevo';
+        }
+    }
+
+    estadoFacturaSeverity(
+        estado: string,
+    ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | undefined {
+        switch (estado) {
+            case 'finalizado':
+                return 'success';
+            case 'incidencia':
+                return 'danger';
+            case 'espera':
+            case 'entrega':
+                return 'warn';
+            case 'proceso':
+                return 'info';
+            default:
+                return 'secondary';
+        }
     }
 
     relativo(fecha: Date): string {
