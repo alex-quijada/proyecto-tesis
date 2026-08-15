@@ -11,7 +11,7 @@ import {
 } from '@/app/admin/pages/map/map/google-maps-optimization.service';
 import { RutaPersistida } from '@/app/services/viaje.types';
 import { ConnectivityService } from '@/app/services/connectivity.service';
-import { distanciaAPolyline, haversine, LatLng } from '../pages/viajes/navegacion.util';
+import { distanciaAPolyline, haversine, calcularBearing, LatLng } from '../pages/viajes/navegacion.util';
 
 export interface ParadaNavegacion {
     id: string;
@@ -43,6 +43,7 @@ export class NavigationService {
     readonly pasoActual = signal(0);
     readonly paradaActual = signal(0);
     readonly posicionDriver = signal<LatLng | null>(null);
+    readonly rumbo = signal(0);
     readonly simulando = signal(false);
     readonly pausado = signal(false);
     readonly distRestantePaso = signal(0);
@@ -58,6 +59,7 @@ export class NavigationService {
     private simDistanciaAcumulada = 0;
     private simDistAcum: number[] = [];
     private ultimoReRuteo = 0;
+    private ultimaPos: LatLng | null = null;
     private readonly esNativo = Capacitor.isNativePlatform();
 
     /** Hook invocado al detectar la llegada a una parada (antes de avanzar). */
@@ -168,6 +170,8 @@ export class NavigationService {
         this.pasoActual.set(0);
         this.paradaActual.set(0);
         this.posicionDriver.set(null);
+        this.ultimaPos = null;
+        this.rumbo.set(0);
         this.pausado.set(false);
         this.paradas = [];
     }
@@ -354,6 +358,11 @@ export class NavigationService {
     private manejarPosicion(lat: number, lng: number) {
         const pos: LatLng = { lat, lng };
         this.posicionDriver.set(pos);
+
+        if (this.ultimaPos) {
+            this.rumbo.set(calcularBearing(this.ultimaPos, pos));
+        }
+        this.ultimaPos = pos;
 
         this.avanzarPaso(pos);
         this.comprobarLlegadaParada(pos);
