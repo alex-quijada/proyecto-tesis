@@ -47,21 +47,31 @@ interface ChoferMonitoreo {
     online: boolean;
 }
 
-interface EtapaViaje {
-    clave: string;
-    label: string;
-    icono: string;
-    color: string;
-    fecha: Date | null;
-    duracion: string | null;
-}
-
 interface ParadaDetalle {
     idFactura: string;
     numeroFactura: string;
     cliente: string;
     municipio: string;
     estado: string;
+}
+
+interface LineaTiempoItem {
+    id: string;
+    tipo:
+        | 'almacen'
+        | 'salida'
+        | 'llegada'
+        | 'entrega'
+        | 'incidencia'
+        | 'pendiente'
+        | 'completado';
+    label: string;
+    numero?: number;
+    icono?: string;
+    color: string;
+    fecha: Date | null;
+    chip?: string | null;
+    estadoParada?: string | null;
 }
 
 const PALETA = [
@@ -208,54 +218,152 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         };
     });
 
-    private readonly ETAPAS_CONFIG: Record<string, { label: string; icono: string; color: string }> = {
-        embarque: { label: 'Carga asignada', icono: 'pi pi-box', color: '#8b5cf6' },
-        proceso: { label: 'Viaje iniciado', icono: 'pi pi-truck', color: '#3b82f6' },
-        espera: { label: 'Llegada a destino', icono: 'pi pi-map-marker', color: '#f59e0b' },
-        entrega: { label: 'Entrega en curso', icono: 'pi pi-bolt', color: '#06b6d4' },
-        finalizado: { label: 'Viaje completado', icono: 'pi pi-check-circle', color: '#10b981' },
-    };
-    private readonly ORDEN_ETAPAS = ['embarque', 'proceso', 'espera', 'entrega', 'finalizado'];
-
-    readonly etapas = computed<EtapaViaje[]>(() => {
-        const primeraPorEstado = new Map<string, Date>();
-        for (const r of this.historial()) {
-            const f = new Date(r.fecha_cambio);
-            const actual = primeraPorEstado.get(r.estado);
-            if (!actual || f.getTime() < actual.getTime()) primeraPorEstado.set(r.estado, f);
-        }
-
-        const etapas: EtapaViaje[] = [];
-        let anterior: Date | null = null;
-        for (const clave of this.ORDEN_ETAPAS) {
-            const cfg = this.ETAPAS_CONFIG[clave];
-            const fecha = primeraPorEstado.get(clave) ?? null;
-            const duracion =
-                fecha && anterior ? this.formatoDuracion(fecha.getTime() - anterior.getTime()) : null;
-            etapas.push({
-                clave,
-                label: cfg.label,
-                icono: cfg.icono,
-                color: cfg.color,
-                fecha,
-                duracion,
-            });
-            if (fecha) anterior = fecha;
-        }
-        return etapas;
-    });
-
-    readonly etapaActual = computed<string>(() => {
-        const filas = this.historial().filter((r) => r.estado !== 'incidencia');
-        if (filas.length === 0) return '';
-        const ultima = new Date(Math.max(...filas.map((r) => new Date(r.fecha_cambio).getTime())));
-        const ultimaFila = filas.find((r) => new Date(r.fecha_cambio).getTime() === ultima.getTime());
-        return ultimaFila?.estado ?? '';
-    });
-
     readonly incidencias = computed<number>(
         () => this.historial().filter((r) => r.estado === 'incidencia').length,
     );
+
+    readonly lineaTiempo = computed<LineaTiempoItem[]>(() => {
+        const ahora = this.tick();
+        const items: LineaTiempoItem[] = [];
+
+        const porFactura = new Map<string, Map<string, Date>>();
+        for (const h of this.historial()) {
+            let mapa = porFactura.get(h.id_factura);
+            if (!mapa) {
+                mapa = new Map<string, Date>();
+                porFactura.set(h.id_factura, mapa);
+            }
+            const f = new Date(h.fecha_cambio);
+            const prev = mapa.get(h.estado);
+            if (!prev || f.getTime() < prev.getTime()) mapa.set(h.estado, f);
+        }
+
+        const primeraGlobal = (estado: string): Date | null => {
+            let mejor: Date | null = null;
+            for (const mapa of porFactura.values()) {
+                const f = mapa.get(estado);
+                if (f && (!mejor || f.getTime() < mejor.getTime())) mejor = f;
+            }
+            return mejor;
+        };
+
+        const embarque = primeraGlobal('embarque');
+        const proceso = primeraGlobal('proceso');
+
+        const detalle = this.detalleChofer();
+        const viaje = detalle?.idViaje
+            ? this.viajes().find((v) => v.id_viaje === detalle.idViaje)
+            : null;
+
+        items.push({
+            id: 'almacen',
+            tipo: 'almacen',
+            label: 'Almacén — carga de mercancía',
+            icono: 'pi pi-box',
+            color: '#8b5cf6',
+            fecha: embarque,
+            chip: embarque
+                ? proceso
+                    ? `Espera de carga: ${this.formatoDuracion(proceso.getTime() - embarque.getTime())}`
+                    : `Cargando: ${this.formatoDuracion(ahora - embarque.getTime())}`
+                : null,
+        });
+
+        items.push({
+            id: 'salida',
+            tipo: 'salida',
+            label: 'Salida del almacén — viaje iniciado',
+            icono: 'pi pi-truck',
+            color: '#3b82f6',
+            fecha: proceso,
+            chip: null,
+        });
+
+        for (const [idx, p] of this.paradasDetalle().entries()) {
+            const numero = idx + 1;
+            const mapa = porFactura.get(p.idFactura) ?? new Map<string, Date>();
+            const espera = mapa.get('espera') ?? null;
+            const entrega = mapa.get('entrega') ?? null;
+            const final = mapa.get('finalizado') ?? null;
+            const incidencia = mapa.get('incidencia') ?? null;
+
+            if (espera) {
+                const cierre = entrega ?? final;
+                items.push({
+                    id: `llegada-${p.idFactura}`,
+                    tipo: 'llegada',
+                    label: `Llegada a ${p.cliente}`,
+                    numero,
+                    icono: 'pi pi-map-marker',
+                    color: '#f59e0b',
+                    fecha: espera,
+                    chip: cierre
+                        ? `Espera: ${this.formatoDuracion(cierre.getTime() - espera.getTime())}`
+                        : `En espera: ${this.formatoDuracion(ahora - espera.getTime())}`,
+                    estadoParada: p.estado,
+                });
+            }
+
+            if (entrega || final) {
+                items.push({
+                    id: `entrega-${p.idFactura}`,
+                    tipo: 'entrega',
+                    label: `Entrega ${p.numeroFactura} · ${p.cliente}`,
+                    numero,
+                    icono: final ? 'pi pi-check-circle' : 'pi pi-bolt',
+                    color: final ? '#10b981' : '#06b6d4',
+                    fecha: (final ?? entrega) as Date,
+                    chip: entrega
+                        ? final
+                            ? `Entrega: ${this.formatoDuracion(final.getTime() - entrega.getTime())}`
+                            : `Entregando: ${this.formatoDuracion(ahora - entrega.getTime())}`
+                        : null,
+                    estadoParada: final ? 'finalizado' : 'entrega',
+                });
+            }
+
+            if (incidencia) {
+                items.push({
+                    id: `incidencia-${p.idFactura}`,
+                    tipo: 'incidencia',
+                    label: `Incidencia — ${p.numeroFactura} · ${p.cliente}`,
+                    icono: 'pi pi-exclamation-circle',
+                    color: '#ef4444',
+                    fecha: incidencia,
+                    chip: null,
+                    estadoParada: 'incidencia',
+                });
+            }
+
+            if (!espera && !entrega && !final && !incidencia) {
+                items.push({
+                    id: `pendiente-${p.idFactura}`,
+                    tipo: 'pendiente',
+                    label: `Parada ${numero} · ${p.cliente}`,
+                    numero,
+                    icono: 'pi pi-map-marker',
+                    color: '#e2e8f0',
+                    fecha: null,
+                    chip: null,
+                    estadoParada: p.estado,
+                });
+            }
+        }
+
+        if (viaje?.estado === 'finalizado') {
+            items.push({
+                id: 'completado',
+                tipo: 'completado',
+                label: 'Viaje completado',
+                icono: 'pi pi-flag-fill',
+                color: '#10b981',
+                fecha: primeraGlobal('finalizado'),
+                chip: null,
+            });
+        }
+
+        return items;
+    });
 
     readonly paradasDetalle = computed<ParadaDetalle[]>(() => {
         const c = this.detalleChofer();
@@ -278,17 +386,6 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         const hechas = paradas.filter((p) => p.estado === 'finalizado').length;
         return { hechas, pendientes: paradas.length - hechas, total: paradas.length };
     });
-
-    readonly ultimaActividad = computed<Map<string, Date>>(() => {
-        const mapa = new Map<string, Date>();
-        for (const r of this.historial()) {
-            const f = new Date(r.fecha_cambio);
-            const prev = mapa.get(r.id_factura);
-            if (!prev || f.getTime() > prev.getTime()) mapa.set(r.id_factura, f);
-        }
-        return mapa;
-    });
-
     constructor() {
         afterNextRender(() => this.initMap());
 
