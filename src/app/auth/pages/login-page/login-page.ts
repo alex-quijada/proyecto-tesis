@@ -6,6 +6,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../service/auth.service';
 import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconfigurator';
 
@@ -18,6 +21,9 @@ import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconf
         PasswordModule,
         CheckboxModule,
         ButtonModule,
+        IconFieldModule,
+        InputIconModule,
+        RouterModule,
         AppFloatingConfigurator,
     ],
     templateUrl: './login-page.html',
