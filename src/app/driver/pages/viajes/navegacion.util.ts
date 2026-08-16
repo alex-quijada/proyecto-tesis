@@ -67,7 +67,7 @@ const ICONOS_MANIOBRA: Record<string, string> = {
     'ramp-right': 'pi pi-arrow-up-right',
     'fork-left': 'pi pi-arrow-up-left',
     'fork-right': 'pi pi-arrow-up-right',
-    'ferry': 'pi pi-map',
+    ferry: 'pi pi-map',
 };
 
 export function iconoManiobra(maniobra: string): string {

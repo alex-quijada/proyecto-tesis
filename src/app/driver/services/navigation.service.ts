@@ -11,7 +11,12 @@ import {
 } from '@/app/admin/pages/map/map/google-maps-optimization.service';
 import { RutaPersistida } from '@/app/services/viaje.types';
 import { ConnectivityService } from '@/app/services/connectivity.service';
-import { distanciaAPolyline, haversine, calcularBearing, LatLng } from '../pages/viajes/navegacion.util';
+import {
+    distanciaAPolyline,
+    haversine,
+    calcularBearing,
+    LatLng,
+} from '../pages/viajes/navegacion.util';
 
 export interface ParadaNavegacion {
     id: string;

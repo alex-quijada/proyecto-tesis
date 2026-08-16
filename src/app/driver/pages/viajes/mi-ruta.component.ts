@@ -650,9 +650,7 @@ export class MiRutaComponent implements OnInit {
         const config = {
             coordinate: { lat: pos.lat, lng: pos.lng },
             animate: true,
-            ...(this.vista3d()
-                ? { zoom: 17, angle: 45, bearing: this.navigation.rumbo() }
-                : {}),
+            ...(this.vista3d() ? { zoom: 17, angle: 45, bearing: this.navigation.rumbo() } : {}),
         };
         try {
             await this.mapa.setCamera(config);

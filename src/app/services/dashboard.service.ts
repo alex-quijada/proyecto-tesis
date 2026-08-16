@@ -36,6 +36,28 @@ export interface ViajeActivo {
     facturasEmbarque: number;
 }
 
+export interface PosicionChoferLite {
+    id_chofer: string;
+    latitud: number;
+    longitud: number;
+    velocidad_kmh?: number | null;
+    actualizado_en: string;
+}
+
+export interface ActividadItem {
+    id: string;
+    numeroFactura: string;
+    nombreCliente: string;
+    totalUSD: number;
+    municipio: string;
+    fecha: string;
+}
+
+export interface ActividadReciente {
+    entregas: ActividadItem[];
+    incidencias: ActividadItem[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
     private authService = inject(AuthService);
@@ -148,6 +170,41 @@ export class DashboardService {
         return viajes
             .filter((v) => v.estado === 'proceso' || v.estado === 'programado')
             .map((v) => this.mapearViaje(v));
+    }
+
+    async obtenerPosicionesChoferes(): Promise<PosicionChoferLite[]> {
+        const { data, error } = await this.authService.client.rpc('obtener_posiciones_choferes');
+        if (error) throw error;
+        return (data as PosicionChoferLite[]) || [];
+    }
+
+    async obtenerActividadReciente(): Promise<ActividadReciente> {
+        const guias = await this.rutaService.obtenerGuias();
+        const entregas: ActividadItem[] = [];
+        const incidencias: ActividadItem[] = [];
+
+        for (const g of guias) {
+            for (const f of g.facturas) {
+                const item: ActividadItem = {
+                    id: f.id,
+                    numeroFactura: f.numeroFactura,
+                    nombreCliente: f.nombreCliente || 'Sin cliente',
+                    totalUSD: f.totalUSD,
+                    municipio: g.municipio,
+                    fecha: g.fechaCreacion,
+                };
+                if (f.idEstado === 'finalizado') entregas.push(item);
+                else if (f.idEstado === 'incidencia') incidencias.push(item);
+            }
+        }
+
+        const ordenar = (a: ActividadItem[]) =>
+            a.sort((x, y) => (y.fecha || '').localeCompare(x.fecha || ''));
+
+        return {
+            entregas: ordenar(entregas).slice(0, 5),
+            incidencias: ordenar(incidencias).slice(0, 5),
+        };
     }
 
     private mapearViaje(v: ViajeAdmin): ViajeActivo {

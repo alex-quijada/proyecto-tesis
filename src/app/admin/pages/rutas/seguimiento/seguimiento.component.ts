@@ -57,14 +57,7 @@ interface ParadaDetalle {
 
 interface LineaTiempoItem {
     id: string;
-    tipo:
-        | 'almacen'
-        | 'salida'
-        | 'llegada'
-        | 'entrega'
-        | 'incidencia'
-        | 'pendiente'
-        | 'completado';
+    tipo: 'almacen' | 'salida' | 'llegada' | 'entrega' | 'incidencia' | 'pendiente' | 'completado';
     label: string;
     numero?: number;
     icono?: string;
@@ -449,9 +442,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             this.historial.set(await this.service.obtenerHistorialViaje(idViaje));
         } catch (err: any) {
             console.error('[Seguimiento] Error al cargar historial del viaje', err);
-            this.errorHistorial.set(
-                err?.message || 'No se pudo cargar el historial del viaje.',
-            );
+            this.errorHistorial.set(err?.message || 'No se pudo cargar el historial del viaje.');
         } finally {
             this.cargandoHistorial.set(false);
         }

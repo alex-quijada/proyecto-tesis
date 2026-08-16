@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -73,10 +73,11 @@ import { AuthService } from '../../auth/service/auth.service';
         </div>
 
         <!-- Mensaje de bienvenida (Oculto en móviles para no amontonar) -->
-        <div class="hidden md:block ml-4">
-            <span class="text-color-secondary"
-                >¡Buenos días, <b class="text-color">Alexandra</b>!</span
+        <div class="hidden md:flex flex-col ml-4 leading-tight">
+            <span class="text-color-secondary text-sm font-medium"
+                >{{ saludo() }}, <b class="text-color">{{ nombreUsuario() | titlecase }}</b></span
             >
+            <span class="text-xs text-muted-color capitalize">{{ fechaHoy }}</span>
         </div>
 
         <div class="layout-topbar-actions">
@@ -151,6 +152,23 @@ export class AppTopbar {
 
     layoutService = inject(LayoutService);
     authService = inject(AuthService);
+
+    readonly saludo = computed(() => {
+        const h = new Date().getHours();
+        if (h < 12) return '¡Buenos días!';
+        if (h < 19) return '¡Buenas tardes!';
+        return '¡Buenas noches!';
+    });
+
+    readonly fechaHoy = new Date().toLocaleDateString('es-VE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    });
+
+    readonly nombreUsuario = computed(
+        () => this.authService.getCurrentUser()?.user_metadata?.['nombre_completo'] || 'Analista',
+    );
 
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({
