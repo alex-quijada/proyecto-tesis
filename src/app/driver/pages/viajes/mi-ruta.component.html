@@ -160,6 +160,27 @@
                     </div>
                 </div>
 
+                <!-- Finalizar viaje: de vuelta en el almacén con todas las entregas hechas -->
+                @if (cercaDeAlmacen() && viajeCompletado()) {
+                    <div
+                        class="px-3 py-3 border-t border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/10"
+                    >
+                        <p-button
+                            label="Finalizar viaje"
+                            icon="pi pi-flag"
+                            severity="success"
+                            [loading]="finalizando()"
+                            (onClick)="finalizarViaje()"
+                            styleClass="w-full text-base py-3"
+                        />
+                        <div
+                            class="text-center text-xs text-emerald-700 dark:text-emerald-400 mt-1.5"
+                        >
+                            Estás en el almacén con todas las entregas completadas.
+                        </div>
+                    </div>
+                }
+
                 <!-- Puntos de entrega: sheet colapsable (controlado por el grabber superior) -->
                 <div class="border-t border-surface-100 dark:border-surface-700">
                     <div

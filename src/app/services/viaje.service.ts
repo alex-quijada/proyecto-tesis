@@ -73,6 +73,15 @@ export class ViajeService {
         if (error) throw error;
     }
 
+    /** Finaliza el viaje (chofer al volver al almacén): todas las facturas hechas → 'finalizado'. */
+    async finalizarViaje(idViaje: string): Promise<void> {
+        const { error } = await this.supabase.rpc('finalizar_viaje', {
+            p_id_viaje: idViaje,
+        });
+
+        if (error) throw error;
+    }
+
     async obtenerViajeChofer(): Promise<ViajeChofer[]> {
         const { data, error } = await this.supabase.rpc('obtener_viaje_chofer');
 

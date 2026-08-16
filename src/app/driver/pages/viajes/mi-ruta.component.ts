@@ -36,7 +36,7 @@ import { ConnectivityService } from '@/app/services/connectivity.service';
 import { DriverStoreService } from '../../services/driver-store.service';
 import { NavigationService, ParadaNavegacion } from '../../services/navigation.service';
 import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
-import { iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
+import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 
 interface ParadaMapa {
     id: string;
@@ -183,6 +183,7 @@ export class MiRutaComponent implements OnInit {
 
     puntoEntrega = signal<number | null>(null);
     entregando = signal(false);
+    finalizando = signal(false);
     firmaGuia = signal<ParadaMapa | null>(null);
     incidenciaGuia = signal<ParadaMapa | null>(null);
     incidenciaTexto = signal('');
@@ -220,6 +221,26 @@ export class MiRutaComponent implements OnInit {
     readonly pasosSiguientes = computed(() => {
         const pasoActual = this.navigation.pasoActual();
         return this.navigation.pasos().slice(pasoActual + 1, pasoActual + 4);
+    });
+
+    /** El chofer está cerca del almacén (regresó del viaje). */
+    readonly cercaDeAlmacen = computed(() => {
+        const pos = this.navigation.posicionDriver();
+        if (!pos) return false;
+        return haversine(pos, { lat: environment.warehouseLat, lng: environment.warehouseLng }) < 100;
+    });
+
+    /** Todas las entregas del viaje quedaron finalizadas (o con incidencia). */
+    readonly viajeCompletado = computed(() => {
+        const pts = this.puntos();
+        return (
+            pts.length > 0 &&
+            pts.every((p) =>
+                p.facturas.every(
+                    (f) => f.estado === 'finalizado' || f.estado === 'incidencia',
+                ),
+            )
+        );
     });
 
     readonly puntoActual = computed<PuntoEntrega | null>(() => {
@@ -1017,5 +1038,30 @@ export class MiRutaComponent implements OnInit {
     /** Colapsa la vista de entrega y vuelve al panel de navegación. */
     cerrarVistaEntrega() {
         this.puntoEntrega.set(null);
+    }
+
+    /** Finaliza el viaje al regresar al almacén con todas las entregas hechas. */
+    async finalizarViaje() {
+        const viaje = this.activeViaje();
+        if (!viaje || this.finalizando()) return;
+        this.finalizando.set(true);
+        try {
+            await this.viajeService.finalizarViaje(viaje.id_viaje);
+            await this.store.recargarViajes();
+            this.puntoEntrega.set(null);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Viaje finalizado',
+                detail: 'Regresaste al almacén con todas las entregas completadas.',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo finalizar el viaje.',
+            });
+        } finally {
+            this.finalizando.set(false);
+        }
     }
 }
