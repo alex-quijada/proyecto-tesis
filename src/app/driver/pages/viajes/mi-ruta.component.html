@@ -375,10 +375,16 @@
                                                 <span class="font-mono">{{ f.numeroGuia }}</span>
                                                 @if (f.montoDolares) {
                                                     <span class="ml-1">·</span>
-                                                    <span>{{
-                                                        f.montoDolares
-                                                            | currency: 'USD' : 'symbol' : '1.0-0'
-                                                    }}</span>
+                                                    <span
+                                                        class="text-green-600 dark:text-green-400 font-semibold"
+                                                        >{{
+                                                            f.montoDolares
+                                                                | currency
+                                                                    : 'USD'
+                                                                    : 'symbol'
+                                                                    : '1.0-0'
+                                                        }}</span
+                                                    >
                                                 }
                                             </div>
                                         </div>
