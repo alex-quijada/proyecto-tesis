@@ -128,6 +128,15 @@ export class VehiculoDialogComponent {
                 if (data?.placa) {
                     this.form.patchValue({ placa: data.placa });
                 }
+                if (data?.marca) {
+                    this.form.patchValue({ marca: data.marca });
+                }
+                if (data?.modelo) {
+                    this.form.patchValue({ modelo: data.modelo });
+                }
+                if (data?.pesoMaximo) {
+                    this.form.patchValue({ pesoMaximo: data.pesoMaximo });
+                }
             }
 
             this.actualizarValidacionPallets();

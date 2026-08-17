@@ -46,7 +46,7 @@ import { Vehiculo } from '../../vehiculos/data/vehiculos-mock';
 import { VehiculoDialogComponent } from '../../vehiculos/components/vehiculo-dialog/vehiculo-dialog.component';
 import Fuse from 'fuse.js';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { PdfNormalizerService } from '../services/pdf-parse.service';
+import { PdfNormalizerService, similitudTexto } from '../services/pdf-parse.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ClienteService } from '../../clientes/service/cliente.service';
 import { VehiculoService } from '../../vehiculos/service/vehiculo.service';
@@ -434,14 +434,29 @@ export class GuiaDialogComponent implements OnInit {
             }
 
             if (datos.empresa) {
-                const empresaMatch = this.empresasOptions().find(
-                    (e) => e.label.toUpperCase() === datos.empresa!.toUpperCase(),
-                );
-                this.form.patchValue({
-                    empresa: empresaMatch?.value || datos.empresa || '',
-                    codigoGuia: datos.codigoGuia || '',
-                    pdfFuente: 'PDF',
-                });
+                const opciones = this.empresasOptions();
+                let empresaMatch: { label: string; value: string } | undefined;
+                let mejorScore = 0;
+                for (const e of opciones) {
+                    const score = similitudTexto(e.label, datos.empresa);
+                    if (score > mejorScore) {
+                        mejorScore = score;
+                        empresaMatch = e;
+                    }
+                }
+                if (empresaMatch && mejorScore >= 0.6) {
+                    this.form.patchValue({
+                        empresa: empresaMatch.value,
+                        codigoGuia: datos.codigoGuia || '',
+                        pdfFuente: 'PDF',
+                    });
+                } else {
+                    this.form.patchValue({
+                        empresa: datos.empresa || '',
+                        codigoGuia: datos.codigoGuia || '',
+                        pdfFuente: 'PDF',
+                    });
+                }
             } else {
                 this.form.patchValue({
                     codigoGuia: datos.codigoGuia || '',
@@ -516,7 +531,21 @@ export class GuiaDialogComponent implements OnInit {
                         detail: `El vehículo con placa ${datos.placa} no está registrado. Abriendo el formulario para registrarlo...`,
                         life: 6000,
                     });
-                    this.vehiculoPendiente.set({ placa: datos.placa.toUpperCase() } as Vehiculo);
+                    // El camión viene como "[PLACA] MARCA MODELO - peso kg".
+                    // Se derivan marca y modelo (primera palabra = marca, resto = modelo).
+                    const desc = (datos.camion || '')
+                        .replace(/^\[[^\]]*\]\s*/, '')
+                        .replace(/\s*-\s*[\d.,]+\s*kg$/i, '')
+                        .trim();
+                    const partes = desc.split(/\s+/);
+                    const marca = partes[0] || '';
+                    const modelo = partes.slice(1).join(' ') || '';
+                    this.vehiculoPendiente.set({
+                        placa: datos.placa.toUpperCase(),
+                        marca: marca.toUpperCase(),
+                        modelo: modelo.toUpperCase(),
+                        pesoMaximo: datos.pesoLimite || 0,
+                    } as Vehiculo);
                     this.vehiculoDialogVisible.set(true);
                 }
             }
