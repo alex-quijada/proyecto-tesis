@@ -5,9 +5,9 @@
         <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">Listado de la Flota</h1>
     </div>
 
-    <p-toolbar styleClass="mb-6">
+    <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap gap-2 items-center">
                 <p-select
                     [options]="tiposFiltro"
                     [(ngModel)]="filtroTipo"
@@ -26,20 +26,22 @@
         </ng-template>
 
         <ng-template #end>
-            <p-button
-                *ngIf="!(vehiculoSelected() && vehiculoSelected().length > 0)"
-                label="Nuevo Vehículo"
-                icon="pi pi-plus"
-                severity="success"
-                (onClick)="openNew()"
-            />
-            <p-button
-                *ngIf="vehiculoSelected() && vehiculoSelected().length > 0"
-                label="Desactivar Seleccionados"
-                icon="pi pi-ban"
-                severity="danger"
-                (onClick)="desactivarSelectedVehiculos()"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    *ngIf="!(vehiculoSelected() && vehiculoSelected().length > 0)"
+                    label="Nuevo Vehículo"
+                    icon="pi pi-plus"
+                    severity="success"
+                    (onClick)="openNew()"
+                />
+                <p-button
+                    *ngIf="vehiculoSelected() && vehiculoSelected().length > 0"
+                    label="Desactivar Seleccionados"
+                    icon="pi pi-ban"
+                    severity="danger"
+                    (onClick)="desactivarSelectedVehiculos()"
+                />
+            </div>
         </ng-template>
     </p-toolbar>
 

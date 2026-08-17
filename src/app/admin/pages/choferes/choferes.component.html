@@ -7,9 +7,9 @@
         </h1>
     </div>
 
-    <p-toolbar styleClass="mb-6">
+    <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap gap-2 items-center">
                 <p-select
                     [(ngModel)]="filtroRol"
                     [options]="rolesFiltro"
@@ -30,13 +30,15 @@
         </ng-template>
 
         <ng-template #end>
-            <p-button
-                *ngIf="choferSelected() && choferSelected().length > 0"
-                label="Desactivar Seleccionados"
-                icon="pi pi-user-minus"
-                severity="danger"
-                (onClick)="deleteSelectedChoferes()"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    *ngIf="choferSelected() && choferSelected().length > 0"
+                    label="Desactivar Seleccionados"
+                    icon="pi pi-user-minus"
+                    severity="danger"
+                    (onClick)="deleteSelectedChoferes()"
+                />
+            </div>
         </ng-template>
     </p-toolbar>
 

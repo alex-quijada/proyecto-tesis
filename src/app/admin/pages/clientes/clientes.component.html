@@ -9,37 +9,41 @@
         </p>
     </div>
 
-    <p-toolbar styleClass="mb-6">
+    <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
-            <p-button
-                [label]="isExpanded() ? 'Contraer Todos' : 'Expandir Todos'"
-                [icon]="'pi pi-fw ' + (isExpanded() ? 'pi-minus' : 'pi-plus')"
-                severity="secondary"
-                class="mr-2"
-                (onClick)="isExpanded() ? collapseAll() : expandAll()"
-            />
-            <p-selectbutton
-                [options]="estadosFiltro"
-                [(ngModel)]="filtroEstado"
-                optionLabel="label"
-                optionValue="value"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    [label]="isExpanded() ? 'Contraer Todos' : 'Expandir Todos'"
+                    [icon]="'pi pi-fw ' + (isExpanded() ? 'pi-minus' : 'pi-plus')"
+                    severity="secondary"
+                    class="mr-2"
+                    (onClick)="isExpanded() ? collapseAll() : expandAll()"
+                />
+                <p-selectbutton
+                    [options]="estadosFiltro"
+                    [(ngModel)]="filtroEstado"
+                    optionLabel="label"
+                    optionValue="value"
+                />
+            </div>
         </ng-template>
         <ng-template #end>
-            <p-button
-                *ngIf="!selectedClientes || !selectedClientes.length"
-                label="Nuevo Cliente"
-                icon="pi pi-plus"
-                severity="success"
-                (onClick)="openNew()"
-            />
-            <p-button
-                *ngIf="selectedClientes && selectedClientes.length"
-                label="Desactivar Seleccionados"
-                icon="pi pi-ban"
-                severity="danger"
-                (onClick)="desactivarSelectedClientes()"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    *ngIf="!selectedClientes || !selectedClientes.length"
+                    label="Nuevo Cliente"
+                    icon="pi pi-plus"
+                    severity="success"
+                    (onClick)="openNew()"
+                />
+                <p-button
+                    *ngIf="selectedClientes && selectedClientes.length"
+                    label="Desactivar Seleccionados"
+                    icon="pi pi-ban"
+                    severity="danger"
+                    (onClick)="desactivarSelectedClientes()"
+                />
+            </div>
         </ng-template>
     </p-toolbar>
 

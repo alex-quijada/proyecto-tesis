@@ -7,9 +7,9 @@
         <p class="text-sm text-surface-500">Gestión de guías de despacho y rutas de entrega</p>
     </div>
 
-    <p-toolbar styleClass="mb-6">
+    <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap gap-2 items-center">
                 <p-button
                     label="Crear Guía"
                     icon="pi pi-plus"
@@ -20,15 +20,17 @@
         </ng-template>
 
         <ng-template #end>
-            <p-select
-                [(ngModel)]="filtroMunicipio"
-                [options]="municipioFiltros"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Filtrar por municipio"
-                appendTo="body"
-                styleClass="w-44"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-select
+                    [(ngModel)]="filtroMunicipio"
+                    [options]="municipioFiltros"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Filtrar por municipio"
+                    appendTo="body"
+                    styleClass="w-44"
+                />
+            </div>
         </ng-template>
     </p-toolbar>
 

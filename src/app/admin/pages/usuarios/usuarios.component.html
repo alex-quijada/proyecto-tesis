@@ -9,9 +9,9 @@
         </p>
     </div>
 
-    <p-toolbar styleClass="mb-6">
+    <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap gap-2 items-center">
                 <p-select
                     [(ngModel)]="filtroRol"
                     [options]="rolFiltros"
@@ -31,20 +31,22 @@
         </ng-template>
 
         <ng-template #end>
-            <p-button
-                *ngIf="usuariosSelected().length === 0"
-                label="Nuevo Usuario"
-                icon="pi pi-plus"
-                severity="success"
-                (onClick)="openNew()"
-            />
-            <p-button
-                *ngIf="usuariosSelected().length > 0"
-                label="Desactivar Seleccionados"
-                icon="pi pi-user-minus"
-                severity="danger"
-                (onClick)="desactivarSelectedUsuarios()"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    *ngIf="usuariosSelected().length === 0"
+                    label="Nuevo Usuario"
+                    icon="pi pi-plus"
+                    severity="success"
+                    (onClick)="openNew()"
+                />
+                <p-button
+                    *ngIf="usuariosSelected().length > 0"
+                    label="Desactivar Seleccionados"
+                    icon="pi pi-user-minus"
+                    severity="danger"
+                    (onClick)="desactivarSelectedUsuarios()"
+                />
+            </div>
         </ng-template>
     </p-toolbar>
 

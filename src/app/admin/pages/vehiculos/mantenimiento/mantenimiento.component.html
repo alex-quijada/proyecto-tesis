@@ -7,9 +7,9 @@
         </h1>
     </div>
 
-    <p-toolbar styleClass="mb-6">
+    <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap gap-2 items-center">
                 <p-button
                     *ngIf="mantenimientoSelected() && mantenimientoSelected().length > 0"
                     label="Eliminar Seleccionados"
@@ -30,12 +30,14 @@
         </ng-template>
 
         <ng-template #end>
-            <p-button
-                label="Nuevo Mantenimiento"
-                icon="pi pi-plus"
-                severity="success"
-                (onClick)="openNew()"
-            />
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    label="Nuevo Mantenimiento"
+                    icon="pi pi-plus"
+                    severity="success"
+                    (onClick)="openNew()"
+                />
+            </div>
         </ng-template>
     </p-toolbar>
 
