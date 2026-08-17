@@ -109,7 +109,7 @@ export class MiRutaComponent implements OnInit {
     siguiendo = signal(true);
     verPasos = signal(true);
     vista3d = signal(true);
-    pasosAbiertos = signal(true);
+    pasosAbiertos = signal(false);
     puntosAbiertos = signal(false);
     controlesAbiertos = signal(false);
     private mapaListo = signal(false);
@@ -597,6 +597,7 @@ export class MiRutaComponent implements OnInit {
     }
 
     private async iniciarNavegacion(rutaPrecomputada?: RutaPersistida | null) {
+        this.pasosAbiertos.set(false);
         const conPuntos = this.puntos();
 
         const paradasNav: ParadaNavegacion[] = conPuntos.map((p) => ({
