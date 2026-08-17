@@ -143,7 +143,7 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                                         id="horaDesde"
                                         formControlName="horaDesde"
                                         timeOnly
-                                        hourFormat="24"
+                                        hourFormat="12"
                                         [showIcon]="true"
                                         iconDisplay="input"
                                         [icon]="'pi pi-clock'"
@@ -158,7 +158,7 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                                         id="horaHasta"
                                         formControlName="horaHasta"
                                         timeOnly
-                                        hourFormat="24"
+                                        hourFormat="12"
                                         [showIcon]="true"
                                         iconDisplay="input"
                                         [icon]="'pi pi-clock'"
@@ -177,6 +177,7 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                                         optionValue="value"
                                         placeholder="Seleccionar días"
                                         [maxSelectedLabels]="3"
+                                        selectedItemsLabel="{0} seleccionados"
                                         appendTo="body"
                                     />
                                 </div>

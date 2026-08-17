@@ -3061,6 +3061,13 @@ export const MUNICIPIO_GEOMETRIAS: Record<string, MunicipioGeometry> = {
     },
 };
 
+function normalizarNombre(nombre: string): string {
+    return nombre
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
 const NOMBRE_A_ID: Record<string, string> = {
     'Antolín del Campo': 'ANTOLIN_DEL_CAMPO',
     Arismendi: 'ARISMENDI',
@@ -3073,10 +3080,15 @@ const NOMBRE_A_ID: Record<string, string> = {
     'Peninsula de Macanao': 'PENINSULA_DE_MACANAO',
     Tubores: 'TUBORES',
     'Isla de Coche': 'VILLALBA',
+    Villalba: 'VILLALBA',
 };
 
+const NOMBRE_NORMALIZADO_A_ID: Record<string, string> = Object.fromEntries(
+    Object.entries(NOMBRE_A_ID).map(([nombre, id]) => [normalizarNombre(nombre), id])
+);
+
 export function obtenerGeometriaMunicipio(nombreMunicipio: string): MunicipioGeometry | null {
-    const id = NOMBRE_A_ID[nombreMunicipio];
+    const id = NOMBRE_NORMALIZADO_A_ID[normalizarNombre(nombreMunicipio)];
     if (!id) return null;
     return MUNICIPIO_GEOMETRIAS[id] ?? null;
 }

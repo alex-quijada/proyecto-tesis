@@ -5,7 +5,7 @@
     [modal]="true"
 >
     <ng-template #content>
-        <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
+        <form [formGroup]="form" class="flex flex-col gap-5 pt-2">
             <p-message
                 *ngIf="errorMessage()"
                 severity="error"
@@ -15,7 +15,7 @@
 
             <p-fluid>
                 <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-2 mb-2"
                 >
                     Identificación
                 </div>
@@ -71,7 +71,7 @@
 
             <p-fluid>
                 <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1"
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-2 mb-2 mt-1"
                 >
                     Información General
                 </div>
@@ -169,7 +169,7 @@
 
             <p-fluid>
                 <div
-                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-1 flex items-center gap-2"
+                    class="font-semibold text-md border-b border-surface-200 dark:border-surface-700 pb-2 mb-2 flex items-center gap-2"
                 >
                     <span>Sucursales</span>
                     <p-button
@@ -292,10 +292,10 @@
                                 />
                             </div>
 
-                            <p-divider class="my-1" />
+                            <p-divider class="my-2" />
 
                             <div
-                                class="text-sm font-semibold text-surface-600 dark:text-surface-300"
+                                class="text-sm font-semibold text-surface-600 dark:text-surface-300 mb-2"
                             >
                                 <i class="pi pi-clock mr-1"></i> Reglas de Recepción
                             </div>
@@ -312,7 +312,7 @@
                                             [id]="'horaDesde-' + i"
                                             formControlName="horaDesde"
                                             timeOnly
-                                            hourFormat="24"
+                                            hourFormat="12"
                                             [showIcon]="true"
                                             iconDisplay="input"
                                             [icon]="'pi pi-clock'"
@@ -329,7 +329,7 @@
                                             [id]="'horaHasta-' + i"
                                             formControlName="horaHasta"
                                             timeOnly
-                                            hourFormat="24"
+                                            hourFormat="12"
                                             [showIcon]="true"
                                             iconDisplay="input"
                                             [icon]="'pi pi-clock'"
@@ -350,6 +350,7 @@
                                             optionValue="value"
                                             placeholder="Seleccionar días"
                                             [maxSelectedLabels]="3"
+                                            selectedItemsLabel="{0} seleccionados"
                                             appendTo="body"
                                         />
                                     </div>
@@ -384,10 +385,10 @@
                                 </div>
                             </div>
 
-                            <p-divider class="my-1" />
+                            <p-divider class="my-2" />
 
                             <div
-                                class="text-sm font-semibold text-surface-600 dark:text-surface-300"
+                                class="text-sm font-semibold text-surface-600 dark:text-surface-300 mb-2"
                             >
                                 <i class="pi pi-user mr-1"></i> Datos de Contacto
                             </div>

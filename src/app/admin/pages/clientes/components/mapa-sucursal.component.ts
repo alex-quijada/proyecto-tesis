@@ -28,6 +28,7 @@ import { puntoEnPoligono } from '../data/geo-utils';
             </label>
             <app-busqueda-ubicacion
                 [municipioNombre]="municipioNombre()"
+                [direccionInicial]="sucursalGroup().get('direccion')?.value ?? ''"
                 (ubicacionSeleccionada)="onUbicacionSeleccionada($event)"
             />
             <p-message
@@ -170,11 +171,15 @@ export class MapaSucursalComponent implements OnDestroy {
     onUbicacionSeleccionada(event: { lat: number; lng: number; direccion: string }) {
         const group = this.sucursalGroup();
         if (!group) return;
-        group.patchValue({
+        const patch: Record<string, unknown> = {
             latitud: event.lat,
             longitud: event.lng,
-            direccion: event.direccion,
-        });
+        };
+        const direccionActual = group.get('direccion')?.value;
+        if (!direccionActual?.trim()) {
+            patch['direccion'] = event.direccion;
+        }
+        group.patchValue(patch);
         this.setMarker(event.lat, event.lng);
         this.validarUbicacion(event.lat, event.lng);
     }

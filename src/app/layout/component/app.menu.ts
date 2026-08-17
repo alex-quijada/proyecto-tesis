@@ -49,12 +49,12 @@ export class AppMenu {
                                 routerLink: ['/app/rutas/carga'],
                             },
                             {
-                                label: 'Optimización de Rutas',
+                                label: 'Despliegue por Municipio',
                                 icon: 'pi pi-fw pi-directions',
                                 routerLink: ['/app/rutas/optimizacion'],
                             },
                             {
-                                label: 'Monitoreo en Tiempo Real',
+                                label: 'Monitoreo de Rutas',
                                 icon: 'pi pi-fw pi-map-marker',
                                 routerLink: ['/app/rutas/seguimiento'],
                             },

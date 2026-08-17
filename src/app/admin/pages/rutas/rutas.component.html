@@ -77,8 +77,8 @@
 
         <ng-template #header>
             <tr>
-                <th style="width: 3rem"></th>
-                <th pSortableColumn="numeroGuia" style="min-width: 10rem">
+                <th class="text-center!" style="width: 3rem"></th>
+                <th class="text-center!" pSortableColumn="numeroGuia" style="min-width: 10rem">
                     N° Guía <p-sortIcon field="numeroGuia" />
                 </th>
                 <th pSortableColumn="empresa" style="min-width: 12rem">
@@ -88,21 +88,21 @@
                     Chofer <p-sortIcon field="nombreChofer" />
                 </th>
                 <th style="min-width: 8rem">Vehículo</th>
-                <th pSortableColumn="municipio" style="min-width: 8rem">
+                <th class="text-center!" pSortableColumn="municipio" style="min-width: 8rem">
                     Ruta <p-sortIcon field="municipio" />
                 </th>
-                <th style="min-width: 6rem">Facturas</th>
-                <th style="min-width: 9rem">Estado</th>
-                <th pSortableColumn="fechaCreacion" style="min-width: 8rem">
+                <th class="text-center!" style="min-width: 6rem">Facturas</th>
+                <th class="text-center!" style="min-width: 7rem">Estado</th>
+                <th class="text-center!" pSortableColumn="fechaCreacion" style="min-width: 8rem">
                     Fecha <p-sortIcon field="fechaCreacion" />
                 </th>
-                <th style="width: 90px">Acciones</th>
+                <th class="text-center!" style="width: 90px">Acciones</th>
             </tr>
         </ng-template>
 
         <ng-template #body let-guia let-expanded="expanded">
             <tr>
-                <td>
+                <td class="text-center!">
                     <p-button
                         [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
                         text
@@ -111,7 +111,7 @@
                         pTooltip="Ver detalle"
                     />
                 </td>
-                <td>
+                <td class="text-center!">
                     <span class="font-semibold text-primary">{{ guia.numeroGuia }}</span>
                 </td>
                 <td>
@@ -129,29 +129,41 @@
                         <span class="text-xs text-surface-400">{{ guia.camion }}</span>
                     </div>
                 </td>
-                <td>{{ getMunicipioLabel(guia.municipio) }}</td>
-                <td>
-                    @if (guia.facturas.length === 0) {
-                        <p-tag value="Sin facturas" severity="danger" styleClass="text-xs" />
-                    } @else {
-                        <p-chip
-                            [label]="guia.facturas.length + ' factura(s)'"
-                            styleClass="text-xs"
+                <td class="text-center!">{{ getMunicipioLabel(guia.municipio) }}</td>
+                <td class="text-center!">
+                    <div class="flex justify-center">
+                        @if (guia.facturas.length === 0) {
+                            <p-tag
+                                value="Sin facturas"
+                                severity="danger"
+                                styleClass="text-xs whitespace-nowrap"
+                            />
+                        } @else {
+                            <p-chip
+                                [label]="guia.facturas.length + ' factura(s)'"
+                                styleClass="text-xs whitespace-nowrap"
+                            />
+                        }
+                    </div>
+                </td>
+                <td class="text-center!">
+                    <div class="flex justify-center">
+                        <p-tag
+                            [value]="
+                                getEstadoGuia(guia) === 'EN_CARGA_MERCANCIA'
+                                    ? 'En Carga\nMercancía'
+                                    : getEstadoGuiaLabel(getEstadoGuia(guia))
+                            "
+                            [severity]="getEstadoGuiaSeverity(getEstadoGuia(guia))"
+                            styleClass="text-xs whitespace-pre-line text-center"
                         />
-                    }
+                    </div>
                 </td>
-                <td>
-                    <p-tag
-                        [value]="getEstadoGuiaLabel(getEstadoGuia(guia))"
-                        [severity]="getEstadoGuiaSeverity(getEstadoGuia(guia))"
-                        styleClass="text-xs"
-                    />
-                </td>
-                <td>
+                <td class="text-center!">
                     <span class="text-xs">{{ guia.fechaCreacion | date: 'dd/MM/yy' }}</span>
                 </td>
-                <td>
-                    <div class="flex items-center gap-1">
+                <td class="text-center!">
+                    <div class="flex items-center justify-center gap-1">
                         <p-button
                             icon="pi pi-pencil"
                             severity="success"
@@ -211,7 +223,7 @@
                                             <p-tag
                                                 [value]="getEstadoFacturaLabel(fact.idEstado)"
                                                 [severity]="getEstadoFacturaSeverity(fact.idEstado)"
-                                                styleClass="text-xs"
+                                                styleClass="text-xs whitespace-nowrap"
                                             />
                                             <p-tag
                                                 [value]="fact.prioridad"
@@ -222,7 +234,7 @@
                                                           ? 'warn'
                                                           : 'info'
                                                 "
-                                                styleClass="text-xs"
+                                                styleClass="text-xs whitespace-nowrap"
                                             />
                                         </div>
                                     </div>

@@ -74,7 +74,14 @@
                                 pInputText
                                 formControlName="codigoGuia"
                                 placeholder="batch/out/XXX"
+                                [ngClass]="{ 'ng-invalid': codigoDuplicado() }"
                             />
+                            @if (codigoDuplicado()) {
+                                <small class="text-red-500"
+                                    ><i class="pi pi-exclamation-circle mr-1"></i>Este código de
+                                    guía ya existe en el sistema.</small
+                                >
+                            }
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
                             <label class="font-semibold"
@@ -382,4 +389,10 @@
     [(visible)]="clienteDialogVisible"
     [clienteData]="clientePendiente()"
     (onSave)="onClienteCreado($event)"
+/>
+
+<app-vehiculo-dialog
+    [(visible)]="vehiculoDialogVisible"
+    [vehiculoData]="vehiculoPendiente()"
+    (onSave)="onVehiculoCreado($event)"
 />

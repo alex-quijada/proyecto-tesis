@@ -42,7 +42,10 @@ import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
 import { Cliente, SucursalCliente } from '../../clientes/clientes.types';
 import { ClienteDialogComponent } from '../../clientes/components/cliente-dialog.component';
+import { Vehiculo } from '../../vehiculos/data/vehiculos-mock';
+import { VehiculoDialogComponent } from '../../vehiculos/components/vehiculo-dialog/vehiculo-dialog.component';
 import Fuse from 'fuse.js';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { PdfNormalizerService } from '../services/pdf-parse.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ClienteService } from '../../clientes/service/cliente.service';
@@ -93,6 +96,7 @@ interface VehiculoOption {
         ToastModule,
         AutoCompleteModule,
         ClienteDialogComponent,
+        VehiculoDialogComponent,
     ],
     providers: [MessageService],
     templateUrl: './guia-dialog.component.html',
@@ -115,10 +119,14 @@ export class GuiaDialogComponent implements OnInit {
 
     submitted = false;
     errorMessage = signal('');
+    codigoDuplicado = signal(false);
+    private codigoCheckCounter = 0;
     cargandoPDF = signal(false);
     clienteDialogVisible = signal(false);
     clientePendiente = signal<Cliente>({});
     clienteDialogFacturaIndex = signal(-1);
+    vehiculoDialogVisible = signal(false);
+    vehiculoPendiente = signal<Vehiculo>({});
     currentRutaPdf = signal('');
 
     empresasOptions = signal<{ label: string; value: string }[]>([]);
@@ -179,12 +187,20 @@ export class GuiaDialogComponent implements OnInit {
 
         this.form.valueChanges.subscribe(() => this.actualizarEntidadesInactivas());
 
+        this.form
+            .get('codigoGuia')!
+            .valueChanges.pipe(debounceTime(400), distinctUntilChanged())
+            .subscribe((codigo: string) => {
+                void this.verificarCodigoDuplicado(codigo);
+            });
+
         effect(() => {
             const data = this.guiaData();
 
             untracked(() => {
                 this.submitted = false;
                 this.errorMessage.set('');
+                this.codigoDuplicado.set(false);
 
                 if (data?.id) {
                     this.form.patchValue({
@@ -371,6 +387,21 @@ export class GuiaDialogComponent implements OnInit {
         this.entidadesInactivas.set(msgs);
     }
 
+    private async verificarCodigoDuplicado(codigo: string) {
+        const token = ++this.codigoCheckCounter;
+        const norm = (codigo || '').trim().toLowerCase();
+        if (!norm) {
+            if (token === this.codigoCheckCounter) this.codigoDuplicado.set(false);
+            return;
+        }
+        try {
+            const existe = await this.rutaService.existeCodigoGuia(norm, this.guiaData()?.id);
+            if (token === this.codigoCheckCounter) this.codigoDuplicado.set(existe);
+        } catch {
+            if (token === this.codigoCheckCounter) this.codigoDuplicado.set(false);
+        }
+    }
+
     scanPDF() {
         this.pdfInput.nativeElement.click();
     }
@@ -385,6 +416,22 @@ export class GuiaDialogComponent implements OnInit {
             console.log('Datos extraídos del PDF:', datos);
 
             this.currentRutaPdf.set(datos.ruta || '');
+
+            if (datos.codigoGuia) {
+                const yaExiste = await this.rutaService.existeCodigoGuia(
+                    datos.codigoGuia,
+                    this.guiaData()?.id,
+                );
+                if (yaExiste) {
+                    this.codigoDuplicado.set(true);
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Guía duplicada',
+                        detail: `El código ${datos.codigoGuia} ya existe en el sistema. Revisa antes de guardar.`,
+                        life: 6000,
+                    });
+                }
+            }
 
             if (datos.empresa) {
                 const empresaMatch = this.empresasOptions().find(
@@ -433,6 +480,13 @@ export class GuiaDialogComponent implements OnInit {
                     } else {
                         this.form.patchValue({ idChofer: match.value });
                     }
+                } else {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Chofer no registrado',
+                        detail: `El chofer "${datos.chofer}" no está registrado en el sistema. Contacta al administrador para registrarlo.`,
+                        life: 6000,
+                    });
                 }
             }
 
@@ -455,6 +509,15 @@ export class GuiaDialogComponent implements OnInit {
                     } else {
                         this.form.patchValue({ idVehiculo: match.value });
                     }
+                } else {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Vehículo no registrado',
+                        detail: `El vehículo con placa ${datos.placa} no está registrado. Abriendo el formulario para registrarlo...`,
+                        life: 6000,
+                    });
+                    this.vehiculoPendiente.set({ placa: datos.placa.toUpperCase() } as Vehiculo);
+                    this.vehiculoDialogVisible.set(true);
                 }
             }
 
@@ -832,6 +895,16 @@ export class GuiaDialogComponent implements OnInit {
         }
     }
 
+    async onVehiculoCreado(vehiculo: Vehiculo) {
+        await this.cargarVehiculos();
+        const match = this.vehiculosSig().find(
+            (v) => v.placaVehiculo.toLowerCase() === (vehiculo.placa || '').toLowerCase(),
+        );
+        if (match) {
+            this.form.patchValue({ idVehiculo: match.value });
+        }
+    }
+
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
@@ -851,6 +924,21 @@ export class GuiaDialogComponent implements OnInit {
         }
 
         const raw = this.form.getRawValue();
+
+        const codigoNorm = (raw.codigoGuia || '').trim().toLowerCase();
+        if (codigoNorm) {
+            const yaExiste = await this.rutaService.existeCodigoGuia(
+                codigoNorm,
+                this.guiaData()?.id,
+            );
+            if (yaExiste) {
+                this.codigoDuplicado.set(true);
+                this.errorMessage.set(
+                    'El código de guía ya existe en el sistema. Verifica el número antes de guardar.',
+                );
+                return;
+            }
+        }
 
         const chofer = this.choferesSig().find((ch) => ch.value === raw.idChofer);
         const ayudante = this.ayudantesSig().find((a) => a.value === raw.idAyudante);

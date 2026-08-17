@@ -70,6 +70,33 @@ export class RutaService {
         return new Error(`${contexto}: ${err?.message || JSON.stringify(err)}`);
     }
 
+    private normalizarCodigoGuia(codigo?: string | null): string | null {
+        if (!codigo) return null;
+        const norm = codigo.trim().toLowerCase();
+        return norm || null;
+    }
+
+    async existeCodigoGuia(codigo: string, excluirId?: string): Promise<boolean> {
+        const norm = this.normalizarCodigoGuia(codigo);
+        if (!norm) return false;
+
+        let query = this.supabase.from('guias_carga').select('id_guia').ilike('codigo_guia', norm);
+        if (excluirId) query = query.neq('id_guia', excluirId);
+
+        const { data, error } = await query.maybeSingle();
+        if (error) {
+            console.warn('existeCodigoGuia: ilike falló, reintentando con eq:', error?.message);
+            let queryExacta = this.supabase
+                .from('guias_carga')
+                .select('id_guia')
+                .eq('codigo_guia', norm);
+            if (excluirId) queryExacta = queryExacta.neq('id_guia', excluirId);
+            const { data: dataExacta } = await queryExacta.maybeSingle();
+            return !!dataExacta;
+        }
+        return !!data;
+    }
+
     async crearGuia(guia: GuiaDespacho): Promise<GuiaDespacho> {
         const user = this.authService.getCurrentUser();
         if (!user) throw new Error('Usuario no autenticado');
@@ -80,7 +107,7 @@ export class RutaService {
         const { data: nuevaGuia, error: errGuia } = await this.supabase
             .from('guias_carga')
             .insert({
-                codigo_guia: guia.codigoGuia || null,
+                codigo_guia: this.normalizarCodigoGuia(guia.codigoGuia),
                 fecha_despacho:
                     guia.fechaCreacion?.split('T')[0] || new Date().toISOString().split('T')[0],
                 id_vehiculo: guia.idVehiculo,
@@ -152,7 +179,7 @@ export class RutaService {
         const { error: errGuia } = await this.supabase
             .from('guias_carga')
             .update({
-                codigo_guia: guia.codigoGuia || null,
+                codigo_guia: this.normalizarCodigoGuia(guia.codigoGuia),
                 fecha_despacho:
                     guia.fechaCreacion?.split('T')[0] || new Date().toISOString().split('T')[0],
                 id_vehiculo: guia.idVehiculo,

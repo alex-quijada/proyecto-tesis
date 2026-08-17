@@ -125,6 +125,9 @@ export class VehiculoDialogComponent {
                     tipoCaja: 'SECA',
                     estado: 'OPERATIVO',
                 });
+                if (data?.placa) {
+                    this.form.patchValue({ placa: data.placa });
+                }
             }
 
             this.actualizarValidacionPallets();

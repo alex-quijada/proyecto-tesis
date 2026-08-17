@@ -66,6 +66,7 @@ export class BusquedaUbicacionComponent implements OnDestroy {
     private searchService = inject(GoogleSearchService);
 
     readonly municipioNombre = input<string>('');
+    readonly direccionInicial = input<string>('');
 
     readonly ubicacionSeleccionada = output<UbicacionSeleccionada>();
 
@@ -79,6 +80,7 @@ export class BusquedaUbicacionComponent implements OnDestroy {
     private sub: (() => void) | null = null;
     private blurTimer: ReturnType<typeof setTimeout> | null = null;
     private currentQuery = '';
+    private pipelineListo = false;
 
     constructor() {
         afterNextRender(() => this.setupRxPipeline());
@@ -88,6 +90,19 @@ export class BusquedaUbicacionComponent implements OnDestroy {
             if (this.currentQuery.trim()) {
                 this.searchParams$.next({ query: this.currentQuery, municipio });
             }
+        });
+
+        effect(() => {
+            const dir = this.direccionInicial();
+            if (!dir || !this.pipelineListo) return;
+            const inputEl = this.inputEl();
+            if (!inputEl) return;
+            const actual = inputEl.nativeElement.value;
+            if (actual.trim() && actual !== dir) return;
+            if (this.currentQuery === dir) return;
+            this.currentQuery = dir;
+            inputEl.nativeElement.value = dir;
+            this.searchParams$.next({ query: dir, municipio: this.municipioNombre() });
         });
     }
 
@@ -118,6 +133,15 @@ export class BusquedaUbicacionComponent implements OnDestroy {
             )
             .subscribe();
         this.sub = () => subscription.unsubscribe();
+
+        this.pipelineListo = true;
+        const dir = this.direccionInicial();
+        const inputEl = this.inputEl();
+        if (dir && inputEl && !inputEl.nativeElement.value.trim()) {
+            this.currentQuery = dir;
+            inputEl.nativeElement.value = dir;
+            this.searchParams$.next({ query: dir, municipio: this.municipioNombre() });
+        }
     }
 
     onInput(value: string) {
