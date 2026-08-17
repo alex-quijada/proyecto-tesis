@@ -70,7 +70,7 @@ import { CapitalizePipe } from '../pipes/capitalize.pipe';
                             class="w-11 h-11 rounded-full bg-primary/10 dark:bg-primary-900/30 text-primary flex items-center justify-center text-base font-bold flex-shrink-0 cursor-pointer border-2 border-primary/20"
                             (click)="irAPerfil()"
                         >
-                            {{ (store.driverInfo()?.nombre || 'C').charAt(0) }}
+                            <i class="pi pi-user" style="font-size: 1.5rem"></i>
                         </div>
                     </div>
                 </div>

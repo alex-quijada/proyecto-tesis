@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 
 import { ButtonModule } from 'primeng/button';
@@ -53,6 +54,8 @@ export class RutaComponent implements OnInit {
     private messageService = inject(MessageService);
     private viajeService = inject(ViajeService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
+    private route = inject(ActivatedRoute);
+    private router = inject(Router);
 
     paradas = signal<ParadaDisplay[]>([]);
     selectedGuia = signal<ParadaDisplay | null>(null);
@@ -60,6 +63,7 @@ export class RutaComponent implements OnInit {
     reordering = signal(false);
     optimizando = signal(false);
     cargando = signal(true);
+    avisoIrMapa = signal(false);
 
     @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
 
@@ -90,6 +94,17 @@ export class RutaComponent implements OnInit {
         await this.store.cargarViajes();
         this.sincronizarParadas();
         this.cargando.set(false);
+
+        const modo = this.route.snapshot.queryParams['modo'];
+        if (modo === 'auto') {
+            await this.optimizarRuta();
+        } else if (modo === 'manual') {
+            this.reordering.set(true);
+        }
+        if (modo) {
+            // Limpiar el query param para que re-entrar no re-dispare la acción.
+            await this.router.navigate([], { replaceUrl: true, queryParams: {} });
+        }
     }
 
     private sincronizarParadas() {
@@ -196,6 +211,7 @@ export class RutaComponent implements OnInit {
                     result.duration / 60,
                 )} min aprox.).`,
             });
+            this.avisoIrMapa.set(true);
         } catch (err) {
             console.error('Error al optimizar ruta', err);
             this.messageService.add({
@@ -236,7 +252,18 @@ export class RutaComponent implements OnInit {
     }
 
     toggleReordering() {
+        const acabando = this.reordering();
         this.reordering.update((v) => !v);
+        if (acabando) this.avisoIrMapa.set(true);
+    }
+
+    irAlMapa() {
+        this.avisoIrMapa.set(false);
+        this.router.navigate(['/driver/mapa']);
+    }
+
+    cerrarAvisoMapa() {
+        this.avisoIrMapa.set(false);
     }
 
     toggleSelectedGuia(g: ParadaDisplay) {

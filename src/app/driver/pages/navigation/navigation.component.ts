@@ -24,6 +24,10 @@ import { TextareaModule } from 'primeng/textarea';
 import { DriverStoreService } from '../../services/driver-store.service';
 import { NavigationSdkService, RutaTramo } from '../../services/navigation-sdk.service';
 import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
+import {
+    IncidenciaDialogComponent,
+    IncidenciaGuia,
+} from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { ViajeService } from '@/app/services/viaje.service';
 import { environment } from '@/environments/environment';
 import { haversine, calcularBearing } from '../viajes/navegacion.util';
@@ -73,6 +77,7 @@ interface PuntoEntrega {
         DialogModule,
         TextareaModule,
         FirmaDialogComponent,
+        IncidenciaDialogComponent,
     ],
     providers: [MessageService],
     templateUrl: './navigation.component.html',
@@ -85,6 +90,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
     private messageService = inject(MessageService);
 
     @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
+    @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
 
     readonly cargando = signal(true);
     readonly error = signal('');
@@ -97,7 +103,16 @@ export class NavigationComponent implements OnInit, OnDestroy {
     readonly puntosAbiertos = signal(true);
     readonly firmaGuia = signal<ParadaMapa | null>(null);
     readonly incidenciaGuia = signal<ParadaMapa | null>(null);
-    readonly incidenciaTexto = signal('');
+    readonly incidenciaGuiaData = computed<IncidenciaGuia | null>(() => {
+        const g = this.incidenciaGuia();
+        return g
+            ? {
+                  cliente: g.nombreCliente,
+                  numeroGuia: g.numeroGuia,
+                  numeroFactura: g.numeroFactura,
+              }
+            : null;
+    });
     readonly llegadas = signal(0);
     readonly finalDestino = signal(false);
     readonly restanteDist = signal(0);
@@ -513,19 +528,19 @@ export class NavigationComponent implements OnInit, OnDestroy {
 
     abrirIncidencia(factura: ParadaMapa) {
         this.incidenciaGuia.set(factura);
-        this.incidenciaTexto.set('');
+        this.incidenciaDialog.guia = this.incidenciaGuiaData();
+        this.incidenciaDialog.open();
     }
 
     cerrarIncidencia() {
         this.incidenciaGuia.set(null);
-        this.incidenciaTexto.set('');
     }
 
-    async onIncidenciaConfirmada() {
+    async onIncidenciaConfirmada(texto: string) {
         const factura = this.incidenciaGuia();
         if (!factura) return;
         try {
-            await this.store.reportarIncidencia(factura.id, this.incidenciaTexto());
+            await this.store.reportarIncidencia(factura.id, texto);
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',

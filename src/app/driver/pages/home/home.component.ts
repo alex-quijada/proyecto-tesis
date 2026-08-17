@@ -25,8 +25,12 @@ export class HomeComponent {
         return guia.facturas.reduce((sum, f) => sum + (f.precioCarga || 0), 0);
     }
 
-    irARuta() {
-        this.router.navigate(['/driver/ruta']);
+    crearAutomaticamente() {
+        this.router.navigate(['/driver/ruta'], { queryParams: { modo: 'auto' } });
+    }
+
+    crearManualmente() {
+        this.router.navigate(['/driver/ruta'], { queryParams: { modo: 'manual' } });
     }
 
     irAHistorial() {

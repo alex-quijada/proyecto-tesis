@@ -11,6 +11,8 @@ import {
 } from '@/app/admin/pages/map/map/google-maps-optimization.service';
 import { RutaPersistida } from '@/app/services/viaje.types';
 import { ConnectivityService } from '@/app/services/connectivity.service';
+import { AuthService } from '@/app/auth/service/auth.service';
+import { OfflineStorageService } from './offline-storage.service';
 import {
     distanciaAPolyline,
     haversine,
@@ -28,6 +30,14 @@ export interface ParadaNavegacion {
     longitud: number;
 }
 
+/** Estado de la simulación (progreso + posición) para pausar/guardar/restaurar. */
+export interface EstadoSimulacion {
+    distancia: number;
+    parada: number;
+    paso: number;
+    posicion: { lat: number; lng: number } | null;
+}
+
 const UMBRAL_PASO_M = 25;
 const UMBRAL_LLEGADA_M = 40;
 const UMBRAL_RE_RUTEO_M = 300;
@@ -41,6 +51,8 @@ export class NavigationService {
     private messageService = inject(MessageService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private connectivity = inject(ConnectivityService);
+    private authService = inject(AuthService);
+    private offlineStorage = inject(OfflineStorageService);
 
     readonly navegando = signal(false);
     readonly pasos = signal<PasoRuta[]>([]);
@@ -58,6 +70,8 @@ export class NavigationService {
     readonly totalParadas = signal(0);
     /** Velocidad de la simulación en m/s (cambiable desde la UI). */
     readonly velocidadSimulacion = signal(VELOCIDAD_SIMULACION_DEFAULT);
+    /** Último estado de la simulación (progreso + posición), para reanudar. */
+    readonly estadoSimulacionGuardado = signal<EstadoSimulacion | null>(null);
 
     private paradas: ParadaNavegacion[] = [];
     private warehouse: Waypoint = { lat: 0, lng: 0, name: '' };
@@ -170,6 +184,69 @@ export class NavigationService {
         if (!this.navegando() || !this.simulando() || !this.pausado()) return;
         this.pausado.set(false);
         this.reanudarSimulacion();
+    }
+
+    /** Pausa la simulación (sin marcar entrega) y persiste su estado. */
+    async pausarYGuardarSimulacion(viajeId: string) {
+        if (!this.navegando() || !this.simulando()) return;
+        this.pausaPorEntrega = false;
+        this.pausado.set(true);
+        this.detenerSimulacion();
+        const estado: EstadoSimulacion = {
+            distancia: this.simDistanciaAcumulada,
+            parada: this.paradaActual(),
+            paso: this.pasoActual(),
+            posicion: this.posicionDriver(),
+        };
+        this.estadoSimulacionGuardado.set(estado);
+        const uid = this.authService.getCurrentUser()?.id;
+        if (uid) {
+            await this.offlineStorage.guardar(uid, `simulacion:${viajeId}`, estado);
+        }
+    }
+
+    /** Restaura una simulación guardada (queda pausada en el punto guardado). */
+    async restaurarSimulacionSiExiste(viajeId: string): Promise<boolean> {
+        let estado = this.estadoSimulacionGuardado();
+        if (!estado) {
+            const uid = this.authService.getCurrentUser()?.id;
+            if (!uid) return false;
+            const caché = await this.offlineStorage.leer<EstadoSimulacion>(
+                uid,
+                `simulacion:${viajeId}`,
+            );
+            estado = caché?.data ?? null;
+        }
+        if (!estado) return false;
+        // Cambiar al modo simulación (detiene el GPS que inició la navegación
+        // por defecto) y reponer el progreso en pausa.
+        if (!this.simulando()) this.setModoSimulacion(true);
+        this.restaurarEstado(estado);
+        return true;
+    }
+
+    /** Limpia el estado de simulación (memoria + persistencia). */
+    async limpiarSimulacionGuardada(viajeId: string) {
+        this.estadoSimulacionGuardado.set(null);
+        const uid = this.authService.getCurrentUser()?.id;
+        if (uid) await this.offlineStorage.eliminar(uid, `simulacion:${viajeId}`);
+    }
+
+    private restaurarEstado(estado: EstadoSimulacion) {
+        if (!this.navegando()) return;
+        this.simDistanciaAcumulada = Math.min(
+            this.simDistAcum[this.simDistAcum.length - 1] ?? 0,
+            estado.distancia,
+        );
+        this.paradaActual.set(estado.parada);
+        this.pasoActual.set(estado.paso);
+        const pos = estado.posicion ?? this.posicionEnDistancia(this.simDistanciaAcumulada);
+        if (pos) {
+            this.posicionDriver.set(pos);
+            this.ultimaPos = pos;
+        }
+        this.pausado.set(true);
+        this.detenerSimulacion();
     }
 
     setModoSimulacion(activo: boolean) {
@@ -405,18 +482,15 @@ export class NavigationService {
         const pasos = this.pasos();
         if (pasos.length < 1) return;
 
-        let mejor = this.pasoActual();
-        let mejorDist = Infinity;
-        for (let i = 0; i < pasos.length; i++) {
-            const d = haversine(pos, pasos[i].fin);
-            if (d < mejorDist) {
-                mejorDist = d;
-                mejor = i;
-            }
+        let idx = this.pasoActual();
+        // Avanza monótonamente en el orden real de la ruta: al llegar al fin
+        // del paso actual (< UMBRAL_PASO_M), pasa al siguiente. No salta entre
+        // paradas ni se adelanta a pasos de otra leg (heurística anterior).
+        while (idx + 1 < pasos.length && haversine(pos, pasos[idx].fin) < UMBRAL_PASO_M) {
+            idx++;
         }
-
-        if (mejor >= this.pasoActual()) this.pasoActual.set(mejor);
-        this.distRestantePaso.set(Math.round(mejorDist));
+        this.pasoActual.set(idx);
+        this.distRestantePaso.set(Math.round(haversine(pos, pasos[idx].fin)));
     }
 
     private comprobarLlegadaParada(pos: LatLng) {

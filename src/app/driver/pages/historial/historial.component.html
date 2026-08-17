@@ -205,6 +205,19 @@
                                     ><span>{{ guia.observaciones }}</span>
                                 </div>
                             }
+
+                            <!-- Reportar incidencia -->
+                            <div class="pt-1">
+                                <p-button
+                                    label="Reportar incidencia"
+                                    icon="pi pi-exclamation-triangle"
+                                    severity="danger"
+                                    text
+                                    size="small"
+                                    styleClass="w-full"
+                                    (click)="$event.stopPropagation(); abrirIncidencia(guia)"
+                                />
+                            </div>
                         </div>
                     }
                 </div>
@@ -220,3 +233,10 @@
         }
     </div>
 </div>
+
+<!-- ===== DIALOG DE INCIDENCIA ===== -->
+<app-incidencia-dialog
+    [guia]="incidenciaGuiaData()"
+    (confirm)="onIncidenciaConfirmada($event)"
+    (cancel)="cerrarIncidencia()"
+/>

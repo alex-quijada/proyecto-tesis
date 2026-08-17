@@ -67,11 +67,7 @@
                         [class.rotate-180]="pasosAbiertos()"
                     ></i>
                 </div>
-                <div class="flex items-center justify-center pb-2.5">
-                    <div
-                        class="w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
-                    ></div>
-                </div>
+                <div class="flex items-center justify-center pb-2.5"></div>
             </div>
 
             <!-- Siguientes 3 pasos: lista scrollable (fuera del área tappable) -->
@@ -111,11 +107,7 @@
                     (pointerup)="onSheetPointerUp($event, 'puntos')"
                     (pointercancel)="onSheetPointerCancel()"
                     (click)="onSheetClick('puntos')"
-                >
-                    <div
-                        class="w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
-                    ></div>
-                </div>
+                ></div>
                 <div class="p-3 pb-2">
                     <!-- Progreso de parada -->
                     @if (puntos()[navigation.paradaActual()]; as parada) {
@@ -240,7 +232,8 @@
                                         >
                                     } @else {
                                         <span class="text-surface-400 ml-auto flex-shrink-0">{{
-                                            p.facturas[0]?.numeroGuia || p.facturas[0]?.numeroFactura
+                                            p.facturas[0]?.numeroGuia ||
+                                                p.facturas[0]?.numeroFactura
                                         }}</span>
                                     }
                                 </div>
@@ -584,9 +577,7 @@
             <div class="text-center py-10 px-4 text-surface-100">
                 <i class="pi pi-inbox text-4xl block mb-2"></i>
                 <p class="text-sm font-semibold">Sin viaje asignado</p>
-                <p class="text-xs mt-1 opacity-80">
-                    El administrador aún no te ha asignado un viaje.
-                </p>
+                <p class="text-xs mt-1 opacity-80">El analista aún no te ha asignado un viaje.</p>
             </div>
         </div>
     }
@@ -599,50 +590,9 @@
     />
 
     <!-- ===== DIALOG DE INCIDENCIA ===== -->
-    <p-dialog
-        [visible]="!!incidenciaGuia()"
-        [modal]="true"
-        [style]="{ width: '95%', maxWidth: '420px' }"
-        header="Reportar incidencia"
-        (onHide)="cerrarIncidencia()"
-    >
-        <div class="space-y-3">
-            @if (incidenciaGuia(); as f) {
-                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-sm">
-                    <div class="text-surface-700 dark:text-surface-200 font-semibold">
-                        {{ f.nombreCliente }}
-                    </div>
-                    <div class="text-xs text-surface-400 font-mono mt-0.5">
-                        {{ f.numeroGuia }} · {{ f.numeroFactura }}
-                    </div>
-                </div>
-            }
-            <textarea
-                pTextarea
-                rows="3"
-                placeholder="Describe la incidencia..."
-                [ngModel]="incidenciaTexto()"
-                (ngModelChange)="incidenciaTexto.set($event)"
-                styleClass="w-full"
-            ></textarea>
-        </div>
-        <ng-template pTemplate="footer">
-            <div class="flex gap-2 w-full">
-                <p-button
-                    label="Cancelar"
-                    severity="secondary"
-                    (onClick)="cerrarIncidencia()"
-                    styleClass="flex-1"
-                />
-                <p-button
-                    label="Confirmar"
-                    severity="danger"
-                    icon="pi pi-exclamation-triangle"
-                    [disabled]="!incidenciaTexto().trim()"
-                    (onClick)="onIncidenciaConfirmada()"
-                    styleClass="flex-1"
-                />
-            </div>
-        </ng-template>
-    </p-dialog>
+    <app-incidencia-dialog
+        [guia]="incidenciaGuiaData()"
+        (confirm)="onIncidenciaConfirmada($event)"
+        (cancel)="cerrarIncidencia()"
+    />
 </div>

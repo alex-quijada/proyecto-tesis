@@ -36,6 +36,10 @@ import { ConnectivityService } from '@/app/services/connectivity.service';
 import { DriverStoreService } from '../../services/driver-store.service';
 import { NavigationService, ParadaNavegacion } from '../../services/navigation.service';
 import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog.component';
+import {
+    IncidenciaDialogComponent,
+    IncidenciaGuia,
+} from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 
 interface ParadaMapa {
@@ -79,6 +83,7 @@ interface PuntoEntrega {
         DialogModule,
         TextareaModule,
         FirmaDialogComponent,
+        IncidenciaDialogComponent,
     ],
     templateUrl: './mi-ruta.component.html',
     styleUrl: './mi-ruta.component.css',
@@ -174,6 +179,9 @@ export class MiRutaComponent implements OnInit {
             window.removeEventListener('resize', medirOffsets);
             document.documentElement.classList.remove('mapa-nativo');
             if (this.navigation.onLlegadaParada) this.navigation.onLlegadaParada = null;
+            // Al salir del mapa, pausar y guardar la simulación (si está activa).
+            const viaje = this.activeViaje();
+            if (viaje) void this.navigation.pausarYGuardarSimulacion(viaje.id_viaje);
             this.detenerAnimacionMarcador();
             if (this.mapa) void this.mapa.destroy().catch(() => undefined);
         });
@@ -185,13 +193,23 @@ export class MiRutaComponent implements OnInit {
     sheetExpandido = signal(false);
 
     @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
+    @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
 
     puntoEntrega = signal<number | null>(null);
     entregando = signal(false);
     finalizando = signal(false);
     firmaGuia = signal<ParadaMapa | null>(null);
     incidenciaGuia = signal<ParadaMapa | null>(null);
-    incidenciaTexto = signal('');
+    readonly incidenciaGuiaData = computed<IncidenciaGuia | null>(() => {
+        const g = this.incidenciaGuia();
+        return g
+            ? {
+                  cliente: g.nombreCliente,
+                  numeroGuia: g.numeroGuia,
+                  numeroFactura: g.numeroFactura,
+              }
+            : null;
+    });
 
     /** Puntos de entrega: facturas agrupadas por coordenadas (misma dirección). */
     readonly puntos = computed<PuntoEntrega[]>(() => {
@@ -562,8 +580,17 @@ export class MiRutaComponent implements OnInit {
             await this.dibujarPolyline(path);
         }
 
+        const viaje = this.activeViaje();
         if (this.viajeEnProceso) {
-            await this.iniciarNavegacion();
+            if (!navegando) {
+                // La navegación se detuvo (p. ej. se reabrió la app): arrancar
+                // y restaurar la simulación guardada si existe (queda pausada).
+                await this.iniciarNavegacion();
+                if (viaje) await this.navigation.restaurarSimulacionSiExiste(viaje.id_viaje);
+                const posRest = this.navigation.posicionDriver();
+                if (posRest) await this.moverMarcadorChofer(posRest);
+            }
+            // Si ya navegando, se mantiene el recorrido actual (no se reinicia).
         } else if (this.navigation.navegando()) {
             this.navigation.detener();
         }
@@ -1026,19 +1053,19 @@ private detenerAnimacionMarcador() {
 
     abrirIncidencia(factura: ParadaMapa) {
         this.incidenciaGuia.set(factura);
-        this.incidenciaTexto.set('');
+        this.incidenciaDialog.guia = this.incidenciaGuiaData();
+        this.incidenciaDialog.open();
     }
 
     cerrarIncidencia() {
         this.incidenciaGuia.set(null);
-        this.incidenciaTexto.set('');
     }
 
-    async onIncidenciaConfirmada() {
+    async onIncidenciaConfirmada(texto: string) {
         const factura = this.incidenciaGuia();
         if (!factura) return;
         try {
-            await this.store.reportarIncidencia(factura.id, this.incidenciaTexto());
+            await this.store.reportarIncidencia(factura.id, texto);
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',
@@ -1128,6 +1155,7 @@ private detenerAnimacionMarcador() {
             await this.viajeService.finalizarViaje(viaje.id_viaje);
             await this.store.recargarViajes();
             this.puntoEntrega.set(null);
+            await this.navigation.limpiarSimulacionGuardada(viaje.id_viaje);
             this.messageService.add({
                 severity: 'success',
                 summary: 'Viaje finalizado',

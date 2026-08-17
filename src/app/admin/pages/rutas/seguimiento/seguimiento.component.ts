@@ -128,16 +128,25 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     readonly mapaListo = signal(false);
 
     readonly detalleAbierto = signal(false);
-    readonly detalleChofer = signal<ChoferMonitoreo | null>(null);
+    readonly detalleChoferId = signal<string | null>(null);
     readonly historial = signal<HistorialViajeRow[]>([]);
     readonly cargandoHistorial = signal(false);
     readonly errorHistorial = signal('');
 
+    /** Detalle del chofer seleccionado, derivado en vivo de `monitoreo`
+     *  (se actualiza en tiempo real con posiciones y viajes). */
+    readonly detalleActual = computed<ChoferMonitoreo | null>(() => {
+        const id = this.detalleChoferId();
+        return id ? this.monitoreo().find((c) => c.idChofer === id) ?? null : null;
+    });
+
     private mapa!: google.maps.Map;
     private markers = new Map<string, google.maps.marker.AdvancedMarkerElement>();
+    private puntosEntrega = new Map<string, google.maps.marker.AdvancedMarkerElement>();
     private polylines = new Map<string, google.maps.Polyline>();
     private ajustado = false;
     private tickTimer: ReturnType<typeof setInterval> | null = null;
+    private debounceHistorial: ReturnType<typeof setTimeout> | null = null;
 
     readonly monitoreo = computed<ChoferMonitoreo[]>(() => {
         const ahora = this.tick();
@@ -243,7 +252,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         const embarque = primeraGlobal('embarque');
         const proceso = primeraGlobal('proceso');
 
-        const detalle = this.detalleChofer();
+        const detalle = this.detalleActual();
         const viaje = detalle?.idViaje
             ? this.viajes().find((v) => v.id_viaje === detalle.idViaje)
             : null;
@@ -359,7 +368,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     });
 
     readonly paradasDetalle = computed<ParadaDetalle[]>(() => {
-        const c = this.detalleChofer();
+        const c = this.detalleActual();
         if (!c?.idViaje) return [];
         const viaje = this.viajes().find((v) => v.id_viaje === c.idViaje);
         if (!viaje) return [];
@@ -388,12 +397,33 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             this.choferSeleccionado();
             this.actualizarMarcadores();
             this.dibujarRutas();
+            this.actualizarPuntosEntrega();
         });
 
         effect(() => {
             if (!this.mapaListo()) return;
             const id = this.choferSeleccionado();
             if (id) this.encuadrarChofer(id);
+        });
+
+        // Refetch silencioso del historial del viaje cuando cambian sus datos
+        // en tiempo real (llegadas, entregas, incidencias) → Recorrido en vivo.
+        effect(() => {
+            const id = this.detalleChoferId();
+            const viajes = this.service.viajes();
+            const viaje = id
+                ? viajes.find(
+                      (v) =>
+                          v.id_chofer === id &&
+                          (v.estado === 'proceso' || v.estado === 'programado'),
+                  )
+                : null;
+            if (id && viaje?.id_viaje && this.detalleAbierto()) {
+                if (this.debounceHistorial) clearTimeout(this.debounceHistorial);
+                this.debounceHistorial = setTimeout(() => {
+                    void this.cargarHistorial(viaje.id_viaje, true);
+                }, 400);
+            }
         });
     }
 
@@ -405,8 +435,11 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         if (this.tickTimer) clearInterval(this.tickTimer);
+        if (this.debounceHistorial) clearTimeout(this.debounceHistorial);
         for (const m of this.markers.values()) m.map = null;
         this.markers.clear();
+        for (const m of this.puntosEntrega.values()) m.map = null;
+        this.puntosEntrega.clear();
         for (const p of this.polylines.values()) p.setMap(null);
         this.polylines.clear();
         if (this.mapa) {
@@ -421,7 +454,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     abrirDetalle(c: ChoferMonitoreo) {
         this.seleccionarChofer(c.idChofer);
-        this.detalleChofer.set(c);
+        this.detalleChoferId.set(c.idChofer);
         this.historial.set([]);
         this.errorHistorial.set('');
         this.detalleAbierto.set(true);
@@ -430,21 +463,25 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     cerrarDetalle() {
         this.detalleAbierto.set(false);
-        this.detalleChofer.set(null);
+        this.detalleChoferId.set(null);
         this.historial.set([]);
         this.errorHistorial.set('');
     }
 
-    async cargarHistorial(idViaje: string) {
-        this.cargandoHistorial.set(true);
-        this.errorHistorial.set('');
+    async cargarHistorial(idViaje: string, silencioso = false) {
+        if (!silencioso) this.cargandoHistorial.set(true);
+        if (!silencioso) this.errorHistorial.set('');
         try {
             this.historial.set(await this.service.obtenerHistorialViaje(idViaje));
         } catch (err: any) {
-            console.error('[Seguimiento] Error al cargar historial del viaje', err);
-            this.errorHistorial.set(err?.message || 'No se pudo cargar el historial del viaje.');
+            if (!silencioso) {
+                console.error('[Seguimiento] Error al cargar historial del viaje', err);
+                this.errorHistorial.set(
+                    err?.message || 'No se pudo cargar el historial del viaje.',
+                );
+            }
         } finally {
-            this.cargandoHistorial.set(false);
+            if (!silencioso) this.cargandoHistorial.set(false);
         }
     }
 
@@ -565,6 +602,85 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                 </div>
                 <span style="background:#fff;color:#111827;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap">${c.nombre}</span>
             </div>`;
+        return div.firstElementChild as HTMLElement;
+    }
+
+    /**
+     * Puntos de entrega en el mapa. Sin chofer seleccionado se muestran todos;
+     * al seleccionar un chofer solo los de su viaje. Azul = pendiente,
+     * verde = entregado, amarillo = incidencia.
+     */
+    private actualizarPuntosEntrega() {
+        if (!this.mapa) return;
+        const seleccion = this.choferSeleccionado();
+        const activos = this.viajes().filter(
+            (v) => v.estado === 'proceso' || v.estado === 'programado',
+        );
+        const viajes = seleccion ? activos.filter((v) => v.id_chofer === seleccion) : activos;
+
+        const visibles = new Map<
+            string,
+            { lat: number; lng: number; estado: string; orden: number; cliente: string }
+        >();
+        for (const v of viajes) {
+            for (const p of v.paradas) {
+                if (p.latitud == null || p.longitud == null) continue;
+                visibles.set(p.id_factura, {
+                    lat: p.latitud as number,
+                    lng: p.longitud as number,
+                    estado: p.estado_factura || '',
+                    orden: p.orden_visita,
+                    cliente: p.nombre_cliente || '',
+                });
+            }
+        }
+
+        for (const [id, m] of this.puntosEntrega) {
+            if (!visibles.has(id)) {
+                m.map = null;
+                this.puntosEntrega.delete(id);
+            }
+        }
+
+        for (const [id, info] of visibles) {
+            const m = this.puntosEntrega.get(id);
+            const pos = { lat: info.lat, lng: info.lng };
+            if (m) {
+                m.position = pos;
+                m.content = this.crearContenidoPuntoEntrega(info);
+            } else {
+                const nuevo = new google.maps.marker.AdvancedMarkerElement({
+                    position: pos,
+                    map: this.mapa,
+                    content: this.crearContenidoPuntoEntrega(info),
+                    title: `${info.orden}. ${info.cliente}`,
+                    zIndex: 4,
+                });
+                this.puntosEntrega.set(id, nuevo);
+            }
+        }
+    }
+
+    private crearContenidoPuntoEntrega(info: {
+        estado: string;
+        orden: number;
+        cliente: string;
+    }): HTMLElement {
+        const color =
+            info.estado === 'finalizado'
+                ? '#10b981'
+                : info.estado === 'incidencia'
+                  ? '#f59e0b'
+                  : '#3b82f6';
+        const icono =
+            info.estado === 'finalizado'
+                ? '&#10003;'
+                : info.estado === 'incidencia'
+                  ? '&#33;'
+                  : String(info.orden);
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <div style="width:24px;height:24px;background:${color};border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">${icono}</div>`;
         return div.firstElementChild as HTMLElement;
     }
 

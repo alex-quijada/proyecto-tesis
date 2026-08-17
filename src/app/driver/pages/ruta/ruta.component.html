@@ -7,6 +7,42 @@
             <span class="flex-1">Estás viendo la ruta guardada sin conexión</span>
         </div>
     }
+
+    <!-- Aviso: ruta lista → ir al mapa -->
+    @if (avisoIrMapa()) {
+        <div
+            class="flex items-center gap-3 bg-primary-50 dark:bg-primary-950 border border-primary-300 dark:border-primary-500/40 rounded-xl px-3 py-3"
+        >
+            <div
+                class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0"
+            >
+                <i class="pi pi-route text-lg"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-surface-800 dark:text-surface-100">
+                    Ruta lista
+                </div>
+                <div class="text-xs text-surface-500">Avanza al mapa para iniciar el viaje.</div>
+            </div>
+            <p-button
+                label="Ir al mapa"
+                icon="pi pi-map"
+                size="small"
+                severity="success"
+                (onClick)="irAlMapa()"
+                styleClass="flex-shrink-0"
+            />
+            <p-button
+                icon="pi pi-times"
+                text
+                size="small"
+                severity="secondary"
+                (onClick)="cerrarAvisoMapa()"
+                pTooltip="Cerrar"
+                tooltipPosition="left"
+            />
+        </div>
+    }
     <!-- Avance del día -->
     <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm p-4">
         @if (cargando()) {
@@ -69,25 +105,6 @@
                 ><i class="pi pi-truck"></i>{{ viaje.placa_vehiculo || '—' }}</span
             >
         </div>
-    }
-
-    @if (store.driverInfo()?.vehiculos; as vehiculos) {
-        @if (vehiculos.length > 0) {
-            <div class="flex gap-2 overflow-x-auto pb-1">
-                @for (v of vehiculos; track v.id) {
-                    <div
-                        class="flex items-center gap-1.5 bg-white dark:bg-surface-800 rounded-full shadow-sm px-3 py-1.5 flex-shrink-0"
-                    >
-                        <i class="pi pi-truck text-sm text-primary"></i>
-                        <span
-                            class="text-sm font-medium text-surface-500 dark:text-surface-300 whitespace-nowrap"
-                            >{{ v.placa }}</span
-                        >
-                        <span class="text-xs text-surface-400">{{ v.tipo }}</span>
-                    </div>
-                }
-            </div>
-        }
     }
 
     @if (cargando()) {

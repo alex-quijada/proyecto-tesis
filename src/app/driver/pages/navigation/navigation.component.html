@@ -230,45 +230,9 @@
     />
 
     <!-- ===== DIALOG DE INCIDENCIA ===== -->
-    <p-dialog
-        [visible]="!!incidenciaGuia()"
-        [modal]="true"
-        [style]="{ width: '95%', maxWidth: '420px' }"
-        header="Reportar incidencia"
-        (onHide)="cerrarIncidencia()"
-    >
-        <div class="space-y-3">
-            @if (incidenciaGuia(); as f) {
-                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-sm">
-                    <div class="text-surface-700 dark:text-surface-200 font-semibold">
-                        {{ f.nombreCliente }}
-                    </div>
-                    <div class="text-xs text-surface-400 font-mono mt-0.5">
-                        {{ f.numeroGuia }} · {{ f.numeroFactura }}
-                    </div>
-                </div>
-            }
-            <textarea
-                pTextarea
-                rows="3"
-                placeholder="Describe la incidencia..."
-                [ngModel]="incidenciaTexto()"
-                (ngModelChange)="incidenciaTexto.set($event)"
-                styleClass="w-full"
-            ></textarea>
-        </div>
-        <ng-template pTemplate="footer">
-            <div class="flex gap-2 w-full">
-                <p-button label="Cancelar" severity="secondary" (onClick)="cerrarIncidencia()" styleClass="flex-1" />
-                <p-button
-                    label="Confirmar"
-                    severity="danger"
-                    icon="pi pi-exclamation-triangle"
-                    [disabled]="!incidenciaTexto().trim()"
-                    (onClick)="onIncidenciaConfirmada()"
-                    styleClass="flex-1"
-                />
-            </div>
-        </ng-template>
-    </p-dialog>
+    <app-incidencia-dialog
+        [guia]="incidenciaGuiaData()"
+        (confirm)="onIncidenciaConfirmada($event)"
+        (cancel)="cerrarIncidencia()"
+    />
 </div>
