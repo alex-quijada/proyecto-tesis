@@ -156,20 +156,25 @@ export class MiRutaComponent implements OnInit {
             this.sincronizarParadas();
         });
 
-        // Al completar todas las facturas del punto, volver al panel de navegación.
+        // Al completar todas las facturas del punto, volver al panel de navegación
+        // y reanudar la simulación (que quedó detenida en la parada).
         effect(() => {
             const punto = this.puntoActual();
             if (!punto) return;
             const pendientes = punto.facturas.filter(
                 (f) => f.estado !== 'finalizado' && f.estado !== 'incidencia',
             );
-            if (pendientes.length === 0) this.puntoEntrega.set(null);
+            if (pendientes.length === 0) {
+                this.puntoEntrega.set(null);
+                this.navigation.reanudarTrasEntrega();
+            }
         });
 
         this.destroyRef.onDestroy(() => {
             window.removeEventListener('resize', medirOffsets);
             document.documentElement.classList.remove('mapa-nativo');
             if (this.navigation.onLlegadaParada) this.navigation.onLlegadaParada = null;
+            this.detenerAnimacionMarcador();
             if (this.mapa) void this.mapa.destroy().catch(() => undefined);
         });
     }
@@ -280,9 +285,14 @@ export class MiRutaComponent implements OnInit {
     private routePolylineIds: string[] = [];
     private segmentPolylineIds: string[] = [];
     private currentLocationEnabled = false;
-    private ultimoRefreshMarker = 0;
-    private sheetDragStartY = 0;
-    private sheetDragActivo = false;
+    private driverPosDisplay: LatLng | null = null;
+    private animMarcador: ReturnType<typeof setInterval> | null = null;
+    private marcadorDestino: LatLng | null = null;
+    private marcadorActualizando = false;
+    private ultimoSeguimientoCamara = 0;
+    private sheetPointer = { x: 0, y: 0 };
+    private sheetPointerActivo = false;
+    private arrastreReconocido = false;
 
     readonly activeViaje = computed(() => this.store.viajesChofer()[0] || null);
 
@@ -603,6 +613,8 @@ export class MiRutaComponent implements OnInit {
                     console.error('enableCurrentLocation', err);
                 }
             }
+            this.detenerAnimacionMarcador();
+            this.driverPosDisplay = null;
             await this.quitarMarcadorDriver();
             if (navegando && this.siguiendo()) {
                 await this.seguirCamara(pos);
@@ -619,27 +631,102 @@ export class MiRutaComponent implements OnInit {
             }
         }
 
-        // En nativo no existe mover un marker: se recrea con throttle (~1 s) para no saturar el bridge.
-        const ahora = Date.now();
-        if (this.esNativo && ahora - this.ultimoRefreshMarker < 1000) return;
-        this.ultimoRefreshMarker = ahora;
+        // Marcador propio (web o modo simulación): persigue el destino con
+        // suavizado (la cámara la sigue el propio bucle para no perder el punto).
+        this.animarMarcadorHasta(pos);
+    }
 
-        await this.quitarMarcadorDriver();
-        try {
-            this.driverMarkerId = await this.mapa.addMarker({
+    private colocarMarcadorDriver(pos: LatLng) {
+        // Guard: solo una colocación en curso; el siguiente paso la retoma.
+        if (this.marcadorActualizando) return;
+        this.marcadorActualizando = true;
+
+        const viejoId = this.driverMarkerId;
+        void this.mapa
+            .addMarker({
                 coordinate: { lat: pos.lat, lng: pos.lng },
                 title: 'Tu posición',
                 tintColor: { r: 37, g: 99, b: 235, a: 255 },
                 zIndex: 99,
+            })
+            .then(async (nuevoId) => {
+                this.driverMarkerId = nuevoId;
+                this.driverPosDisplay = pos;
+                if (viejoId) {
+                    try {
+                        await this.mapa.removeMarker(viejoId);
+                    } catch {
+                        /* noop */
+                    }
+                }
+            })
+            .catch((err) => console.error('Error moviendo el marcador del chofer', err))
+            .finally(() => {
+                this.marcadorActualizando = false;
             });
-        } catch (err) {
-            console.error('Error moviendo el marcador del chofer', err);
-        }
-
-        if (navegando && this.siguiendo()) {
-            await this.seguirCamara(pos);
-        }
     }
+
+    /**
+ * Bucle de persecución del marcador. Un único intervalo que NUNCA se cancela
+ * por nuevas lecturas: cuando llega una posición solo se actualiza el destino,
+ * y el marcador se acerca exponencialmente a él. Así no se queda clavado
+ * (el bug del tween anterior) y el movimiento se ve suave.
+ */
+private animarMarcadorHasta(destino: LatLng) {
+    this.marcadorDestino = destino;
+    if (this.animMarcador) return;
+
+    this.driverPosDisplay = this.driverPosDisplay ?? destino;
+    this.animMarcador = setInterval(() => this.pasoMarcador(), this.pasoMarcadorMs());
+}
+
+private pasoMarcador() {
+    const destino = this.marcadorDestino;
+    const origen = this.driverPosDisplay;
+    if (!destino || !origen) {
+        this.detenerAnimacionMarcador();
+        return;
+    }
+
+    const alpha = 1 - Math.exp(-this.pasoMarcadorMs() / this.tauMarcadorMs());
+    const pos: LatLng = {
+        lat: origen.lat + (destino.lat - origen.lat) * alpha,
+        lng: origen.lng + (destino.lng - origen.lng) * alpha,
+    };
+
+    if (haversine(origen, destino) < 2) {
+        void this.colocarMarcadorDriver(destino);
+        this.detenerAnimacionMarcador();
+    } else {
+        void this.colocarMarcadorDriver(pos);
+    }
+
+    // La cámara sigue el marcador (no la posición cruda) para que el punto
+    // nunca se salga de pantalla; se limita la frecuencia de setCamera.
+    if (
+        this.navigation.navegando() &&
+        this.siguiendo() &&
+        Date.now() - this.ultimoSeguimientoCamara > 150
+    ) {
+        this.ultimoSeguimientoCamara = Date.now();
+        void this.seguirCamara(pos);
+    }
+}
+
+private pasoMarcadorMs(): number {
+        return this.esNativo ? 200 : 50;
+    }
+
+    private tauMarcadorMs(): number {
+        return this.esNativo ? 120 : 80;
+    }
+
+private detenerAnimacionMarcador() {
+    if (this.animMarcador) {
+        clearInterval(this.animMarcador);
+        this.animMarcador = null;
+    }
+}
 
     /**
      * Mueve la cámara siguiendo al chofer. Con `vista3d` activa usa la
@@ -784,6 +871,20 @@ export class MiRutaComponent implements OnInit {
         this.navigation.setModoSimulacion(v === 'simulacion');
     }
 
+    readonly velocidadOpciones = [
+        { label: 'Lenta', value: 15 },
+        { label: 'Normal', value: 40 },
+        { label: 'Rápida', value: 90 },
+    ];
+
+    get velocidadSeleccionada(): number {
+        return this.navigation.velocidadSimulacion();
+    }
+
+    set velocidadSeleccionada(v: number) {
+        this.navigation.setVelocidadSimulacion(v);
+    }
+
     reiniciarSimulacion() {
         this.navigation.reiniciarSimulacion();
     }
@@ -796,77 +897,57 @@ export class MiRutaComponent implements OnInit {
         this.verPasos.update((v) => !v);
     }
 
-    /** Gesto pull up/pull down sobre el grabber de los pasos (arriba). */
-    onTopSheetDragStart(event: TouchEvent | MouseEvent) {
-        this.sheetDragStartY = this.eventY(event);
-        this.sheetDragActivo = true;
+    /**
+     * Gestos de los sheets. Pointer events unifican touch + mouse: el tap
+     * alterna y un arrastre de > 40 px hacia arriba/abajo abre/cierra.
+     * El `click` es el fallback fiable del tap (se suprime si hubo arrastre).
+     */
+    onSheetPointerDown(event: PointerEvent, tipo: 'top' | 'puntos' | 'bottom') {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        this.sheetPointer = { x: event.clientX, y: event.clientY };
+        this.sheetPointerActivo = true;
+        this.arrastreReconocido = false;
     }
 
-    onTopSheetDragEnd(event: TouchEvent | MouseEvent) {
-        this.resolverDragSheet(this.pasosAbiertos, event);
-    }
-
-    /** Gesto pull up/pull down sobre el grabber de "Puntos de entrega" (abajo). */
-    onPuntosSheetDragStart(event: TouchEvent | MouseEvent) {
-        this.sheetDragStartY = this.eventY(event);
-        this.sheetDragActivo = true;
-    }
-
-    onPuntosSheetDragEnd(event: TouchEvent | MouseEvent) {
-        this.resolverDragSheet(this.puntosAbiertos, event);
-    }
-
-    private resolverDragSheet(
-        sig: { set(v: boolean): void; update(f: (v: boolean) => boolean): void },
-        event: TouchEvent | MouseEvent,
-    ) {
-        if (!this.sheetDragActivo) return;
-        this.sheetDragActivo = false;
-        const delta = this.eventY(event) - this.sheetDragStartY;
-        if (Math.abs(delta) < 40) {
-            sig.update((v) => !v);
-        } else if (delta > 0) {
+    onSheetPointerUp(event: PointerEvent, tipo: 'top' | 'puntos' | 'bottom') {
+        if (!this.sheetPointerActivo) return;
+        this.sheetPointerActivo = false;
+        const dist = Math.hypot(
+            event.clientX - this.sheetPointer.x,
+            event.clientY - this.sheetPointer.y,
+        );
+        if (dist < 8) return;
+        this.arrastreReconocido = true;
+        const dy = event.clientY - this.sheetPointer.y;
+        const sig = this.sigSheet(tipo);
+        if (dy > 40) {
             sig.set(false);
-        } else {
+        } else if (dy < -40) {
             sig.set(true);
         }
     }
 
+    onSheetPointerCancel() {
+        this.sheetPointerActivo = false;
+        this.arrastreReconocido = false;
+    }
+
+    onSheetClick(tipo: 'top' | 'puntos' | 'bottom') {
+        if (this.arrastreReconocido) {
+            this.arrastreReconocido = false;
+            return;
+        }
+        this.sigSheet(tipo).update((v) => !v);
+    }
+
+    private sigSheet(tipo: 'top' | 'puntos' | 'bottom') {
+        if (tipo === 'top') return this.pasosAbiertos;
+        if (tipo === 'puntos') return this.puntosAbiertos;
+        return this.sheetExpandido;
+    }
+
     toggleControles() {
         this.controlesAbiertos.update((v) => !v);
-    }
-
-    toggleSheet() {
-        this.sheetExpandido.update((v) => !v);
-    }
-
-    /** Gesto tipo "pull down / pull up" sobre el grabber del bottom sheet. */
-    onSheetDragStart(event: TouchEvent | MouseEvent) {
-        this.sheetDragStartY = this.eventY(event);
-        this.sheetDragActivo = true;
-    }
-
-    onSheetDragEnd(event: TouchEvent | MouseEvent) {
-        if (!this.sheetDragActivo) return;
-        this.sheetDragActivo = false;
-        const delta = this.eventY(event) - this.sheetDragStartY;
-        // Arrastre hacia abajo (>40px): cerrar. Hacia arriba (<-40px): abrir.
-        // Sin arrastre (tap): alternar.
-        if (Math.abs(delta) < 40) {
-            this.toggleSheet();
-        } else if (delta > 0) {
-            this.sheetExpandido.set(false);
-        } else {
-            this.sheetExpandido.set(true);
-        }
-    }
-
-    private eventY(event: TouchEvent | MouseEvent): number {
-        if (event instanceof TouchEvent) {
-            const touch = event.changedTouches?.[0] ?? event.touches?.[0];
-            return touch ? touch.clientY : 0;
-        }
-        return (event as MouseEvent).clientY;
     }
 
     formatearDistancia(m: number): string {

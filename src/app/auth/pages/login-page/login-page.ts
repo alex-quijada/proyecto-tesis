@@ -34,12 +34,15 @@ export class LoginPage implements OnInit {
     private router = inject(Router);
     private route = inject(ActivatedRoute);
 
+    private readonly KEY_EMAIL_RECORDADO = 'login_recordarme_email';
+
     hasError = signal(false);
     sesionExpirada = signal(false);
     motivoCierre = signal('');
     isPosting = signal(false);
 
     ngOnInit() {
+        this.recuperarEmailRecordado();
         if (this.route.snapshot.queryParams['sesionExpirada'] === 'true') {
             this.sesionExpirada.set(true);
             try {
@@ -67,13 +70,16 @@ export class LoginPage implements OnInit {
         this.hasError.set(false);
         this.isPosting.set(true);
 
-        const { email, password } = this.loginForm.getRawValue();
+        const { email, password, rememberMe } = this.loginForm.getRawValue();
 
         try {
             // 1. Esperar a que Supabase autentique al usuario y nos devuelva sus datos
             const data = await this.authService.login(email!, password!);
 
-            // 2. Extraemos el rol directamente del usuario retornado por la promesa de login
+            // 2. "Recordarme": guarda el email para precargarlo la próxima vez
+            this.guardarEmailRecordado(email!, !!rememberMe);
+
+            // 3. Extraemos el rol directamente del usuario retornado por la promesa de login
             // Esto evita problemas de sincronización con el BehaviorSubject
             const userRole = data.user?.user_metadata?.['nombre_rol'];
             const role = userRole ? String(userRole).toLowerCase() : '';
@@ -95,6 +101,29 @@ export class LoginPage implements OnInit {
             this.hasError.set(true);
         } finally {
             this.isPosting.set(false);
+        }
+    }
+
+    private recuperarEmailRecordado() {
+        try {
+            const email = localStorage.getItem(this.KEY_EMAIL_RECORDADO);
+            if (email) {
+                this.loginForm.patchValue({ email, rememberMe: true });
+            }
+        } catch {
+            /* ignora */
+        }
+    }
+
+    private guardarEmailRecordado(email: string, recordar: boolean) {
+        try {
+            if (recordar) {
+                localStorage.setItem(this.KEY_EMAIL_RECORDADO, email);
+            } else {
+                localStorage.removeItem(this.KEY_EMAIL_RECORDADO);
+            }
+        } catch {
+            /* ignora */
         }
     }
 }

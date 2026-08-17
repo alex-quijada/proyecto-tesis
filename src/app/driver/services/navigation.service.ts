@@ -32,8 +32,9 @@ const UMBRAL_PASO_M = 25;
 const UMBRAL_LLEGADA_M = 40;
 const UMBRAL_RE_RUTEO_M = 300;
 const DEBOUNCE_RE_RUTEO_MS = 60000;
-const SIM_VELOCIDAD_M_POR_TICK = 250;
 const SIM_INTERVALO_MS = 200;
+/** Velocidad de la simulación en m/s (configurable desde la UI). */
+const VELOCIDAD_SIMULACION_DEFAULT = 40;
 
 @Injectable()
 export class NavigationService {
@@ -55,6 +56,8 @@ export class NavigationService {
     readonly distRestanteParada = signal(0);
     readonly recalculando = signal(false);
     readonly totalParadas = signal(0);
+    /** Velocidad de la simulación en m/s (cambiable desde la UI). */
+    readonly velocidadSimulacion = signal(VELOCIDAD_SIMULACION_DEFAULT);
 
     private paradas: ParadaNavegacion[] = [];
     private warehouse: Waypoint = { lat: 0, lng: 0, name: '' };
@@ -66,6 +69,7 @@ export class NavigationService {
     private ultimoReRuteo = 0;
     private ultimaPos: LatLng | null = null;
     private ultimaLlegadaAnunciada = -1;
+    private pausaPorEntrega = false;
     private readonly esNativo = Capacitor.isNativePlatform();
 
     /** Hook invocado al detectar la llegada a una parada (antes de avanzar). */
@@ -136,6 +140,10 @@ export class NavigationService {
         this.setModoSimulacion(!this.simulando());
     }
 
+    setVelocidadSimulacion(v: number) {
+        this.velocidadSimulacion.set(v);
+    }
+
     togglePausa() {
         if (!this.navegando() || !this.simulando()) return;
         if (this.pausado()) {
@@ -145,6 +153,23 @@ export class NavigationService {
             this.pausado.set(true);
             this.detenerSimulacion();
         }
+    }
+
+    /** Pausa la simulación al llegar a una parada hasta completar la entrega. */
+    pausarParaEntrega() {
+        if (!this.navegando() || !this.simulando() || this.pausado()) return;
+        this.pausaPorEntrega = true;
+        this.pausado.set(true);
+        this.detenerSimulacion();
+    }
+
+    /** Reanuda la simulación tras completar la entrega de la parada. */
+    reanudarTrasEntrega() {
+        if (!this.pausaPorEntrega) return;
+        this.pausaPorEntrega = false;
+        if (!this.navegando() || !this.simulando() || !this.pausado()) return;
+        this.pausado.set(false);
+        this.reanudarSimulacion();
     }
 
     setModoSimulacion(activo: boolean) {
@@ -327,10 +352,8 @@ export class NavigationService {
         const mover = () => {
             const total = this.simDistAcum[this.simDistAcum.length - 1];
             if (total <= 0) return;
-            this.simDistanciaAcumulada = Math.min(
-                total,
-                this.simDistanciaAcumulada + SIM_VELOCIDAD_M_POR_TICK,
-            );
+            const avance = this.velocidadSimulacion() * (SIM_INTERVALO_MS / 1000);
+            this.simDistanciaAcumulada = Math.min(total, this.simDistanciaAcumulada + avance);
 
             const pos = this.posicionEnDistancia(this.simDistanciaAcumulada);
             if (pos) this.manejarPosicion(pos.lat, pos.lng);
@@ -412,6 +435,8 @@ export class NavigationService {
             if (idx === this.ultimaLlegadaAnunciada) return;
             this.ultimaLlegadaAnunciada = idx;
             this.onLlegadaParada?.(idx);
+            // En simulación: detenerse en la parada hasta completar la entrega.
+            this.pausarParaEntrega();
             if (idx < paradas.length - 1) {
                 this.paradaActual.set(idx + 1);
                 this.messageService.add({

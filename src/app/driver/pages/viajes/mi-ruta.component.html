@@ -6,52 +6,53 @@
     <!-- Mapa a pantalla completa (SDK nativo vía @capacitor/google-maps) -->
     <capacitor-google-map #mapaElement class="absolute inset-0"></capacitor-google-map>
 
-    <!-- Maniobra + siguientes pasos: franja desde arriba, redondeada abajo -->
+    <!-- Maniobra + siguientes pasos: franja desde arriba, redondeada abajo.
+         Toda la tarjeta es tappable para abrir/cerrar los pasos. -->
     @if (navigation.navegando()) {
         <div
             class="absolute top-0 inset-x-0 z-10 bg-white dark:bg-surface-800 rounded-b-2xl shadow-md text-surface-900 dark:text-surface-100"
         >
-            <!-- Maniobra grande -->
-            <div class="px-4 py-3 flex items-center gap-3">
-                <div
-                    class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center text-2xl flex-shrink-0"
-                >
-                    @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
-                        <i [class]="iconoManiobra(paso.maniobra)"></i>
-                    } @else {
-                        <i class="pi pi-arrow-up"></i>
-                    }
-                </div>
-                <div class="min-w-0 flex-1">
-                    @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
-                        <div class="text-base font-semibold truncate">
-                            {{ limpiarHtmlInstruccion(paso.instruccion) }}
-                        </div>
-                        <div class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
-                            {{ formatearDistancia(navigation.distRestantePaso()) }} ·
-                            {{ formatearDuracion(paso.duracion) }}
-                        </div>
-                    } @else {
-                        <div class="text-base font-semibold">Preparando navegación...</div>
-                    }
-                </div>
-                @if (navigation.recalculando()) {
-                    <span class="text-xs text-primary flex items-center gap-1 flex-shrink-0">
-                        <i class="pi pi-spin pi-spinner"></i> Recalculando
-                    </span>
-                }
-            </div>
-
-            <!-- Próximos pasos: sheet colapsable (gestos táctiles) -->
             <div
-                class="cursor-pointer touch-none border-t border-surface-100 dark:border-surface-700"
-                (touchstart)="onTopSheetDragStart($event)"
-                (touchend)="onTopSheetDragEnd($event)"
-                (mousedown)="onTopSheetDragStart($event)"
-                (mouseup)="onTopSheetDragEnd($event)"
+                class="cursor-pointer touch-none select-none"
+                (pointerdown)="onSheetPointerDown($event, 'top')"
+                (pointerup)="onSheetPointerUp($event, 'top')"
+                (pointercancel)="onSheetPointerCancel()"
+                (click)="onSheetClick('top')"
             >
+                <!-- Maniobra grande -->
+                <div class="px-4 py-3 flex items-center gap-3">
+                    <div
+                        class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center text-2xl flex-shrink-0"
+                    >
+                        @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
+                            <i [class]="iconoManiobra(paso.maniobra)"></i>
+                        } @else {
+                            <i class="pi pi-arrow-up"></i>
+                        }
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        @if (navigation.pasos()[navigation.pasoActual()]; as paso) {
+                            <div class="text-base font-semibold truncate">
+                                {{ limpiarHtmlInstruccion(paso.instruccion) }}
+                            </div>
+                            <div class="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                                {{ formatearDistancia(navigation.distRestantePaso()) }} ·
+                                {{ formatearDuracion(paso.duracion) }}
+                            </div>
+                        } @else {
+                            <div class="text-base font-semibold">Preparando navegación...</div>
+                        }
+                    </div>
+                    @if (navigation.recalculando()) {
+                        <span class="text-xs text-primary flex items-center gap-1 flex-shrink-0">
+                            <i class="pi pi-spin pi-spinner"></i> Recalculando
+                        </span>
+                    }
+                </div>
+
+                <!-- Encabezado "Próximos pasos" + grabber -->
                 <div
-                    class="flex items-center justify-between px-4 pt-2.5 pb-1 text-xs font-semibold text-surface-600 dark:text-surface-300"
+                    class="flex items-center justify-between px-4 pb-1 text-xs font-semibold text-surface-600 dark:text-surface-300"
                 >
                     <span>
                         Próximos pasos
@@ -61,37 +62,39 @@
                             {{ pasosSiguientes().length }}
                         </span>
                     </span>
+                    <i
+                        class="pi pi-chevron-down text-[10px] transition-transform duration-200"
+                        [class.rotate-180]="pasosAbiertos()"
+                    ></i>
                 </div>
-
-                <!-- Siguientes 3 pasos -->
-                @if (pasosAbiertos()) {
-                    <div class="px-4 pb-2 max-h-[7rem] overflow-y-auto">
-                        @for (paso of pasosSiguientes(); track $index) {
-                            <div
-                                class="flex items-center gap-2 py-1 text-xs text-surface-600 dark:text-surface-300"
-                            >
-                                <i class="text-surface-400" [class]="iconoManiobra(paso.maniobra)"></i>
-                                <span class="truncate">{{
-                                    limpiarHtmlInstruccion(paso.instruccion)
-                                }}</span>
-                                <span class="text-surface-400 ml-auto flex-shrink-0">{{
-                                    formatearDistancia(paso.distancia)
-                                }}</span>
-                            </div>
-                        }
-                        @if (pasosSiguientes().length === 0) {
-                            <div class="text-xs text-surface-400 py-1">Último tramo del viaje</div>
-                        }
-                    </div>
-                }
-
-                <!-- Grabber debajo de todos los pasos -->
-                <div class="flex items-center justify-center pb-2">
+                <div class="flex items-center justify-center pb-2.5">
                     <div
                         class="w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
                     ></div>
                 </div>
             </div>
+
+            <!-- Siguientes 3 pasos: lista scrollable (fuera del área tappable) -->
+            @if (pasosAbiertos()) {
+                <div class="px-4 pb-2 max-h-[7rem] overflow-y-auto">
+                    @for (paso of pasosSiguientes(); track $index) {
+                        <div
+                            class="flex items-center gap-2 py-1 text-xs text-surface-600 dark:text-surface-300"
+                        >
+                            <i class="text-surface-400" [class]="iconoManiobra(paso.maniobra)"></i>
+                            <span class="truncate">{{
+                                limpiarHtmlInstruccion(paso.instruccion)
+                            }}</span>
+                            <span class="text-surface-400 ml-auto flex-shrink-0">{{
+                                formatearDistancia(paso.distancia)
+                            }}</span>
+                        </div>
+                    }
+                    @if (pasosSiguientes().length === 0) {
+                        <div class="text-xs text-surface-400 py-1">Último tramo del viaje</div>
+                    }
+                </div>
+            }
         </div>
     }
 
@@ -101,13 +104,13 @@
             <div
                 class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-t-2xl shadow-lg overflow-hidden"
             >
-                <!-- Grabber arriba del todo: colapsa/expande "Puntos de entrega" (gestos táctiles) -->
+                <!-- Grabber arriba del todo: colapsa/expande "Puntos de entrega" -->
                 <div
-                    class="flex items-center justify-center pt-2.5 pb-1 cursor-pointer touch-none"
-                    (touchstart)="onPuntosSheetDragStart($event)"
-                    (touchend)="onPuntosSheetDragEnd($event)"
-                    (mousedown)="onPuntosSheetDragStart($event)"
-                    (mouseup)="onPuntosSheetDragEnd($event)"
+                    class="flex items-center justify-center pt-3 pb-1 cursor-pointer touch-none select-none"
+                    (pointerdown)="onSheetPointerDown($event, 'puntos')"
+                    (pointerup)="onSheetPointerUp($event, 'puntos')"
+                    (pointercancel)="onSheetPointerCancel()"
+                    (click)="onSheetClick('puntos')"
                 >
                     <div
                         class="w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
@@ -181,10 +184,14 @@
                     </div>
                 }
 
-                <!-- Puntos de entrega: sheet colapsable (controlado por el grabber superior) -->
+                <!-- Puntos de entrega: header tappable (controlado por el grabber superior) -->
                 <div class="border-t border-surface-100 dark:border-surface-700">
                     <div
-                        class="flex items-center justify-between px-4 pt-2 pb-1 text-xs font-semibold text-surface-600 dark:text-surface-300"
+                        class="flex items-center justify-between px-4 pt-2 pb-1 text-xs font-semibold text-surface-600 dark:text-surface-300 cursor-pointer touch-none select-none"
+                        (pointerdown)="onSheetPointerDown($event, 'puntos')"
+                        (pointerup)="onSheetPointerUp($event, 'puntos')"
+                        (pointercancel)="onSheetPointerCancel()"
+                        (click)="onSheetClick('puntos')"
                     >
                         <span>
                             Puntos de entrega
@@ -194,6 +201,10 @@
                                 {{ puntos().length }}
                             </span>
                         </span>
+                        <i
+                            class="pi pi-chevron-down text-[10px] transition-transform duration-200"
+                            [class.rotate-180]="puntosAbiertos()"
+                        ></i>
                     </div>
 
                     @if (puntosAbiertos()) {
@@ -468,13 +479,13 @@
             <div
                 class="bg-white/95 dark:bg-surface-800/95 backdrop-blur shadow-lg rounded-t-2xl overflow-hidden"
             >
-                <!-- Grabber: línea de arrastre (estilo móvil) -->
+                <!-- Grabber + header: toca para expandir/colapsar -->
                 <div
-                    class="pt-2.5 pb-1 cursor-pointer touch-none"
-                    (touchstart)="onSheetDragStart($event)"
-                    (touchend)="onSheetDragEnd($event)"
-                    (mousedown)="onSheetDragStart($event)"
-                    (mouseup)="onSheetDragEnd($event)"
+                    class="pt-3 pb-1 cursor-pointer touch-none select-none"
+                    (pointerdown)="onSheetPointerDown($event, 'bottom')"
+                    (pointerup)="onSheetPointerUp($event, 'bottom')"
+                    (pointercancel)="onSheetPointerCancel()"
+                    (click)="onSheetClick('bottom')"
                 >
                     <div
                         class="mx-auto w-10 h-1 rounded-full bg-surface-300 dark:bg-surface-600"
@@ -490,6 +501,10 @@
                                 {{ paradas().length }}
                             </span>
                         </span>
+                        <i
+                            class="pi pi-chevron-down text-[10px] transition-transform duration-200"
+                            [class.rotate-180]="sheetExpandido()"
+                        ></i>
                     </div>
                 </div>
 
@@ -526,6 +541,17 @@
                                 styleClass="w-full"
                             />
                         </div>
+                        @if (modoNavegacion === 'simulacion') {
+                            <div class="mb-3">
+                                <p-selectbutton
+                                    [options]="velocidadOpciones"
+                                    [(ngModel)]="velocidadSeleccionada"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    styleClass="w-full"
+                                />
+                            </div>
+                        }
                         <p-button
                             [icon]="modoNavegacion === 'simulacion' ? 'pi pi-play' : 'pi pi-truck'"
                             [label]="

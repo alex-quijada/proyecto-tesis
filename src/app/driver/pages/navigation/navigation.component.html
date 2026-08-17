@@ -1,0 +1,274 @@
+<div
+    class="fixed left-0 right-0 z-10 overflow-hidden"
+    [style.top.px]="topOffset()"
+    [style.bottom.px]="bottomOffset()"
+>
+    <p-toast position="top-center" />
+
+    <!-- Barra superior compacta -->
+    @if (!cargando() && !error()) {
+        <div class="absolute top-2 inset-x-0 z-10 px-3">
+            <div
+                class="bg-white/90 dark:bg-surface-800/90 backdrop-blur rounded-xl shadow px-3 py-2 flex items-center gap-3"
+            >
+                <i class="pi pi-directions text-primary"></i>
+                <div class="min-w-0 flex-1">
+                    <div class="text-sm font-semibold text-surface-800 dark:text-surface-100 truncate">
+                        Parada {{ stopIndex() + 1 }}/{{ puntos().length }} · {{ paradaActual() }}
+                    </div>
+                    @if (finalDestino()) {
+                        <div class="text-xs text-emerald-600 dark:text-emerald-400">
+                            En el almacén — viaje por finalizar
+                        </div>
+                    } @else {
+                        <div class="text-xs text-surface-500 dark:text-surface-400">
+                            {{ formatearDistancia(restanteDist()) }} ·
+                            {{ formatearTiempo(restanteTiempo()) }}
+                        </div>
+                    }
+                </div>
+                @if (simulando()) {
+                    <p-tag value="Simulado" severity="warn" icon="pi pi-play" styleClass="!text-[10px]" />
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Finalizar viaje (al volver al almacén con todo entregado) -->
+    @if (finalDestino() && viajeCompletado() && !cargando()) {
+        <div class="absolute top-2 inset-x-0 z-20 px-3 mt-24">
+            <div class="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30 rounded-xl p-3">
+                <p-button
+                    label="Finalizar viaje"
+                    icon="pi pi-flag"
+                    severity="success"
+                    [loading]="finalizando()"
+                    (onClick)="finalizarViaje()"
+                    styleClass="w-full text-base py-3"
+                />
+            </div>
+        </div>
+    }
+
+    <!-- Controles flotantes (esquina inferior derecha) -->
+    @if (!cargando() && !error()) {
+        <div class="absolute bottom-4 right-3 z-10 flex flex-col gap-2">
+            <p-button
+                [icon]="pausado() ? 'pi pi-play' : 'pi pi-pause'"
+                [rounded]="true"
+                severity="secondary"
+                [outlined]="true"
+                (onClick)="togglePausaSim()"
+                pTooltip="{{ pausado() ? 'Reanudar simulación' : 'Pausar simulación' }}"
+                tooltipPosition="left"
+            />
+            <p-button
+                icon="pi pi-arrow-right"
+                [rounded]="true"
+                severity="primary"
+                [disabled]="!!puntoEntrega() || finalDestino()"
+                (onClick)="siguienteParada()"
+                pTooltip="Siguiente parada"
+                tooltipPosition="left"
+            />
+            <p-button
+                icon="pi pi-stop"
+                [rounded]="true"
+                severity="danger"
+                [text]="true"
+                (onClick)="detenerNavegacion()"
+                pTooltip="Detener navegación"
+                tooltipPosition="left"
+            />
+        </div>
+    }
+
+    <!-- Sheet de entrega -->
+    @if (puntoActual(); as punto) {
+        <div class="absolute inset-x-0 bottom-0 z-20">
+            <div
+                class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-t-2xl shadow-lg max-h-[55vh] overflow-y-auto"
+            >
+                @if (facturasEnEntrega().length > 0) {
+                    <div class="p-3 border-b border-surface-100 dark:border-surface-700">
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-box text-fuchsia-500"></i>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-semibold truncate">{{ punto.nombreCliente }}</div>
+                                <div class="text-xs text-surface-400 truncate">{{ punto.direccion }}</div>
+                            </div>
+                            <p-tag value="Entregando" severity="info" icon="pi pi-truck" styleClass="!text-[10px]" />
+                        </div>
+                    </div>
+                    <div class="p-3 space-y-2">
+                        @for (f of punto.facturas; track f.id) {
+                            <div class="rounded-xl border border-surface-200 dark:border-surface-700 p-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-semibold">Factura {{ f.numeroFactura }}</div>
+                                        <div class="text-xs text-surface-400 mt-0.5">
+                                            <span class="font-mono">{{ f.numeroGuia }}</span>
+                                            @if (f.montoDolares) {
+                                                <span class="ml-1">·</span>
+                                                <span>{{ f.montoDolares | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <p-tag
+                                        [value]="store.getEstadoLabel(f.estado)"
+                                        [severity]="store.getEstadoSeverity(f.estado)"
+                                        styleClass="text-xs flex-shrink-0"
+                                    />
+                                </div>
+                                @if (f.estado === 'entrega') {
+                                    <div class="flex gap-2 mt-2">
+                                        <p-button
+                                            label="Finalizar entrega"
+                                            icon="pi pi-check-circle"
+                                            severity="success"
+                                            size="small"
+                                            (onClick)="abrirFirma(f)"
+                                            styleClass="flex-1"
+                                        />
+                                        <p-button
+                                            label="Incidencia"
+                                            icon="pi pi-exclamation-triangle"
+                                            severity="danger"
+                                            size="small"
+                                            text
+                                            (onClick)="abrirIncidencia(f)"
+                                        />
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                } @else {
+                    <div class="p-3">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="pi pi-map-marker text-amber-500"></i>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-semibold truncate">{{ punto.nombreCliente }}</div>
+                                <div class="text-xs text-surface-400 truncate">{{ punto.direccion }}</div>
+                            </div>
+                            <p-tag
+                                [value]="punto.facturas.length === 1 ? '1 factura' : punto.facturas.length + ' facturas'"
+                                severity="secondary"
+                                styleClass="!text-[10px]"
+                            />
+                        </div>
+                        <p-button
+                            label="Iniciar entrega"
+                            icon="pi pi-truck"
+                            severity="success"
+                            [loading]="entregando()"
+                            (onClick)="iniciarEntregaPunto()"
+                            styleClass="w-full text-base py-3"
+                        />
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Puntos de entrega (colapsable) -->
+    @if (!cargando() && !error() && !puntoEntrega()) {
+        <div class="absolute bottom-4 left-3 z-10">
+            <div class="bg-white/95 dark:bg-surface-800/95 backdrop-blur rounded-xl shadow p-2 w-56">
+                <button
+                    type="button"
+                    class="w-full flex items-center justify-between px-2 py-1 text-xs font-semibold text-surface-600 dark:text-surface-300 cursor-pointer"
+                    (click)="togglePuntos()"
+                >
+                    <span>Puntos de entrega</span>
+                    <span class="inline-flex w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold items-center justify-center">
+                        {{ puntos().length }}
+                    </span>
+                </button>
+                @if (puntosAbiertos()) {
+                    <div class="max-h-[7rem] overflow-y-auto px-1">
+                        @for (p of puntos(); track p.key; let i = $index) {
+                            <div
+                                class="flex items-center gap-2 py-1 text-xs rounded-lg px-1 cursor-pointer transition-colors"
+                                [class.bg-primary-50]="i === stopIndex()"
+                                [class.opacity-60]="i < stopIndex() && p.key !== 'almacen'"
+                            >
+                                <span class="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+                                    {{ i + 1 }}
+                                </span>
+                                <span class="truncate">{{ p.nombreCliente }}</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Estados: cargando / error -->
+    @if (cargando()) {
+        <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/30">
+            <div class="text-center py-8 px-4 text-surface-100">
+                <i class="pi pi-spin pi-spinner text-3xl block mb-2"></i>
+                <p class="text-sm font-semibold">Iniciando navegación con el SDK…</p>
+            </div>
+        </div>
+    } @else if (error()) {
+        <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/40">
+            <div class="bg-white dark:bg-surface-800 rounded-2xl p-5 text-center max-w-xs">
+                <i class="pi pi-exclamation-triangle text-3xl text-red-500 block mb-2"></i>
+                <p class="text-sm font-semibold text-surface-800 dark:text-surface-100">{{ error() }}</p>
+            </div>
+        </div>
+    }
+
+    <!-- ===== FIRMA DIALOG ===== -->
+    <app-firma-dialog
+        [guia]="firmaGuiaData()"
+        (confirm)="onFirmaConfirmada($event)"
+        (cancel)="onFirmaCancelada()"
+    />
+
+    <!-- ===== DIALOG DE INCIDENCIA ===== -->
+    <p-dialog
+        [visible]="!!incidenciaGuia()"
+        [modal]="true"
+        [style]="{ width: '95%', maxWidth: '420px' }"
+        header="Reportar incidencia"
+        (onHide)="cerrarIncidencia()"
+    >
+        <div class="space-y-3">
+            @if (incidenciaGuia(); as f) {
+                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-sm">
+                    <div class="text-surface-700 dark:text-surface-200 font-semibold">
+                        {{ f.nombreCliente }}
+                    </div>
+                    <div class="text-xs text-surface-400 font-mono mt-0.5">
+                        {{ f.numeroGuia }} · {{ f.numeroFactura }}
+                    </div>
+                </div>
+            }
+            <textarea
+                pTextarea
+                rows="3"
+                placeholder="Describe la incidencia..."
+                [ngModel]="incidenciaTexto()"
+                (ngModelChange)="incidenciaTexto.set($event)"
+                styleClass="w-full"
+            ></textarea>
+        </div>
+        <ng-template pTemplate="footer">
+            <div class="flex gap-2 w-full">
+                <p-button label="Cancelar" severity="secondary" (onClick)="cerrarIncidencia()" styleClass="flex-1" />
+                <p-button
+                    label="Confirmar"
+                    severity="danger"
+                    icon="pi pi-exclamation-triangle"
+                    [disabled]="!incidenciaTexto().trim()"
+                    (onClick)="onIncidenciaConfirmada()"
+                    styleClass="flex-1"
+                />
+            </div>
+        </ng-template>
+    </p-dialog>
+</div>
