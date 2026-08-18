@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
     appId: 'com.tesis.driver',
-    appName: 'Sakai Driver',
+    appName: 'BrandIA Driver',
     webDir: 'dist/sakai-ng/browser',
 };
 

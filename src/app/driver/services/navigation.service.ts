@@ -504,6 +504,24 @@ export class NavigationService {
         this.distRestanteParada.set(Math.round(dist));
 
         if (dist < UMBRAL_LLEGADA_M) {
+            // En simulación el punto sigue el path exacto, así que se puede
+            // llegar mucho más cerca del destino que en GPS real (donde el
+            // margen de 40 m compensa la imprecisión de la señal). Aquí se
+            // acerca el marcador hasta ~3 m del punto de entrega antes de
+            // detenerse, en vez de quedarse en el borde del área.
+            if (this.simulando() && dist > 3) {
+                // Interpolar desde la PARADA hacia la posición actual: el punto
+                // queda a 3 m de la parada (no desde pos hacia parada).
+                const t = 3 / dist;
+                const cerca: LatLng = {
+                    lat: parada.latitud + (pos.lat - parada.latitud) * t,
+                    lng: parada.longitud + (pos.lng - parada.longitud) * t,
+                };
+                this.posicionDriver.set(cerca);
+                this.ultimaPos = cerca;
+                this.distRestanteParada.set(3);
+            }
+
             // Anunciar la llegada una sola vez por parada (la última no avanza
             // paradaActual, así que sin este latch el toast se repetía cada tick).
             if (idx === this.ultimaLlegadaAnunciada) return;

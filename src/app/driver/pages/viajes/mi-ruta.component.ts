@@ -196,6 +196,7 @@ export class MiRutaComponent implements OnInit {
     @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
 
     puntoEntrega = signal<number | null>(null);
+    detallePuntoAbierto = signal(false);
     entregando = signal(false);
     finalizando = signal(false);
     firmaGuia = signal<ParadaMapa | null>(null);
@@ -996,6 +997,7 @@ private detenerAnimacionMarcador() {
     async iniciarEntregaPunto() {
         const punto = this.puntoActual();
         if (!punto) return;
+        this.detallePuntoAbierto.set(false);
         this.entregando.set(true);
         try {
             await this.store.iniciarEntrega(punto.facturaIds);
@@ -1142,9 +1144,9 @@ private detenerAnimacionMarcador() {
         if (this.puntoTienePendientes(i)) this.puntoEntrega.set(i);
     }
 
-    /** Colapsa la vista de entrega y vuelve al panel de navegación. */
-    cerrarVistaEntrega() {
-        this.puntoEntrega.set(null);
+    /** Alterna el detalle del cliente/facturas en las vistas de entrega. */
+    toggleDetallePunto() {
+        this.detallePuntoAbierto.update((v) => !v);
     }
 
     /** Finaliza el viaje al regresar al almacén con todas las entregas hechas. */

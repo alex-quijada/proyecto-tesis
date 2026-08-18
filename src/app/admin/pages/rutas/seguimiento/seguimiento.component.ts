@@ -137,7 +137,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
      *  (se actualiza en tiempo real con posiciones y viajes). */
     readonly detalleActual = computed<ChoferMonitoreo | null>(() => {
         const id = this.detalleChoferId();
-        return id ? this.monitoreo().find((c) => c.idChofer === id) ?? null : null;
+        return id ? (this.monitoreo().find((c) => c.idChofer === id) ?? null) : null;
     });
 
     private mapa!: google.maps.Map;
