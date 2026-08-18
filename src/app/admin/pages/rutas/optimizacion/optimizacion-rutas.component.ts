@@ -24,7 +24,7 @@ import { OrderListModule } from 'primeng/orderlist';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
 import { environment } from '@/environments/environment';
-import { GuiaDespacho, Ruta, RUTAS_MOCK } from '../data/rutas-mock';
+import { GuiaDespacho, FacturaGuia, Ruta, RUTAS_MOCK } from '../data/rutas-mock';
 import { RutaService } from '../services/ruta.service';
 import { MunicipioService } from '@/app/admin/services/municipio.service';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
@@ -290,10 +290,28 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         }
     }
 
+    /** Tipos de incidencia recuperables: la factura vuelve a estar disponible. */
+    private readonly TIPOS_INCIDENCIA_RECUPERABLES = [
+        'FUERA_HORARIO',
+        'CERRADO',
+        'FALTANTE',
+        'DANADO',
+    ];
+
+    /** Una factura es re-despachable si está 'nuevo' o tiene incidencia recuperable. */
+    private esFacturaReespachable(f: FacturaGuia): boolean {
+        return (
+            f.idEstado === 'nuevo' ||
+            (f.idEstado === 'incidencia' &&
+                !!f.incidenciaTipo &&
+                this.TIPOS_INCIDENCIA_RECUPERABLES.includes(f.incidenciaTipo))
+        );
+    }
+
     get municipiosConteo(): MunicipioConteo[] {
         const hoyArr = this.cronograma().find((d) => d.dia === this.hoy)?.municipios || [];
         const guiasNuevas = this.guias().filter((g) =>
-            g.facturas?.some((f) => f.idEstado === 'nuevo'),
+            g.facturas?.some((f) => this.esFacturaReespachable(f)),
         );
 
         const conteos = this.municipios()
@@ -354,7 +372,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         const municipio = this.selectedMunicipio();
         if (!municipio) return [];
         let list = this.guias().filter(
-            (g) => g.municipio === municipio && g.facturas?.some((f) => f.idEstado === 'nuevo'),
+            (g) => g.municipio === municipio && g.facturas?.some((f) => this.esFacturaReespachable(f)),
         );
         const chofer = this.filtroChofer();
         if (chofer) {
@@ -438,7 +456,9 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
                 guias: guias.map((g) => ({
                     id: g.id,
                     numeroGuia: g.numeroGuia,
-                    facturaIds: g.facturas.filter((f) => f.idEstado === 'nuevo').map((f) => f.id),
+                    facturaIds: g.facturas
+                        .filter((f) => this.esFacturaReespachable(f))
+                        .map((f) => f.id),
                 })),
             });
         }
@@ -555,7 +575,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         const waypoints: Waypoint[] = [];
         for (const g of guiasSel) {
             for (const f of g.facturas) {
-                if (f.sucursalLat != null && f.sucursalLng != null && f.idEstado === 'nuevo') {
+                if (f.sucursalLat != null && f.sucursalLng != null && this.esFacturaReespachable(f)) {
                     waypointMetas.push({ guiaId: g.id, facturaId: f.id });
                     waypoints.push({
                         lat: f.sucursalLat!,

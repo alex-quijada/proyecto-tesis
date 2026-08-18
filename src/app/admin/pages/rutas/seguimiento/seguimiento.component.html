@@ -76,6 +76,54 @@
                             styleClass="ml-auto shrink-0"
                         />
                     </div>
+
+                    <!-- Ventana laboral: editable -->
+                    <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-surface-500">
+                        <i class="pi pi-clock"></i>
+                        Ventana laboral:
+                        @if (ventanaEditando()) {
+                            <input
+                                type="time"
+                                [ngModel]="ventanaInicio()"
+                                (ngModelChange)="ventanaInicio.set($event)"
+                                class="bg-surface-100 dark:bg-surface-800 rounded px-1 py-0.5 text-[10px] w-16 text-surface-700 dark:text-surface-200"
+                            />
+                            <span>-</span>
+                            <input
+                                type="time"
+                                [ngModel]="ventanaFin()"
+                                (ngModelChange)="ventanaFin.set($event)"
+                                class="bg-surface-100 dark:bg-surface-800 rounded px-1 py-0.5 text-[10px] w-16 text-surface-700 dark:text-surface-200"
+                            />
+                            <p-button
+                                icon="pi pi-check"
+                                size="small"
+                                text
+                                rounded
+                                severity="success"
+                                (onClick)="guardarVentana(c)"
+                            />
+                            <p-button
+                                icon="pi pi-times"
+                                size="small"
+                                text
+                                rounded
+                                severity="secondary"
+                                (onClick)="cancelarVentana()"
+                            />
+                        } @else {
+                            <span class="font-medium">{{ ventanaLabel(c) || '08:00 - 16:30' }}</span>
+                            <p-button
+                                icon="pi pi-pencil"
+                                size="small"
+                                text
+                                rounded
+                                severity="secondary"
+                                (onClick)="editarVentana(c)"
+                                pTooltip="Editar ventana laboral"
+                            />
+                        }
+                    </div>
                 } @else {
                     <div class="flex items-center justify-between gap-2">
                         <h2
@@ -283,6 +331,47 @@
                                     </div>
                                 }
                             </div>
+
+                            <!-- Incidencias por resolver -->
+                            @if (incidenciasPendientes().length > 0) {
+                                <div class="mt-6">
+                                    <h3
+                                        class="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-3 flex items-center gap-1.5"
+                                    >
+                                        <i class="pi pi-exclamation-triangle text-red-500"></i>
+                                        Incidencias por resolver
+                                    </h3>
+                                    <div class="space-y-1.5">
+                                        @for (p of incidenciasPendientes(); track p.idFactura) {
+                                            <div
+                                                class="flex items-center justify-between gap-2 rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/60 dark:bg-red-900/10 px-2.5 py-2"
+                                            >
+                                                <div class="min-w-0">
+                                                    <div
+                                                        class="text-xs font-medium text-surface-700 dark:text-surface-200 truncate"
+                                                    >
+                                                        {{ p.cliente }}
+                                                    </div>
+                                                    <div
+                                                        class="text-[10px] text-surface-400 font-mono truncate"
+                                                    >
+                                                        {{ p.numeroFactura }}
+                                                    </div>
+                                                </div>
+                                                <p-button
+                                                    label="Resolver"
+                                                    icon="pi pi-check"
+                                                    severity="success"
+                                                    size="small"
+                                                    [loading]="resolviendoId() === p.idFactura"
+                                                    (onClick)="resolverIncidencia(p)"
+                                                    styleClass="flex-shrink-0"
+                                                />
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
 
                             <!-- Reiniciar viaje (pruebas app móvil) -->
                             @if (c.idViaje) {

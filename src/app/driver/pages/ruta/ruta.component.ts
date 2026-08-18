@@ -91,7 +91,7 @@ export class RutaComponent implements OnInit {
     }
 
     async ngOnInit() {
-        await this.store.cargarViajes();
+        await this.store.verificarDatosAlEntrar();
         this.sincronizarParadas();
         this.cargando.set(false);
 
@@ -99,6 +99,8 @@ export class RutaComponent implements OnInit {
         if (modo === 'auto') {
             await this.optimizarRuta();
         } else if (modo === 'manual') {
+            await this.store.refrescarTodo();
+            this.sincronizarParadas();
             this.reordering.set(true);
         }
         if (modo) {
@@ -142,6 +144,10 @@ export class RutaComponent implements OnInit {
     }
 
     async optimizarRuta() {
+        // Refrescar primero para trabajar con datos frescos de la BD.
+        await this.store.refrescarTodo();
+        this.sincronizarParadas();
+
         const conCoords = this.guiasPendientes().filter(
             (p) => p.latitud != null && p.longitud != null,
         );
@@ -255,6 +261,23 @@ export class RutaComponent implements OnInit {
         const acabando = this.reordering();
         this.reordering.update((v) => !v);
         if (acabando) this.avisoIrMapa.set(true);
+    }
+
+    refrescar() {
+        void this.store.refrescarTodo().then(() => this.sincronizarParadas());
+    }
+
+    /** Texto relativo "actualizado hace X" basado en ultimaActualizacion. */
+    actualizadoHace(): string {
+        const ultima = this.store.ultimaActualizacion();
+        if (!ultima) return '';
+        const diff = Math.max(0, this.store.now().getTime() - ultima.getTime());
+        const seg = Math.floor(diff / 1000);
+        if (seg < 60) return 'Actualizado hace segundos';
+        const min = Math.floor(seg / 60);
+        if (min < 60) return `Actualizado hace ${min} min`;
+        const hrs = Math.floor(min / 60);
+        return `Actualizado hace ${hrs} h`;
     }
 
     irAlMapa() {

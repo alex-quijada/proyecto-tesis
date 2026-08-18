@@ -72,12 +72,16 @@ export class NavigationService {
     readonly velocidadSimulacion = signal(VELOCIDAD_SIMULACION_DEFAULT);
     /** Último estado de la simulación (progreso + posición), para reanudar. */
     readonly estadoSimulacionGuardado = signal<EstadoSimulacion | null>(null);
+    /** Índice del punto de entrega abierto (para restaurarlo al volver al mapa). */
+    readonly puntoEntregaGuardado = signal<number | null>(null);
 
     private paradas: ParadaNavegacion[] = [];
     private warehouse: Waypoint = { lat: 0, lng: 0, name: '' };
 
     private watchId: number | string | null = null;
     private simInterval: ReturnType<typeof setInterval> | null = null;
+    private saveInterval: ReturnType<typeof setInterval> | null = null;
+    private viajeIdGuardado: string | null = null;
     private simDistanciaAcumulada = 0;
     private simDistAcum: number[] = [];
     private ultimoReRuteo = 0;
@@ -93,10 +97,12 @@ export class NavigationService {
         paradas: ParadaNavegacion[],
         warehouse: Waypoint,
         rutaPrecomputada?: RutaPersistida | null,
+        viajeId?: string,
     ): Promise<boolean> {
         this.detener();
         if (paradas.length < 1) return false;
 
+        this.viajeIdGuardado = viajeId ?? null;
         this.paradas = [...paradas].sort((a, b) => a.ordenVisita - b.ordenVisita);
         this.warehouse = warehouse;
         this.totalParadas.set(this.paradas.length);
@@ -150,12 +156,12 @@ export class NavigationService {
         return true;
     }
 
-    toggleSimulacion() {
-        this.setModoSimulacion(!this.simulando());
-    }
-
     setVelocidadSimulacion(v: number) {
         this.velocidadSimulacion.set(v);
+    }
+
+    toggleSimulacion() {
+        this.setModoSimulacion(!this.simulando());
     }
 
     togglePausa() {
@@ -207,6 +213,7 @@ export class NavigationService {
 
     /** Restaura una simulación guardada (queda pausada en el punto guardado). */
     async restaurarSimulacionSiExiste(viajeId: string): Promise<boolean> {
+        this.viajeIdGuardado = viajeId;
         let estado = this.estadoSimulacionGuardado();
         if (!estado) {
             const uid = this.authService.getCurrentUser()?.id;
@@ -247,6 +254,7 @@ export class NavigationService {
         }
         this.pausado.set(true);
         this.detenerSimulacion();
+        this.detenerGuardadoPeriodico();
     }
 
     setModoSimulacion(activo: boolean) {
@@ -263,6 +271,7 @@ export class NavigationService {
             this.simulando.set(false);
             this.pausado.set(false);
             this.detenerSimulacion();
+            this.detenerGuardadoPeriodico();
             if (this.navegando()) {
                 this.iniciarGps();
             }
@@ -272,6 +281,7 @@ export class NavigationService {
     detener() {
         this.detenerGps();
         this.detenerSimulacion();
+        this.detenerGuardadoPeriodico();
         this.navegando.set(false);
         this.pasos.set([]);
         this.path.set([]);
@@ -420,6 +430,31 @@ export class NavigationService {
         if (inicio) this.posicionDriver.set({ lat: inicio.lat, lng: inicio.lng });
 
         this.reanudarSimulacion();
+        // Guardar el estado periódicamente para que sobreviva a cierres abruptos
+        // (el ngOnDestroy no corre si la app se mata por completo).
+        this.iniciarGuardadoPeriodico();
+    }
+
+    private iniciarGuardadoPeriodico() {
+        if (this.saveInterval || !this.viajeIdGuardado) return;
+        this.saveInterval = setInterval(() => {
+            void this.guardarEstadoSimulacion();
+        }, 5000);
+    }
+
+    private async guardarEstadoSimulacion() {
+        const viajeId = this.viajeIdGuardado;
+        if (!viajeId) return;
+        const uid = this.authService.getCurrentUser()?.id;
+        if (!uid) return;
+        const estado: EstadoSimulacion = {
+            distancia: this.simDistanciaAcumulada,
+            parada: this.paradaActual(),
+            paso: this.pasoActual(),
+            posicion: this.posicionDriver(),
+        };
+        this.estadoSimulacionGuardado.set(estado);
+        await this.offlineStorage.guardar(uid, `simulacion:${viajeId}`, estado);
     }
 
     private reanudarSimulacion() {
@@ -443,6 +478,13 @@ export class NavigationService {
         if (this.simInterval) {
             clearInterval(this.simInterval);
             this.simInterval = null;
+        }
+    }
+
+    private detenerGuardadoPeriodico() {
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
         }
     }
 

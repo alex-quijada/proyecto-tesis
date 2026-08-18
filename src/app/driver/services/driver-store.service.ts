@@ -122,6 +122,9 @@ export class DriverStoreService implements OnDestroy {
     readonly datosOffline = signal(false);
     readonly pendientesSincronizar = signal(0);
     readonly sincronizando = signal(false);
+    readonly refrescando = signal(false);
+    /** Momento de la última carga exitosa de datos (para "actualizado hace"). */
+    readonly ultimaActualizacion = signal<Date | null>(null);
 
     readonly now = signal(new Date());
     private guiaStartTimes = new Map<string, Date>();
@@ -139,12 +142,20 @@ export class DriverStoreService implements OnDestroy {
         this.guiasAsignadas().filter((g) => g.estado === 'finalizado' || g.estado === 'cancelado'),
     );
 
+    /** Entregas terminales para el historial: finalizado, cancelado e incidencia. */
+    readonly guiasHistorial = computed(() =>
+        this.guiasAsignadas().filter(
+            (g) =>
+                g.estado === 'finalizado' || g.estado === 'cancelado' || g.estado === 'incidencia',
+        ),
+    );
+
     readonly municipiosDisponibles = computed(() => {
-        const municipios = new Set(this.guiasCompletadas().map((g) => g.ruta));
+        const municipios = new Set(this.guiasHistorial().map((g) => g.ruta));
         return ['todas', ...Array.from(municipios).sort()];
     });
 
-    readonly historialReciente = computed(() => this.guiasCompletadas().slice(0, 5));
+    readonly historialReciente = computed(() => this.guiasHistorial().slice(0, 5));
 
     readonly pendingCount = computed(() => this.guiasPendientes().length);
     readonly completedCount = computed(() => this.guiasCompletadas().length);
@@ -218,9 +229,10 @@ export class DriverStoreService implements OnDestroy {
                 ...(info || this.driverInfo()!),
                 vehiculos: this.mapearVehiculos(guias, vehiculos),
             }));
-            this.guiasAsignadas.set(this.mapearEntregas(guias));
+            this.guiasAsignadas.set(await this.enriquecerConIncidencias(this.mapearEntregas(guias)));
             this.initGuiaStartTimes();
             this.datosOffline.set(false);
+            this.ultimaActualizacion.set(new Date());
             await this.offlineStorage.guardar(this.uid, 'guias', this.guiasAsignadas());
         } catch (err) {
             console.error('Error cargando guías del chofer:', err);
@@ -259,6 +271,7 @@ export class DriverStoreService implements OnDestroy {
             const viajes = await this.viajeService.obtenerViajeChofer();
             this.viajesChofer.set(viajes);
             this.viajesCargados.set(true);
+            this.ultimaActualizacion.set(new Date());
             if (this.uid) await this.offlineStorage.guardar(this.uid, 'viajes', viajes);
         } catch (err) {
             console.error('Error cargando el viaje del chofer:', err);
@@ -306,7 +319,28 @@ export class DriverStoreService implements OnDestroy {
                 { event: '*', schema: 'public', table: 'itinerario_viaje' },
                 () => this.notificarCambioViaje(),
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.info('[Realtime] Canal del chofer suscrito.');
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn('[Realtime] Canal del chofer con error, reintentando...', status);
+                    this.reintentarSuscripcion();
+                }
+            });
+    }
+
+    /** Reintenta la suscripción del canal realtime si se cayó/erró. */
+    private reintentarSuscripcion() {
+        if (!this.realtimeCanal) return;
+        const canal = this.realtimeCanal;
+        this.realtimeCanal = null;
+        void this.authService.client.removeChannel(canal).finally(() => {
+            // Pequeño retraso antes de re-suscribir para evitar reintentos en loop.
+            setTimeout(() => {
+                const user = this.authService.getCurrentUser();
+                if (user) this.initRealtime();
+            }, 3000);
+        });
     }
 
     private notificarCambioViaje() {
@@ -421,9 +455,19 @@ export class DriverStoreService implements OnDestroy {
     }
 
     /** Reporta una incidencia sobre una factura. */
-    async reportarIncidencia(idFactura: string, observaciones?: string) {
+    async reportarIncidencia(
+        idFactura: string,
+        observaciones?: string,
+        tipo?: string,
+        foto?: string,
+    ) {
         try {
-            await this.choferService.reportarIncidencia(idFactura, observaciones || null);
+            await this.choferService.reportarIncidencia(
+                idFactura,
+                observaciones || null,
+                tipo || null,
+                foto || null,
+            );
             await this.recargarViajes();
             await this.recargarGuias().catch(() => undefined);
         } catch (err) {
@@ -487,8 +531,80 @@ export class DriverStoreService implements OnDestroy {
 
     async recargarGuias() {
         const guias = await this.choferService.obtenerGuias();
-        this.guiasAsignadas.set(this.mapearEntregas(guias));
+        this.guiasAsignadas.set(await this.enriquecerConIncidencias(this.mapearEntregas(guias)));
         this.initGuiaStartTimes();
+        this.ultimaActualizacion.set(new Date());
+    }
+
+    /** Rellena el campo `incidencia` real (tipo/descripción/foto) de las
+     *  entregas en estado 'incidencia' consultando el RPC separado. */
+    private async enriquecerConIncidencias(entregas: Entrega[]): Promise<Entrega[]> {
+        const pendientes = entregas.filter((e) => e.estado === 'incidencia');
+        if (pendientes.length === 0) return entregas;
+        try {
+            const resultados = await Promise.all(
+                pendientes.map((e) =>
+                    this.choferService.obtenerIncidenciaFactura(e.id).catch(() => null),
+                ),
+            );
+            const porFactura = new Map<string, any>();
+            pendientes.forEach((e, i) => {
+                const inc = resultados[i];
+                if (inc) porFactura.set(e.id, inc);
+            });
+            return entregas.map((e) => {
+                const inc = porFactura.get(e.id);
+                if (!inc) return e;
+                return {
+                    ...e,
+                    incidencia: {
+                        tipo: inc.tipo || 'Incidencia',
+                        numeroGuia: e.numeroGuia,
+                        descripcion: inc.descripcion || '',
+                        horaReporte: inc.hora_reporte || '',
+                        foto: inc.foto_url || undefined,
+                    },
+                };
+            });
+        } catch (err) {
+            console.warn('[Store] No se pudieron enriquecer las incidencias:', err);
+            return entregas;
+        }
+    }
+
+    /** Refresca todo (viaje + guías) desde la BD. Para el botón "Refrescar". */
+    async refrescarTodo() {
+        if (this.refrescando()) return;
+        this.refrescando.set(true);
+        try {
+            await Promise.all([
+                this.cargarViajes(true),
+                this.recargarGuias().catch(() => undefined),
+            ]);
+        } finally {
+            this.refrescando.set(false);
+        }
+    }
+
+    /** Compara el estado en memoria con la BD y actualiza solo si cambió. */
+    async verificarDatosAlEntrar() {
+        try {
+            const [viajes, guias] = await Promise.all([
+                this.viajeService.obtenerViajeChofer(),
+                this.choferService.obtenerGuias().catch(() => null),
+            ]);
+            this.viajesChofer.set(viajes);
+            this.viajesCargados.set(true);
+            if (guias !== null) {
+                this.guiasAsignadas.set(
+                    await this.enriquecerConIncidencias(this.mapearEntregas(guias)),
+                );
+                this.initGuiaStartTimes();
+                this.ultimaActualizacion.set(new Date());
+            }
+        } catch (err) {
+            console.warn('[Store] No se pudo verificar datos al entrar:', err);
+        }
     }
 
     private initTimer() {
@@ -595,17 +711,6 @@ export class DriverStoreService implements OnDestroy {
                     tuvoDevolucion: false,
                     eventos: [],
                     fechaEntrega: estado === 'finalizado' ? guia.fecha_despacho : undefined,
-                    incidencia:
-                        estado === 'incidencia'
-                            ? {
-                                  tipo: 'Incidencia',
-                                  numeroGuia: guia.codigo_guia || '',
-                                  descripcion:
-                                      guia.observaciones ||
-                                      'Se reportó una incidencia en la entrega',
-                                  horaReporte: '',
-                              }
-                            : undefined,
                     latitud: f.latitud ?? undefined,
                     longitud: f.longitud ?? undefined,
                 });

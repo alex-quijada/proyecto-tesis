@@ -1,104 +1,175 @@
-import { Component, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
+import { TagModule } from 'primeng/tag';
+import { SkeletonModule } from 'primeng/skeleton';
+import { TableModule } from 'primeng/table';
 
 import { DriverStoreService } from '../../services/driver-store.service';
-import { Entrega } from '../../services/driver-store.service';
+import { AuthService } from '@/app/auth/service/auth.service';
+import { ViajeService } from '@/app/services/viaje.service';
+import { ViajeAdmin } from '@/app/services/viaje.types';
 import {
     IncidenciaDialogComponent,
     IncidenciaGuia,
+    IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
+
+const TIPOS_INCIDENCIA_RECUPERABLES = ['FUERA_HORARIO', 'CERRADO', 'FALTANTE', 'DANADO'];
 
 @Component({
     selector: 'app-historial',
     standalone: true,
-    imports: [CommonModule, ButtonModule, IncidenciaDialogComponent],
+    imports: [
+        CommonModule,
+        ButtonModule,
+        TooltipModule,
+        TagModule,
+        SkeletonModule,
+        TableModule,
+        IncidenciaDialogComponent,
+    ],
     templateUrl: './historial.component.html',
 })
-export class HistorialComponent {
+export class HistorialComponent implements OnInit {
     store = inject(DriverStoreService);
-    private messageService = inject(MessageService);
+    private authService = inject(AuthService);
+    private viajeService = inject(ViajeService);
 
-    historialFiltro = signal<'todas' | 'finalizadas' | 'canceladas' | 'incidencias'>('todas');
-    municipioFiltro = signal<string>('todas');
-    selectedGuia = signal<Entrega | null>(null);
+    cargando = signal(true);
+    private viajes = signal<ViajeAdmin[]>([]);
+    soloIncidencias = signal(false);
 
-    incidenciaGuia = signal<Entrega | null>(null);
-    readonly incidenciaGuiaData = computed<IncidenciaGuia | null>(() => {
-        const g = this.incidenciaGuia();
-        return g
-            ? {
-                  cliente: g.cliente,
-                  numeroGuia: g.numeroGuia,
-                  numeroFactura: g.numeroFactura,
-              }
-            : null;
+    /** Viaje actual primero, luego los finalizados. */
+    readonly viajesHistorial = computed<ViajeAdmin[]>(() => {
+        const actuales = this.viajes().filter(
+            (v) => v.estado === 'proceso' || v.estado === 'programado',
+        );
+        const finalizados = this.viajes().filter((v) => v.estado === 'finalizado');
+        const lista = [...actuales, ...finalizados];
+        if (!this.soloIncidencias()) return lista;
+        return lista.filter(
+            (v) => v.estado !== 'finalizado' || v.paradas?.some((p) => p.incidencia_tipo),
+        );
     });
 
-    @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
+    esViajeActual(v: ViajeAdmin): boolean {
+        return v.estado === 'proceso' || v.estado === 'programado';
+    }
 
-    get historialFiltradas(): Entrega[] {
-        const f = this.historialFiltro();
-        const m = this.municipioFiltro();
-        let lista = this.store.guiasCompletadas();
-        if (m !== 'todas') lista = lista.filter((g) => g.ruta === m);
-        switch (f) {
-            case 'finalizadas':
-                lista = lista.filter((g) => g.estado === 'finalizado');
-                break;
-            case 'canceladas':
-                lista = lista.filter((g) => g.estado === 'cancelado');
-                break;
-            case 'incidencias':
-                lista = lista.filter(
-                    (g) => g.incidencia !== undefined || g.tuvoDevolucion || !!g.observaciones,
-                );
-                break;
+    /** Solo se puede reportar incidencia en facturas del viaje en curso ('proceso'). */
+    esReportable(v: ViajeAdmin, p: ViajeAdmin['paradas'][number]): boolean {
+        return v.estado === 'proceso' && p.estado_factura !== 'finalizado';
+    }
+
+    incidenciaGuia = signal<ViajeAdmin['paradas'][number] | null>(null);
+
+    constructor() {}
+
+    async ngOnInit() {
+        await this.cargar();
+    }
+
+    async cargar() {
+        this.cargando.set(true);
+        try {
+            const uid = this.authService.getCurrentUser()?.id;
+            if (uid) {
+                this.viajes.set(await this.viajeService.obtenerViajesChofer(uid));
+            }
+        } catch (err) {
+            console.error('Error cargando historial de entregas:', err);
+        } finally {
+            this.cargando.set(false);
         }
-        return [...lista].reverse();
     }
 
-    setHistorialFiltro(f: string) {
-        this.historialFiltro.set(f as any);
-        this.selectedGuia.set(null);
+    toggleSoloIncidencias() {
+        this.soloIncidencias.update((v) => !v);
     }
 
-    setMunicipioFiltro(m: string) {
-        this.municipioFiltro.set(m);
-        this.selectedGuia.set(null);
+    esRecuperable(tipo?: string): boolean {
+        return !!tipo && TIPOS_INCIDENCIA_RECUPERABLES.includes(tipo);
     }
 
-    toggleSelectedGuia(g: Entrega) {
-        this.selectedGuia.set(this.selectedGuia()?.id === g.id ? null : g);
+    estadoSeverity(estado: string): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {
+        switch (estado) {
+            case 'finalizado':
+                return 'success';
+            case 'incidencia':
+                return 'danger';
+            case 'entrega':
+            case 'espera':
+                return 'warn';
+            case 'proceso':
+                return 'info';
+            default:
+                return 'secondary';
+        }
     }
 
-    abrirIncidencia(g: Entrega) {
-        this.incidenciaGuia.set(g);
-        this.incidenciaDialog.guia = this.incidenciaGuiaData();
-        this.incidenciaDialog.open();
+    estadoLabel(estado: string): string {
+        switch (estado) {
+            case 'finalizado':
+                return 'Entregado';
+            case 'incidencia':
+                return 'Incidencia';
+            case 'entrega':
+                return 'Entregando';
+            case 'espera':
+                return 'En espera';
+            case 'proceso':
+                return 'En camino';
+            case 'embarque':
+                return 'En carga';
+            default:
+                return estado || '—';
+        }
+    }
+
+    formatFecha(fecha?: string | null): string {
+        if (!fecha) return '—';
+        return new Date(fecha).toLocaleString('es-VE', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    }
+
+    abrirIncidencia(p: ViajeAdmin['paradas'][number]) {
+        this.incidenciaGuia.set(p);
+    }
+
+    get incidenciaGuiaData(): IncidenciaGuia | null {
+        const p = this.incidenciaGuia();
+        return p
+            ? {
+                  cliente: p.nombre_cliente || '',
+                  numeroGuia: p.codigo_guia || '',
+                  numeroFactura: p.numero_factura || '',
+              }
+            : null;
     }
 
     cerrarIncidencia() {
         this.incidenciaGuia.set(null);
     }
 
-    async onIncidenciaConfirmada(texto: string) {
-        const g = this.incidenciaGuia();
-        if (!g) return;
+    async onIncidenciaConfirmada(datos: IncidenciaDatos) {
+        // En el historial solo se reporta incidencia sobre entregas previas;
+        // se deja el flujo por si se quiere re-reportar.
+        const p = this.incidenciaGuia();
+        if (!p) return;
         try {
-            await this.store.reportarIncidencia(g.id, texto);
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Incidencia reportada',
-                detail: `${g.cliente} — ${g.numeroGuia || g.numeroFactura}`,
-            });
-        } catch (err: any) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: err?.message || 'No se pudo reportar la incidencia.',
-            });
+            await this.store.reportarIncidencia(
+                p.id_factura,
+                datos.descripcion,
+                datos.tipo,
+                datos.foto || undefined,
+            );
+            await this.cargar();
         } finally {
             this.cerrarIncidencia();
         }

@@ -60,4 +60,11 @@ export default [
                 (m) => m.SeguimientoComponent,
             ),
     },
+    {
+        path: 'historial',
+        loadComponent: () =>
+            import('./pages/historial/historial-entregas.component').then(
+                (m) => m.HistorialEntregasComponent,
+            ),
+    },
 ] as Routes;

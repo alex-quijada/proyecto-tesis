@@ -82,6 +82,26 @@ export class ViajeService {
         if (error) throw error;
     }
 
+    /** Edita la ventana laboral de un viaje (staff). */
+    async actualizarVentanaViaje(idViaje: string, inicio: string, fin: string): Promise<void> {
+        const { error } = await this.supabase.rpc('actualizar_ventana_viaje', {
+            p_id_viaje: idViaje,
+            p_inicio: inicio,
+            p_fin: fin,
+        });
+
+        if (error) throw error;
+    }
+
+    /** Resuelve la incidencia de una factura (staff): la vuelve a 'nuevo'. */
+    async resolverIncidencia(idFactura: string): Promise<void> {
+        const { error } = await this.supabase.rpc('resolver_incidencia', {
+            p_id_factura: idFactura,
+        });
+
+        if (error) throw error;
+    }
+
     async obtenerViajeChofer(): Promise<ViajeChofer[]> {
         const { data, error } = await this.supabase.rpc('obtener_viaje_chofer');
 
@@ -91,6 +111,16 @@ export class ViajeService {
 
     async obtenerViajes(): Promise<ViajeAdmin[]> {
         const { data, error } = await this.supabase.rpc('obtener_viajes');
+
+        if (error) throw error;
+        return (data as ViajeAdmin[]) || [];
+    }
+
+    /** Viajes del chofer (para el historial de entregas). */
+    async obtenerViajesChofer(idChofer: string): Promise<ViajeAdmin[]> {
+        const { data, error } = await this.supabase.rpc('obtener_viajes', {
+            p_id_chofer: idChofer,
+        });
 
         if (error) throw error;
         return (data as ViajeAdmin[]) || [];

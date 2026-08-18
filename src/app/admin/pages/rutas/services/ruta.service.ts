@@ -474,6 +474,27 @@ export class RutaService {
 
         const facturasDb = facturasRes.data || [];
         const facturasPorGuia = new Map<string, FacturaGuia[]>();
+
+        // Última incidencia por factura (para filtrar re-despachables).
+        const incidenciasTipoMap = new Map<string, any>();
+        if (facturasDb.length) {
+            const incRes = await this.supabase
+                .from('incidencias')
+                .select(
+                    'id_detalle_fact, tipo_incidencia, descripcion, foto_evidencia_url, hora_reporte',
+                )
+                .in(
+                    'id_detalle_fact',
+                    facturasDb.map((f: any) => f.id_factura),
+                )
+                .order('hora_reporte', { ascending: false });
+            for (const inc of (incRes.data || []) as any[]) {
+                if (!incidenciasTipoMap.has(inc.id_detalle_fact)) {
+                    incidenciasTipoMap.set(inc.id_detalle_fact, inc);
+                }
+            }
+        }
+
         for (const f of facturasDb) {
             const suc = f.id_sucursal ? sucursalesMap.get(f.id_sucursal) : undefined;
             const cliente = suc ? clientesMap.get(suc.cliente_id) : undefined;
@@ -496,6 +517,10 @@ export class RutaService {
                 prioridad:
                     prioridadesMap.get(cliente?.id_prioridad) || cliente?.nombre_prioridad || '',
                 idEstado: estadosMap.get(f.id_estado) || f.id_estado,
+                incidenciaTipo: incidenciasTipoMap.get(f.id_factura)?.tipo_incidencia,
+                incidenciaDescripcion: incidenciasTipoMap.get(f.id_factura)?.descripcion,
+                incidenciaFoto: incidenciasTipoMap.get(f.id_factura)?.foto_evidencia_url,
+                incidenciaFecha: incidenciasTipoMap.get(f.id_factura)?.hora_reporte,
             };
 
             const list = facturasPorGuia.get(f.id_guia) || [];

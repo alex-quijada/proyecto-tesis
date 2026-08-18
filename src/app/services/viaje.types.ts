@@ -20,6 +20,9 @@ export interface ParadaViaje {
     longitud?: number | null;
     estado_factura?: string;
     monto_dolares?: number | null;
+    incidencia_tipo?: string;
+    incidencia_descripcion?: string;
+    incidencia_foto?: string;
 }
 
 export interface PasoRutaPersistido {
@@ -63,6 +66,9 @@ export interface ViajeAdmin extends ViajeChofer {
     facturas_proceso?: number;
     facturas_espera?: number;
     facturas_entrega?: number;
+    ventana_inicio?: string;
+    ventana_fin?: string;
+    fecha_finalizacion?: string | null;
 }
 
 export interface CrearViajeResult {

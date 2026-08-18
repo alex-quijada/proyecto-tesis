@@ -27,6 +27,7 @@ import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog
 import {
     IncidenciaDialogComponent,
     IncidenciaGuia,
+    IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { ViajeService } from '@/app/services/viaje.service';
 import { environment } from '@/environments/environment';
@@ -536,11 +537,16 @@ export class NavigationComponent implements OnInit, OnDestroy {
         this.incidenciaGuia.set(null);
     }
 
-    async onIncidenciaConfirmada(texto: string) {
+    async onIncidenciaConfirmada(datos: IncidenciaDatos) {
         const factura = this.incidenciaGuia();
         if (!factura) return;
         try {
-            await this.store.reportarIncidencia(factura.id, texto);
+            await this.store.reportarIncidencia(
+                factura.id,
+                datos.descripcion,
+                datos.tipo,
+                datos.foto || undefined,
+            );
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',

@@ -23,6 +23,11 @@ export interface FacturaGuia {
     prioridad: string;
     reglasRecepcion?: ReglasRecepcion;
     idEstado: string;
+    /** Tipo de la última incidencia de la factura (si tiene). */
+    incidenciaTipo?: string;
+    incidenciaDescripcion?: string;
+    incidenciaFoto?: string;
+    incidenciaFecha?: string;
 }
 
 export interface EventoGuia {

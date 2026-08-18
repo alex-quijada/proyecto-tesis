@@ -1,13 +1,4 @@
 <div class="px-4 pt-4 space-y-3">
-    @if (!cargando() && store.datosOffline()) {
-        <div
-            class="flex items-center gap-2 bg-sky-50 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/30 text-sky-700 dark:text-sky-400 rounded-xl px-3 py-2.5 text-sm"
-        >
-            <i class="pi pi-wifi"></i>
-            <span class="flex-1">Estás viendo la ruta guardada sin conexión</span>
-        </div>
-    }
-
     <!-- Aviso: ruta lista → ir al mapa -->
     @if (avisoIrMapa()) {
         <div
@@ -77,10 +68,22 @@
             </div>
         }
     </div>
-
+    <div class="flex gap-2 items-center justify-end -mb-2 -mt-2">
+        <span class="text-[11px] text-surface-400 flex-shrink-0">{{ actualizadoHace() }}</span>
+        <p-button
+            icon="pi pi-refresh"
+            text
+            rounded
+            severity="secondary"
+            [loading]="store.refrescando()"
+            (onClick)="refrescar()"
+            pTooltip="Actualizar"
+            tooltipPosition="top"
+        />
+    </div>
     @if (activeViaje(); as viaje) {
         <!-- Acciones de planificación -->
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
             <p-button
                 icon="pi pi-route"
                 label="Optimizar ruta"

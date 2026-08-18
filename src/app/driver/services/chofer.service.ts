@@ -129,12 +129,73 @@ export class ChoferService {
         return (data || {}) as { total_actualizadas: number };
     }
 
-    /** Reporta una incidencia en la factura (estado → 'incidencia'). */
-    async reportarIncidencia(idFactura: string, observacion?: string | null): Promise<void> {
+    /** Reporta una incidencia en la factura (estado → 'incidencia').
+     *  Sube la foto a storage (si viene en base64) y guarda en la tabla
+     *  incidencias + historial de estados. */
+    async reportarIncidencia(
+        idFactura: string,
+        descripcion?: string | null,
+        tipo?: string | null,
+        fotoBase64?: string | null,
+    ): Promise<void> {
+        let fotoUrl: string | null = null;
+        if (fotoBase64) {
+            fotoUrl = await this.subirFotoIncidencia(idFactura, fotoBase64);
+        }
+        const tipoCodigo = mapearTipoIncidencia(tipo);
         const { error } = await this.supabase.rpc('reportar_incidencia', {
             p_id_factura: idFactura,
-            p_observacion: observacion || null,
+            p_tipo: tipoCodigo,
+            p_descripcion: descripcion || null,
+            p_foto_url: fotoUrl,
         });
         if (error) throw new Error(`Error al reportar la incidencia: ${error.message}`);
     }
+
+    /** Obtiene la última incidencia de una factura. */
+    async obtenerIncidenciaFactura(idFactura: string): Promise<any | null> {
+        const { data, error } = await this.supabase.rpc('obtener_incidencia_factura', {
+            p_id_factura: idFactura,
+        });
+        if (error) throw new Error(`Error al obtener la incidencia: ${error.message}`);
+        return data || null;
+    }
+
+    private async subirFotoIncidencia(idFactura: string, base64DataUrl: string): Promise<string> {
+        const uid = this.authService.getCurrentUser()?.id || 'anon';
+        const base64 = base64DataUrl.split(',')[1] || base64DataUrl;
+        const blob = this.base64ToBlob(base64);
+        const path = `${uid}/${idFactura}-${Date.now()}.jpg`;
+        const { error } = await this.supabase.storage
+            .from('incidencias-fotos')
+            .upload(path, blob, { contentType: 'image/jpeg' });
+        if (error) throw new Error(`Error al subir la foto: ${error.message}`);
+        const { data } = this.supabase.storage.from('incidencias-fotos').getPublicUrl(path);
+        return data.publicUrl;
+    }
+
+    private base64ToBlob(base64: string): Blob {
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], { type: 'image/jpeg' });
+    }
+}
+
+/** Mapea el tipo de incidencia del diálogo a su código resumido (1-2 palabras). */
+const TIPOS_INCIDENCIA_MAP: Record<string, string> = {
+    'Cliente fuera de tiempo': 'FUERA_HORARIO',
+    'Cliente cerrado': 'CERRADO',
+    'Producto faltante': 'FALTANTE',
+    'Producto sobrante': 'SOBRANTE',
+    'Producto no solicitado': 'NO_SOLICITADO',
+    'Producto dañado': 'DANADO',
+};
+
+export function mapearTipoIncidencia(tipo?: string | null): string {
+    if (!tipo) return 'INCIDENCIA';
+    return TIPOS_INCIDENCIA_MAP[tipo] || tipo.toUpperCase().replace(/\s+/g, '_');
 }

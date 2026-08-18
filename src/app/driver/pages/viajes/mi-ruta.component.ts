@@ -39,6 +39,7 @@ import { FirmaDialogComponent } from '../../components/firma-dialog/firma-dialog
 import {
     IncidenciaDialogComponent,
     IncidenciaGuia,
+    IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 
@@ -161,6 +162,19 @@ export class MiRutaComponent implements OnInit {
             this.sincronizarParadas();
         });
 
+        // Si el admin reinicia el viaje (vuelve a 'programado') mientras el mapa
+        // está navegando, detener la navegación y limpiar el estado de simulación.
+        effect(() => {
+            const viaje = this.activeViaje();
+            if (viaje?.estado === 'programado' && this.navigation.navegando()) {
+                this.navigation.detener();
+                this.puntoEntrega.set(null);
+                this.navigation.puntoEntregaGuardado.set(null);
+                const id = viaje.id_viaje;
+                if (id) void this.navigation.limpiarSimulacionGuardada(id);
+            }
+        });
+
         // Al completar todas las facturas del punto, volver al panel de navegación
         // y reanudar la simulación (que quedó detenida en la parada).
         effect(() => {
@@ -171,6 +185,7 @@ export class MiRutaComponent implements OnInit {
             );
             if (pendientes.length === 0) {
                 this.puntoEntrega.set(null);
+                this.navigation.puntoEntregaGuardado.set(null);
                 this.navigation.reanudarTrasEntrega();
             }
         });
@@ -179,6 +194,8 @@ export class MiRutaComponent implements OnInit {
             window.removeEventListener('resize', medirOffsets);
             document.documentElement.classList.remove('mapa-nativo');
             if (this.navigation.onLlegadaParada) this.navigation.onLlegadaParada = null;
+            // Guardar el punto de entrega abierto para restaurarlo al volver.
+            this.navigation.puntoEntregaGuardado.set(this.puntoEntrega());
             // Al salir del mapa, pausar y guardar la simulación (si está activa).
             const viaje = this.activeViaje();
             if (viaje) void this.navigation.pausarYGuardarSimulacion(viaje.id_viaje);
@@ -587,9 +604,16 @@ export class MiRutaComponent implements OnInit {
                 // La navegación se detuvo (p. ej. se reabrió la app): arrancar
                 // y restaurar la simulación guardada si existe (queda pausada).
                 await this.iniciarNavegacion();
-                if (viaje) await this.navigation.restaurarSimulacionSiExiste(viaje.id_viaje);
+                const restaurado = viaje
+                    ? await this.navigation.restaurarSimulacionSiExiste(viaje.id_viaje)
+                    : false;
                 const posRest = this.navigation.posicionDriver();
                 if (posRest) await this.moverMarcadorChofer(posRest);
+                if (restaurado) this.restaurarEntrega();
+            } else {
+                // Ya navegando (se cambió de ventana y se volvió): restaurar la
+                // vista de entrega que estaba abierta al salir.
+                this.restaurarEntrega();
             }
             // Si ya navegando, se mantiene el recorrido actual (no se reinicia).
         } else if (this.navigation.navegando()) {
@@ -597,9 +621,46 @@ export class MiRutaComponent implements OnInit {
         }
     }
 
+    /** Restaura la vista de entrega (Iniciar/Finalizar) si se estaba en un punto
+     *  de entrega al salir, o si la posición está dentro del rango. */
+    private restaurarEntrega() {
+        const guardado = this.navigation.puntoEntregaGuardado();
+        const puntos = this.puntos();
+        // 1) Si había un punto de entrega abierto al salir, restaurarlo.
+        if (guardado != null && guardado >= 0 && guardado < puntos.length) {
+            const punto = puntos[guardado];
+            if (punto && punto.facturas.some((f) => f.estado === 'entrega' || f.estado === 'espera')) {
+                this.puntoEntrega.set(guardado);
+                return;
+            }
+        }
+        // 2) Si no, abrir según el rango de la posición actual.
+        this.abrirEntregaSiEnRango();
+    }
+
+    /** Si la posición actual está en el rango de la parada, abre el sheet de
+     *  entrega (Iniciar entrega / Finalizar según el estado de la factura). */
+    private abrirEntregaSiEnRango() {
+        const viaje = this.activeViaje();
+        if (!viaje) return;
+        const paradaNav = this.navigation.paradaActual();
+        const puntos = this.puntos();
+        if (paradaNav >= puntos.length) return;
+        const idx = paradaNav;
+        const punto = puntos[idx];
+        if (!punto) return;
+        const pos = this.navigation.posicionDriver();
+        if (!pos) return;
+        const dist = haversine(pos, { lat: punto.latitud, lng: punto.longitud });
+        if (dist < 40) {
+            this.puntoEntrega.set(idx);
+        }
+    }
+
     private async iniciarNavegacion(rutaPrecomputada?: RutaPersistida | null) {
         this.pasosAbiertos.set(false);
         const conPuntos = this.puntos();
+        const viaje = this.activeViaje();
 
         const paradasNav: ParadaNavegacion[] = conPuntos.map((p) => ({
             id: p.key,
@@ -617,8 +678,13 @@ export class MiRutaComponent implements OnInit {
             name: 'Almacén',
         };
 
-        const rutaPersistida = rutaPrecomputada ?? this.activeViaje()?.ruta_detallada;
-        const ok = await this.navigation.iniciarNavegacion(paradasNav, warehouse, rutaPersistida);
+        const rutaPersistida = rutaPrecomputada ?? viaje?.ruta_detallada;
+        const ok = await this.navigation.iniciarNavegacion(
+            paradasNav,
+            warehouse,
+            rutaPersistida,
+            viaje?.id_viaje,
+        );
         if (!ok && this.viajeEnProceso) {
             this.messageService.add({
                 severity: 'warn',
@@ -1064,11 +1130,16 @@ private detenerAnimacionMarcador() {
         this.incidenciaGuia.set(null);
     }
 
-    async onIncidenciaConfirmada(texto: string) {
+    async onIncidenciaConfirmada(datos: IncidenciaDatos) {
         const factura = this.incidenciaGuia();
         if (!factura) return;
         try {
-            await this.store.reportarIncidencia(factura.id, texto);
+            await this.store.reportarIncidencia(
+                factura.id,
+                datos.descripcion,
+                datos.tipo,
+                datos.foto || undefined,
+            );
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',
@@ -1158,6 +1229,7 @@ private detenerAnimacionMarcador() {
             await this.viajeService.finalizarViaje(viaje.id_viaje);
             await this.store.recargarViajes();
             this.puntoEntrega.set(null);
+            this.navigation.puntoEntregaGuardado.set(null);
             await this.navigation.limpiarSimulacionGuardada(viaje.id_viaje);
             this.messageService.add({
                 severity: 'success',

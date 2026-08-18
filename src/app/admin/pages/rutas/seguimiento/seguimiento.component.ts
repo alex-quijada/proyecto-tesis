@@ -24,6 +24,7 @@ import { MessageService } from 'primeng/api';
 
 import { environment } from '@/environments/environment';
 import { ViajeAdmin } from '@/app/services/viaje.types';
+import { ViajeService } from '@/app/services/viaje.service';
 import {
     SeguimientoService,
     PosicionChofer,
@@ -110,6 +111,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     protected readonly service = inject(SeguimientoService);
     private confirmationService = inject(ConfirmationService);
     private messageService = inject(MessageService);
+    private viajeService = inject(ViajeService);
     private mapaEl = viewChild.required<ElementRef<HTMLDivElement>>('mapaElement');
 
     readonly cargando = this.service.cargando;
@@ -487,6 +489,85 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     refrescar() {
         void this.service.refrescar();
+    }
+
+    readonly ventanaEditando = signal(false);
+    readonly ventanaInicio = signal('08:00');
+    readonly ventanaFin = signal('16:30');
+    readonly resolviendoId = signal<string | null>(null);
+
+    /** Ventana laboral del viaje seleccionado. */
+    ventanaLabel(c: ChoferMonitoreo): string {
+        const viaje = c.idViaje ? this.viajes().find((v) => v.id_viaje === c.idViaje) : null;
+        if (!viaje) return '';
+        const ini = (viaje.ventana_inicio || '08:00').slice(0, 5);
+        const fin = (viaje.ventana_fin || '16:30').slice(0, 5);
+        return `${ini} - ${fin}`;
+    }
+
+    editarVentana(c: ChoferMonitoreo) {
+        const viaje = c.idViaje ? this.viajes().find((v) => v.id_viaje === c.idViaje) : null;
+        this.ventanaInicio.set((viaje?.ventana_inicio || '08:00').slice(0, 5));
+        this.ventanaFin.set((viaje?.ventana_fin || '16:30').slice(0, 5));
+        this.ventanaEditando.set(true);
+    }
+
+    async guardarVentana(c: ChoferMonitoreo) {
+        if (!c.idViaje) return;
+        try {
+            await this.viajeService.actualizarVentanaViaje(
+                c.idViaje,
+                this.ventanaInicio(),
+                this.ventanaFin(),
+            );
+            this.ventanaEditando.set(false);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Ventana actualizada',
+                detail: `${this.ventanaInicio()} - ${this.ventanaFin()}`,
+            });
+            await this.service.refrescar();
+            if (c.idViaje) await this.cargarHistorial(c.idViaje);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo actualizar la ventana laboral.',
+            });
+        }
+    }
+
+    cancelarVentana() {
+        this.ventanaEditando.set(false);
+    }
+
+    /** Facturas del viaje seleccionado en estado 'incidencia'. */
+    readonly incidenciasPendientes = computed<ParadaDetalle[]>(() =>
+        this.paradasDetalle().filter((p) => p.estado === 'incidencia'),
+    );
+
+    async resolverIncidencia(factura: ParadaDetalle) {
+        if (this.resolviendoId()) return;
+        this.resolviendoId.set(factura.idFactura);
+        try {
+            await this.viajeService.resolverIncidencia(factura.idFactura);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Incidencia resuelta',
+                detail: `${factura.numeroFactura} — ${factura.cliente} volvió a disponible.`,
+            });
+            await this.service.refrescar();
+            const c = this.detalleActual();
+            if (c?.idViaje) await this.cargarHistorial(c.idViaje);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo resolver la incidencia.',
+            });
+        } finally {
+            this.resolviendoId.set(null);
+        }
     }
 
     reiniciarViaje(c: ChoferMonitoreo) {
