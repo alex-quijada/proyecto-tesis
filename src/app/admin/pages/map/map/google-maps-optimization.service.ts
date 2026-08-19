@@ -30,7 +30,13 @@ export interface RutaDetallada {
     distancia: number;
     duracion: number;
     pasos: PasoRuta[];
-    legs: { path: { lat: number; lng: number }[] }[];
+    legs: {
+        path: { lat: number; lng: number }[];
+        /** Hora de llegada estimada al final de este leg (epoch ms). */
+        arrivalTime?: number;
+        /** Hora de salida estimada del inicio de este leg (epoch ms). */
+        departureTime?: number;
+    }[];
 }
 
 interface TramoBloqueado {
@@ -91,6 +97,7 @@ export class GoogleMapsOptimizationService {
             })),
             optimizeWaypoints: false,
             travelMode: google.maps.TravelMode.DRIVING,
+            drivingOptions: { departureTime: new Date() },
         };
 
         const res = await this.pedirRuta(request);
@@ -130,6 +137,7 @@ export class GoogleMapsOptimizationService {
             })),
             optimizeWaypoints: true,
             travelMode: google.maps.TravelMode.DRIVING,
+            drivingOptions: { departureTime: new Date() },
         };
 
         // Paso 1: solo el orden optimizado (la evasión aquí rompería el
@@ -191,6 +199,9 @@ export class GoogleMapsOptimizationService {
             })),
             optimizeWaypoints: false,
             travelMode: google.maps.TravelMode.DRIVING,
+            // Sin tráfico (tiempos estables), pero con departureTime para que
+            // Directions calcule arrival_time/departure_time por leg.
+            drivingOptions: { departureTime: new Date() },
         };
 
         const res = await this.pedirRuta(request);
@@ -216,7 +227,7 @@ export class GoogleMapsOptimizationService {
             });
         });
 
-        const legs: { path: { lat: number; lng: number }[] }[] = route.legs.map((leg) => {
+        const legs: RutaDetallada['legs'] = route.legs.map((leg) => {
             const path: { lat: number; lng: number }[] = [];
             (leg.steps || []).forEach((step) => {
                 (step.path || []).forEach((p) => {
@@ -228,7 +239,15 @@ export class GoogleMapsOptimizationService {
                     }
                 });
             });
-            return { path };
+            return {
+                path,
+                departureTime: leg.departure_time?.value
+                    ? new Date(leg.departure_time.value as unknown as string).getTime()
+                    : undefined,
+                arrivalTime: leg.arrival_time?.value
+                    ? new Date(leg.arrival_time.value as unknown as string).getTime()
+                    : undefined,
+            };
         });
 
         const totalDistance = route.legs.reduce((sum, leg) => sum + (leg.distance?.value || 0), 0);

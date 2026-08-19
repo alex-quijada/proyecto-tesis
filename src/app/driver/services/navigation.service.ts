@@ -98,6 +98,7 @@ export class NavigationService {
         warehouse: Waypoint,
         rutaPrecomputada?: RutaPersistida | null,
         viajeId?: string,
+        origen?: Waypoint,
     ): Promise<boolean> {
         this.detener();
         if (paradas.length < 1) return false;
@@ -131,7 +132,8 @@ export class NavigationService {
                 name: `${p.nombreCliente} - ${p.numeroGuia || p.numeroFactura}`,
             }));
 
-            ruta = await this.googleOptimization.getRutaDetallada(waypoints, warehouse, warehouse);
+            const inicio: Waypoint = origen ?? warehouse;
+            ruta = await this.googleOptimization.getRutaDetallada(waypoints, inicio, warehouse);
         }
         if (!ruta || ruta.pasos.length < 1) {
             this.navegando.set(false);
@@ -145,8 +147,8 @@ export class NavigationService {
         this.pausado.set(false);
         this.precalcularSim();
 
-        const inicio = ruta.path[0] || { lat: warehouse.lat, lng: warehouse.lng };
-        this.posicionDriver.set({ lat: inicio.lat, lng: inicio.lng });
+        const inicioRuta = ruta.path[0] || { lat: warehouse.lat, lng: warehouse.lng };
+        this.posicionDriver.set({ lat: inicioRuta.lat, lng: inicioRuta.lng });
 
         if (this.simulando()) {
             this.iniciarSimulacion();

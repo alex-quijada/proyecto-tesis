@@ -96,12 +96,11 @@
                                                 />
                                                 <p-tag
                                                     [value]="
-                                                        esRecuperable(p.incidenciaTipo)
+                                                        esRecuperable(p)
                                                             ? 'Re-despachable'
                                                             : 'Terminal'
-                                                    "
-                                                    [severity]="
-                                                        esRecuperable(p.incidenciaTipo)
+
+                                                        esRecuperable(p)
                                                             ? 'warn'
                                                             : 'secondary'
                                                     "

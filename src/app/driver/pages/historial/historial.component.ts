@@ -16,8 +16,6 @@ import {
     IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 
-const TIPOS_INCIDENCIA_RECUPERABLES = ['FUERA_HORARIO', 'CERRADO', 'FALTANTE', 'DANADO'];
-
 @Component({
     selector: 'app-historial',
     standalone: true,
@@ -89,8 +87,8 @@ export class HistorialComponent implements OnInit {
         this.soloIncidencias.update((v) => !v);
     }
 
-    esRecuperable(tipo?: string): boolean {
-        return !!tipo && TIPOS_INCIDENCIA_RECUPERABLES.includes(tipo);
+    esRecuperable(p: ViajeAdmin['paradas'][number]): boolean {
+        return p.incidencia_recuperable === true;
     }
 
     estadoSeverity(estado: string): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {

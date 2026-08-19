@@ -42,6 +42,7 @@ import {
     IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
+import { ordenarPorVentana } from '../../services/time-window.router';
 
 interface ParadaMapa {
     id: string;
@@ -56,6 +57,8 @@ interface ParadaMapa {
     montoDolares?: number;
     rif?: string;
     observaciones?: string;
+    horaDesde?: string | null;
+    horaHasta?: string | null;
 }
 
 /** Punto de entrega: agrupa las facturas que comparten coordenadas (misma dirección). */
@@ -68,6 +71,8 @@ interface PuntoEntrega {
     longitud: number;
     facturaIds: string[];
     facturas: ParadaMapa[];
+    horaDesde?: string | null;
+    horaHasta?: string | null;
 }
 
 @Component({
@@ -162,6 +167,20 @@ export class MiRutaComponent implements OnInit {
             this.sincronizarParadas();
         });
 
+        // Re-entrega automática: si el admin autorizó una incidencia recuperable
+        // de este viaje (Realtime → store), reactivar la factura y recalcular la
+        // ruta desde la posición actual, llevando la parada extra primero.
+        effect(() => {
+            const reentregas = this.store.reentregasPendientes();
+            if (reentregas.length < 1) return;
+            const viaje = this.activeViaje();
+            if (!viaje || viaje.estado !== 'proceso') return;
+            const nuevas = reentregas.filter((p) => !this.reentregasProcesadas.has(p.id_factura));
+            if (nuevas.length < 1) return;
+            for (const p of nuevas) this.reentregasProcesadas.add(p.id_factura);
+            void this.procesarReentrega(nuevas.map((p) => p.id_factura));
+        });
+
         // Si el admin reinicia el viaje (vuelve a 'programado') mientras el mapa
         // está navegando, detener la navegación y limpiar el estado de simulación.
         effect(() => {
@@ -254,6 +273,8 @@ export class MiRutaComponent implements OnInit {
             punto.ordenVisita = Math.min(punto.ordenVisita, p.ordenVisita);
             punto.facturaIds.push(p.id);
             punto.facturas.push(p);
+            if (punto.horaDesde == null && p.horaDesde != null) punto.horaDesde = p.horaDesde;
+            if (punto.horaHasta == null && p.horaHasta != null) punto.horaHasta = p.horaHasta;
         }
         return Array.from(mapa.values()).sort((a, b) => a.ordenVisita - b.ordenVisita);
     });
@@ -329,6 +350,9 @@ export class MiRutaComponent implements OnInit {
     private sheetPointer = { x: 0, y: 0 };
     private sheetPointerActivo = false;
     private arrastreReconocido = false;
+    /** Evita loops: marcas de re-entrega ya procesadas (facturaId → ts). */
+    private reentregasProcesadas = new Set<string>();
+    private reagregandoReentrega = false;
 
     readonly activeViaje = computed(() => this.store.viajesChofer()[0] || null);
 
@@ -394,6 +418,8 @@ export class MiRutaComponent implements OnInit {
                             montoDolares: Number(p.monto_dolares) || entrega?.precioCarga || 0,
                             rif: entrega?.rif,
                             observaciones: entrega?.observaciones,
+                            horaDesde: p.hora_desde,
+                            horaHasta: p.hora_hasta,
                         };
                     }),
             );
@@ -694,6 +720,152 @@ export class MiRutaComponent implements OnInit {
         }
     }
 
+    /**
+     * Ordena los puntos de entrega respetando las ventanas de recepción
+     * (VRPTW: cierres próximos primero, aún-no-abiertas después, cerradas
+     * al final) y devuelve las paradas navegables en ese orden.
+     */
+    private construirParadasOrdenadas(
+        puntos: PuntoEntrega[],
+        origen: { lat: number; lng: number },
+    ): { paradas: ParadaNavegacion[]; cerradas: PuntoEntrega[] } {
+        const ruteables = puntos.map((p) => ({
+            id: p.key,
+            latitud: p.latitud,
+            longitud: p.longitud,
+            horaDesde: p.horaDesde,
+            horaHasta: p.horaHasta,
+        }));
+
+        const res = ordenarPorVentana(ruteables, origen, undefined, {
+            tiempoServicio: 12,
+            velocidadKmh: 35,
+        });
+
+        const mapa = new Map(puntos.map((p) => [p.key, p]));
+        const paradas: ParadaNavegacion[] = res.orden
+            .map((r) => mapa.get(r.id))
+            .filter((p): p is PuntoEntrega => !!p)
+            .map((p, i) => ({
+                id: p.key,
+                ordenVisita: i,
+                numeroGuia: p.facturas[0]?.numeroGuia || '',
+                numeroFactura: p.facturas[0]?.numeroFactura || '',
+                nombreCliente: p.nombreCliente,
+                latitud: p.latitud,
+                longitud: p.longitud,
+            }));
+
+        const cerradas = res.cerradas
+            .map((r) => mapa.get(r.id))
+            .filter((p): p is PuntoEntrega => !!p);
+
+        return { paradas, cerradas };
+    }
+
+    /**
+     * Procesa una re-entrega autorizada por el admin: reactiva las facturas
+     * (incidencia recuperable → proceso), reconstruye la navegación con las
+     * paradas pendientes y recalcula la ruta OPTIMIZADA desde la posición
+     * actual del chofer (la re-entrega se integra según su ubicación, no
+     * forzada primero). Aplica a GPS real y a modo simulación.
+     */
+    private async procesarReentrega(idsFacturas: string[]) {
+        if (this.reagregandoReentrega) return;
+        this.reagregandoReentrega = true;
+        try {
+            const viaje = this.activeViaje();
+            if (!viaje) return;
+
+            const total = await this.store.reagregarReentregas();
+            if (total < 1) return;
+
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Re-entrega autorizada',
+                detail: 'Se volverá a entregar una parada pendiente. Recalculando ruta optimizada…',
+            });
+
+            // Paradas pendientes (no finalizadas) con coordenadas, ya con la
+            // re-entrega reactivada a 'proceso'.
+            const puntos = this.puntos()
+                .filter((p) => p.facturas.some((f) => f.estado !== 'finalizado'))
+                .sort((a, b) => a.ordenVisita - b.ordenVisita);
+
+            if (puntos.length < 1) return;
+
+            const warehouse: Waypoint = {
+                lat: environment.warehouseLat,
+                lng: environment.warehouseLng,
+                name: 'Almacén',
+            };
+
+            // Origen = posición actual del chofer (desde donde está ahora).
+            const pos = this.navigation.posicionDriver();
+            const origen: Waypoint | undefined = pos
+                ? { lat: pos.lat, lng: pos.lng, name: 'Posición actual' }
+                : undefined;
+
+            // Sin conexión: no se puede recalcular con Directions; se mantiene.
+            if (!this.connectivity.isOnline() && !origen) return;
+
+            // Orden VRPTW desde la posición actual: la re-entrega se integra
+            // según su ventana y cercanía (no forzada primero), y las empresas
+            // que cierran pronto se priorizan.
+            const { paradas: paradasNav, cerradas } = this.construirParadasOrdenadas(
+                puntos,
+                { lat: origen?.lat ?? warehouse.lat, lng: origen?.lng ?? warehouse.lng },
+            );
+
+            if (paradasNav.length < 1) return;
+
+            await this.navigation.iniciarNavegacion(
+                paradasNav,
+                warehouse,
+                null,
+                viaje.id_viaje,
+                origen,
+            );
+
+            // Persistir el orden optimizado por ventana en el itinerario del
+            // viaje para que sobreviva a cierres/re-aperturas.
+            try {
+                const idsOrdenados = paradasNav
+                    .map((pn) => this.puntos().find((p) => p.key === pn.id))
+                    .filter((p): p is PuntoEntrega => !!p)
+                    .flatMap((p) => p.facturaIds);
+                if (idsOrdenados.length > 0) {
+                    await this.viajeService.actualizarOrdenViaje(
+                        viaje.id_viaje,
+                        idsOrdenados,
+                    );
+                }
+            } catch (err) {
+                console.warn('No se pudo persistir el orden de la re-entrega', err);
+            }
+
+            // Redibujar marcadores y ruta en el mapa.
+            void this.mostrarRutaEnMapa();
+
+            if (cerradas.length > 0) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Empresas cerradas ahora',
+                    detail: `${cerradas.length} parada(s) fuera de su ventana quedan al final de la ruta.`,
+                });
+            }
+        } catch (err) {
+            console.error('Error procesando re-entrega', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo recalcular la ruta para la re-entrega.',
+            });
+        } finally {
+            this.reagregandoReentrega = false;
+        }
+    }
+
     private async moverMarcadorChofer(pos: LatLng) {
         if (!this.mapa) return;
         const navegando = this.navigation.navegando();
@@ -858,8 +1030,12 @@ private detenerAnimacionMarcador() {
         const viaje = this.activeViaje();
         if (!viaje || !this.viajeAbierto) return;
 
-        // Se respeta el orden actual de las paradas (el definido por la ventana
-        // Ruta del chofer o el admin): no se reordena aquí.
+        const warehouse: Waypoint = {
+            lat: environment.warehouseLat,
+            lng: environment.warehouseLng,
+            name: 'Almacén',
+        };
+
         const conPuntos = this.puntos();
         if (conPuntos.length < 1) {
             this.messageService.add({
@@ -870,14 +1046,19 @@ private detenerAnimacionMarcador() {
             return;
         }
 
+        // Orden VRPTW: respeta las ventanas de recepción (no se pone de
+        // primera una empresa que aún no abre, y se priorizan las que
+        // cierran pronto). Las cerradas ahora se dejan al final.
+        const { paradas: paradasOrdenadas, cerradas } = this.construirParadasOrdenadas(
+            conPuntos,
+            { lat: warehouse.lat, lng: warehouse.lng },
+        );
+        const puntosOrdenados = paradasOrdenadas.map((pn) =>
+            conPuntos.find((p) => p.key === pn.id),
+        ).filter((p): p is PuntoEntrega => !!p);
+
         this.iniciando.set(true);
         try {
-            const warehouse: Waypoint = {
-                lat: environment.warehouseLat,
-                lng: environment.warehouseLng,
-                name: 'Almacén',
-            };
-
             // Fuera de línea: usar la ruta detallada persistida en el viaje
             // (calculada antes y guardada con guardarRutaViaje) sin Directions.
             if (!this.connectivity.isOnline()) {
@@ -903,11 +1084,11 @@ private detenerAnimacionMarcador() {
 
             // Cerrar el viaje: viaje → 'proceso' y todas sus facturas → 'proceso'
             // (iniciar_viaje persiste también el orden actual de las paradas).
-            const idsOrdenadas = conPuntos.flatMap((p) => p.facturaIds);
+            const idsOrdenadas = puntosOrdenados.flatMap((p) => p.facturaIds);
             await this.viajeService.iniciarViaje(viaje.id_viaje, idsOrdenadas);
             await this.store.recargarViajes();
 
-            const waypoints: Waypoint[] = conPuntos.map((p) => ({
+            const waypoints: Waypoint[] = puntosOrdenados.map((p) => ({
                 lat: p.latitud,
                 lng: p.longitud,
                 name: `${p.nombreCliente} - ${
@@ -915,8 +1096,8 @@ private detenerAnimacionMarcador() {
                 }`,
             }));
 
-            // Ruta detallada con el orden actual (getRutaDetallada usa
-            // optimizeWaypoints: false). No se persiste un orden nuevo.
+            // Ruta detallada con el orden por ventana (getRutaDetallada usa
+            // optimizeWaypoints: false, así conserva el orden dado).
             const detallada = await this.googleOptimization.getRutaDetallada(
                 waypoints,
                 warehouse,
@@ -931,7 +1112,10 @@ private detenerAnimacionMarcador() {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Viaje iniciado',
-                detail: 'La navegación comenzó desde el almacén respetando el orden de tu ruta.',
+                detail:
+                    cerradas.length > 0
+                        ? `Se navegará respetando las ventanas. ${cerradas.length} empresa(s) cerradas ahora quedan al final.`
+                        : 'La navegación comenzó desde el almacén respetando las ventanas de entrega.',
             });
         } catch (err) {
             console.error('Error al iniciar el viaje', err);

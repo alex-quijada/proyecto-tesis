@@ -358,15 +358,41 @@
                                                         {{ p.numeroFactura }}
                                                     </div>
                                                 </div>
-                                                <p-button
-                                                    label="Resolver"
-                                                    icon="pi pi-check"
-                                                    severity="success"
-                                                    size="small"
-                                                    [loading]="resolviendoId() === p.idFactura"
-                                                    (onClick)="resolverIncidencia(p)"
-                                                    styleClass="flex-shrink-0"
-                                                />
+                                                <div class="flex items-center gap-2 flex-shrink-0">
+                                                    <p-button
+                                                        [label]="
+                                                            p.incidenciaRecuperable === true
+                                                                ? 'Recuperable'
+                                                                : 'No recuperable'
+                                                        "
+                                                        [icon]="
+                                                            p.incidenciaRecuperable === true
+                                                                ? 'pi pi-verified'
+                                                                : 'pi pi-ban'
+                                                        "
+                                                        [severity]="
+                                                            p.incidenciaRecuperable === true
+                                                                ? 'warn'
+                                                                : 'secondary'
+                                                        "
+                                                        size="small"
+                                                        outlined
+                                                        [loading]="
+                                                            togglingRecuperableId() === p.incidenciaId
+                                                        "
+                                                        (onClick)="toggleRecuperable(p)"
+                                                        pTooltip="¿Se puede volver a entregar? Decisión del analista/administrador"
+                                                        tooltipPosition="top"
+                                                    />
+                                                    <p-button
+                                                        label="Resolver"
+                                                        icon="pi pi-check"
+                                                        severity="success"
+                                                        size="small"
+                                                        [loading]="resolviendoId() === p.idFactura"
+                                                        (onClick)="resolverIncidencia(p)"
+                                                    />
+                                                </div>
                                             </div>
                                         }
                                     </div>

@@ -9,13 +9,6 @@ import { ViajeService } from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ViajeAdmin } from '@/app/services/viaje.types';
 
-export const TIPOS_INCIDENCIA_RECUPERABLES = [
-    'FUERA_HORARIO',
-    'CERRADO',
-    'FALTANTE',
-    'DANADO',
-];
-
 interface HistorialParada {
     idFactura: string;
     numeroFactura: string;
@@ -27,6 +20,7 @@ interface HistorialParada {
     incidenciaDescripcion?: string;
     incidenciaFoto?: string;
     incidenciaFecha?: string;
+    incidenciaRecuperable?: boolean;
 }
 
 interface HistorialViaje {
@@ -96,12 +90,13 @@ export class HistorialEntregasComponent implements OnInit {
                 incidenciaDescripcion: inc?.descripcion,
                 incidenciaFoto: inc?.foto_evidencia_url,
                 incidenciaFecha: inc?.hora_reporte,
+                incidenciaRecuperable: p.incidencia_recuperable,
             };
         });
     }
 
-    esRecuperable(tipo?: string): boolean {
-        return !!tipo && TIPOS_INCIDENCIA_RECUPERABLES.includes(tipo);
+    esRecuperable(p: HistorialParada): boolean {
+        return p.incidenciaRecuperable === true;
     }
 
     estadoSeverity(estado: string): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {

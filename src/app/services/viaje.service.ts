@@ -102,6 +102,32 @@ export class ViajeService {
         if (error) throw error;
     }
 
+    /** Marca/desmarca una incidencia como recuperable (staff). */
+    async setIncidenciaRecuperable(idIncidencia: string, recuperable: boolean): Promise<void> {
+        const { error } = await this.supabase.rpc('set_incidencia_recuperable', {
+            p_id_incidencia: idIncidencia,
+            p_recuperable: recuperable,
+        });
+
+        if (error) throw error;
+    }
+
+    /** Re-agrega facturas en 'incidencia' recuperable al viaje en proceso
+     *  (vuelven a 'proceso' como paradas navegables). La dispara el chofer
+     *  al detectar la autorización del admin. */
+    async reagregarFacturaReenvio(
+        idViaje: string,
+        idsFacturas: string[],
+    ): Promise<{ total_reactivadas: number }> {
+        const { data, error } = await this.supabase.rpc('reagregar_factura_reenvio', {
+            p_id_viaje: idViaje,
+            p_ids_facturas: idsFacturas,
+        });
+
+        if (error) throw error;
+        return (data as { total_reactivadas: number }) || { total_reactivadas: 0 };
+    }
+
     async obtenerViajeChofer(): Promise<ViajeChofer[]> {
         const { data, error } = await this.supabase.rpc('obtener_viaje_chofer');
 

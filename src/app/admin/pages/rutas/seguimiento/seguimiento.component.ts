@@ -54,6 +54,8 @@ interface ParadaDetalle {
     cliente: string;
     municipio: string;
     estado: string;
+    incidenciaId?: string;
+    incidenciaRecuperable?: boolean;
 }
 
 interface LineaTiempoItem {
@@ -382,6 +384,8 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                 cliente: p.nombre_cliente ?? '—',
                 municipio: p.municipio ?? '',
                 estado: p.estado_factura ?? '',
+                incidenciaId: p.incidencia_id,
+                incidenciaRecuperable: p.incidencia_recuperable,
             }));
     });
 
@@ -567,6 +571,38 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             });
         } finally {
             this.resolviendoId.set(null);
+        }
+    }
+
+    readonly togglingRecuperableId = signal<string | null>(null);
+
+    async toggleRecuperable(factura: ParadaDetalle) {
+        if (!factura.incidenciaId || this.togglingRecuperableId()) return;
+        this.togglingRecuperableId.set(factura.incidenciaId);
+        const objetivo = factura.incidenciaRecuperable === true ? false : true;
+        try {
+            await this.viajeService.setIncidenciaRecuperable(
+                factura.incidenciaId,
+                objetivo,
+            );
+            this.messageService.add({
+                severity: 'success',
+                summary: objetivo ? 'Re-despachable' : 'Terminal',
+                detail: `${factura.numeroFactura} — ${factura.cliente} marcada como ${
+                    objetivo ? 'recuperable' : 'no recuperable'
+                }.`,
+            });
+            await this.service.refrescar();
+            const c = this.detalleActual();
+            if (c?.idViaje) await this.cargarHistorial(c.idViaje);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo cambiar la incidencia.',
+            });
+        } finally {
+            this.togglingRecuperableId.set(null);
         }
     }
 

@@ -28,6 +28,12 @@ export interface FacturaGuia {
     incidenciaDescripcion?: string;
     incidenciaFoto?: string;
     incidenciaFecha?: string;
+    /** Flag de la última incidencia: decidido por el staff en la BD. */
+    incidenciaRecuperable?: boolean;
+    incidenciaId?: string;
+    /** Ventana de recepción de la sucursal (HH:MM:SS). */
+    horaDesde?: string | null;
+    horaHasta?: string | null;
 }
 
 export interface EventoGuia {

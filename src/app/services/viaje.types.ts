@@ -20,9 +20,14 @@ export interface ParadaViaje {
     longitud?: number | null;
     estado_factura?: string;
     monto_dolares?: number | null;
+    /** Ventana de recepción de la sucursal (formato HH:MM:SS). */
+    hora_desde?: string | null;
+    hora_hasta?: string | null;
     incidencia_tipo?: string;
     incidencia_descripcion?: string;
     incidencia_foto?: string;
+    incidencia_recuperable?: boolean;
+    incidencia_id?: string;
 }
 
 export interface PasoRutaPersistido {
@@ -41,7 +46,11 @@ export interface RutaPersistida {
     distancia: number;
     duracion: number;
     pasos: PasoRutaPersistido[];
-    legs?: { path: { lat: number; lng: number }[] }[];
+    legs?: {
+        path: { lat: number; lng: number }[];
+        arrivalTime?: number;
+        departureTime?: number;
+    }[];
 }
 
 export interface ViajeChofer {

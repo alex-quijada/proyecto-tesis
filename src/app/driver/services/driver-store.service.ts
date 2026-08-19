@@ -6,7 +6,7 @@ import { AuthService } from '@/app/auth/service/auth.service';
 import { ESTADOS_FACTURA } from '@/app/admin/pages/rutas/data/rutas-mock';
 import { Chofer } from '@/app/admin/pages/choferes/data/choferes-mock';
 import { ViajeService } from '@/app/services/viaje.service';
-import { ViajeChofer } from '@/app/services/viaje.types';
+import { ViajeChofer, ParadaViaje } from '@/app/services/viaje.types';
 import { ConnectivityService } from '@/app/services/connectivity.service';
 import { OfflineStorageService } from './offline-storage.service';
 import { ChoferService, ChoferGuia, ChoferVehiculo } from './chofer.service';
@@ -182,6 +182,36 @@ export class DriverStoreService implements OnDestroy {
 
     readonly pendingGuiasCount = computed(() => this.guiasPendientesAgrupadas().length);
 
+    /** Viaje activo del chofer (programado o en proceso). */
+    readonly activeViaje = computed<ViajeChofer | null>(
+        () => this.viajesChofer()[0] || null,
+    );
+
+    /**
+     * Facturas del viaje EN PROCESO que están en 'incidencia' y cuya última
+     * incidencia fue marcada recuperable por el admin → deben re-entregarse.
+     */
+    readonly reentregasPendientes = computed<ParadaViaje[]>(() => {
+        const viaje = this.activeViaje();
+        if (!viaje || viaje.estado !== 'proceso') return [];
+        return (viaje.paradas || []).filter(
+            (p) => p.estado_factura === 'incidencia' && p.incidencia_recuperable === true,
+        );
+    });
+
+    /** Reactiva las re-entregas autorizadas: vuelven a 'proceso' y recarga. */
+    async reagregarReentregas(): Promise<number> {
+        const viaje = this.activeViaje();
+        const pendientes = this.reentregasPendientes();
+        if (!viaje || viaje.estado !== 'proceso' || pendientes.length < 1) return 0;
+        const res = await this.viajeService.reagregarFacturaReenvio(
+            viaje.id_viaje,
+            pendientes.map((p) => p.id_factura),
+        );
+        await this.recargarViajes();
+        return res.total_reactivadas;
+    }
+
     async cargarDatos() {
         await this.authService.waitForInitialization();
         const user = this.authService.getCurrentUser();
@@ -317,6 +347,11 @@ export class DriverStoreService implements OnDestroy {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'itinerario_viaje' },
+                () => this.notificarCambioViaje(),
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'incidencias' },
                 () => this.notificarCambioViaje(),
             )
             .subscribe((status) => {

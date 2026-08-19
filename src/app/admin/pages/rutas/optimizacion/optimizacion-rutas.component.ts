@@ -34,6 +34,7 @@ import {
 } from '../../map/map/google-maps-optimization.service';
 import { ViajeService } from '@/app/services/viaje.service';
 import { ViajeAdmin, ViajeGroup, CrearViajeResult } from '@/app/services/viaje.types';
+import { ordenarPorVentana } from '@/app/driver/services/time-window.router';
 
 interface DiaCronograma {
     dia: string;
@@ -290,22 +291,9 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** Tipos de incidencia recuperables: la factura vuelve a estar disponible. */
-    private readonly TIPOS_INCIDENCIA_RECUPERABLES = [
-        'FUERA_HORARIO',
-        'CERRADO',
-        'FALTANTE',
-        'DANADO',
-    ];
-
-    /** Una factura es re-despachable si está 'nuevo' o tiene incidencia recuperable. */
+    /** Una factura es re-despachable si está 'nuevo' o su incidencia está marcada recuperable en BD. */
     private esFacturaReespachable(f: FacturaGuia): boolean {
-        return (
-            f.idEstado === 'nuevo' ||
-            (f.idEstado === 'incidencia' &&
-                !!f.incidenciaTipo &&
-                this.TIPOS_INCIDENCIA_RECUPERABLES.includes(f.incidenciaTipo))
-        );
+        return f.idEstado === 'nuevo' || (f.idEstado === 'incidencia' && f.incidenciaRecuperable === true);
     }
 
     get municipiosConteo(): MunicipioConteo[] {
@@ -474,15 +462,48 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         const ordenOptimoFacturas = this.ultimoOrdenFacturas();
 
         for (const group of groups) {
+            // Índice de la última optimización (orden de Google), para desempatar.
+            const ordenOptimoFacturas = this.ultimoOrdenFacturas();
+
+            const facturaPorId = new Map<string, FacturaGuia>();
+            for (const g of this.guias()) {
+                for (const f of g.facturas || []) facturaPorId.set(f.id, f);
+            }
+
             const allFacturaIds = group.guias.flatMap((g) => g.facturaIds);
-            const ordered = [...allFacturaIds].sort((a, b) => {
-                const ia = ordenOptimoFacturas.indexOf(a);
-                const ib = ordenOptimoFacturas.indexOf(b);
-                if (ia >= 0 && ib >= 0) return ia - ib;
-                if (ia >= 0) return -1;
-                if (ib >= 0) return 1;
-                return 0;
-            });
+            const facturasRuteables = allFacturaIds
+                .map((id) => facturaPorId.get(id))
+                .filter(
+                    (f): f is FacturaGuia =>
+                        !!f && f.sucursalLat != null && f.sucursalLng != null,
+                );
+
+            // Orden VRPTW desde el almacén: las empresas que cierran pronto se
+            // priorizan y las aún-cerradas van al final.
+            let ordered: string[];
+            if (facturasRuteables.length > 0) {
+                const res = ordenarPorVentana(
+                    facturasRuteables.map((f) => ({
+                        id: f.id,
+                        latitud: f.sucursalLat!,
+                        longitud: f.sucursalLng!,
+                        horaDesde: f.horaDesde,
+                        horaHasta: f.horaHasta,
+                    })),
+                    { lat: environment.warehouseLat, lng: environment.warehouseLng },
+                );
+                const porId = new Map(facturasRuteables.map((f) => [f.id, f]));
+                ordered = res.orden.map((r) => porId.get(r.id)!.id);
+            } else {
+                ordered = [...allFacturaIds].sort((a, b) => {
+                    const ia = ordenOptimoFacturas.indexOf(a);
+                    const ib = ordenOptimoFacturas.indexOf(b);
+                    if (ia >= 0 && ib >= 0) return ia - ib;
+                    if (ia >= 0) return -1;
+                    if (ib >= 0) return 1;
+                    return 0;
+                });
+            }
 
             const fechaStr = this.fechaViaje().toISOString().split('T')[0];
 

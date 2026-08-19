@@ -125,12 +125,12 @@
                                         </span>
                                         <p-tag
                                             [value]="
-                                                esRecuperable(p.incidencia_tipo)
+                                                esRecuperable(p)
                                                     ? 'Re-despachable'
                                                     : 'Terminal'
                                             "
                                             [severity]="
-                                                esRecuperable(p.incidencia_tipo) ? 'warn' : 'secondary'
+                                                esRecuperable(p) ? 'warn' : 'secondary'
                                             "
                                             styleClass="text-[10px]"
                                         />
