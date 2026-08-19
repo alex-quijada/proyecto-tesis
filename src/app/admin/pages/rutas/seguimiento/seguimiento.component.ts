@@ -611,7 +611,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         this.confirmationService.confirm({
             message: `¿Reiniciar el viaje de ${c.nombre}? El viaje volverá a "programado" y sus ${
                 viaje?.total_facturas ?? 0
-            } facturas a "embarque" (se borra la firma).`,
+            } facturas a "embarque". Se borrarán las firmas, incidencias, fotos de incidencia y el historial de estados.`,
             header: 'Reiniciar viaje',
             icon: 'pi pi-refresh',
             acceptLabel: 'Reiniciar',
@@ -624,11 +624,19 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     private async confirmarReinicio(c: ChoferMonitoreo) {
         if (!c.idViaje) return;
         try {
-            await this.service.reiniciarViaje(c.idViaje);
+            const fotos = await this.service.reiniciarViaje(c.idViaje);
+            // Borrar del bucket los objetos de fotos de incidencia limpiados en BD.
+            if (fotos.length > 0) {
+                await this.viajeService
+                    .borrarFotosIncidencia(fotos)
+                    .catch((err) =>
+                        console.warn('No se pudieron borrar fotos de incidencia del storage', err),
+                    );
+            }
             this.messageService.add({
                 severity: 'success',
                 summary: 'Viaje reiniciado',
-                detail: `El viaje de ${c.nombre} volvió a programado.`,
+                detail: `El viaje de ${c.nombre} volvió a programado (incidencias, fotos e historial limpiados).`,
             });
             await this.service.refrescar();
             if (c.idViaje) await this.cargarHistorial(c.idViaje);

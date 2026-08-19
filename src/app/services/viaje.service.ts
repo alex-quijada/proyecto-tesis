@@ -64,12 +64,34 @@ export class ViajeService {
         if (error) throw error;
     }
 
-    /** Reinicia un viaje (solo staff): vuelve a 'programado' y sus facturas a 'embarque'. */
-    async reiniciarViaje(idViaje: string): Promise<void> {
-        const { error } = await this.supabase.rpc('reiniciar_viaje', {
+    /** Reinicia un viaje (solo staff): vuelve a 'programado', sus facturas a
+     *  'embarque' y limpia firmas, incidencias, fotos e historial de estados.
+     *  Devuelve las URLs de fotos de incidencia borradas en BD. */
+    async reiniciarViaje(idViaje: string): Promise<{ fotos_eliminadas?: string[] }> {
+        const { data, error } = await this.supabase.rpc('reiniciar_viaje', {
             p_id_viaje: idViaje,
         });
 
+        if (error) throw error;
+        return (data as { fotos_eliminadas?: string[] }) || {};
+    }
+
+    /** Borra los objetos del bucket de fotos de incidencia cuyas URLs fueron
+     *  limpiadas en BD al reiniciar un viaje (evita archivos huérfanos). */
+    async borrarFotosIncidencia(urls: string[]): Promise<void> {
+        const BUCKET = 'incidencias-fotos';
+        const marker = `/object/public/${BUCKET}/`;
+        const paths = urls
+            .map((url) => {
+                const idx = url.indexOf(marker);
+                return idx >= 0 ? url.slice(idx + marker.length) : null;
+            })
+            .filter((p): p is string => !!p);
+
+        if (paths.length < 1) return;
+        const { error } = await this.supabase.storage
+            .from(BUCKET)
+            .remove(paths);
         if (error) throw error;
     }
 

@@ -94,9 +94,12 @@ export class SeguimientoService implements OnDestroy {
         return (data as HistorialViajeRow[]) || [];
     }
 
-    /** Reinicia un viaje (solo staff): vuelve a 'programado' y sus facturas a 'embarque'. */
-    async reiniciarViaje(idViaje: string): Promise<void> {
-        await this.viajeService.reiniciarViaje(idViaje);
+    /** Reinicia un viaje (solo staff): vuelve a 'programado', sus facturas a
+     *  'embarque' y limpia firmas, incidencias, fotos e historial. Devuelve las
+     *  URLs de fotos de incidencia limpiadas en BD. */
+    async reiniciarViaje(idViaje: string): Promise<string[]> {
+        const res = await this.viajeService.reiniciarViaje(idViaje);
+        return res.fotos_eliminadas || [];
     }
 
     private async obtenerPosiciones(): Promise<Record<string, PosicionChofer>> {
