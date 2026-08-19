@@ -99,10 +99,9 @@
                                                         esRecuperable(p)
                                                             ? 'Re-despachable'
                                                             : 'Terminal'
-
-                                                        esRecuperable(p)
-                                                            ? 'warn'
-                                                            : 'secondary'
+                                                    "
+                                                    [severity]="
+                                                        esRecuperable(p) ? 'warn' : 'secondary'
                                                     "
                                                     styleClass="text-xs"
                                                 />
