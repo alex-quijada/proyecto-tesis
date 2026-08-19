@@ -110,7 +110,9 @@ export class ViajeService {
     }
 
     async obtenerViajes(): Promise<ViajeAdmin[]> {
-        const { data, error } = await this.supabase.rpc('obtener_viajes');
+        const { data, error } = await this.supabase.rpc('obtener_viajes', {
+            p_id_chofer: null,
+        });
 
         if (error) throw error;
         return (data as ViajeAdmin[]) || [];
