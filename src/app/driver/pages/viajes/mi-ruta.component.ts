@@ -59,6 +59,10 @@ interface ParadaMapa {
     observaciones?: string;
     horaDesde?: string | null;
     horaHasta?: string | null;
+    referencia?: string | null;
+    contacto?: string | null;
+    telefono?: string | null;
+    notaSucursal?: string | null;
 }
 
 /** Punto de entrega: agrupa las facturas que comparten coordenadas (misma dirección). */
@@ -73,6 +77,10 @@ interface PuntoEntrega {
     facturas: ParadaMapa[];
     horaDesde?: string | null;
     horaHasta?: string | null;
+    referencia?: string | null;
+    contacto?: string | null;
+    telefono?: string | null;
+    notaSucursal?: string | null;
 }
 
 @Component({
@@ -114,7 +122,6 @@ export class MiRutaComponent implements OnInit {
     bottomOffset = signal(68);
     siguiendo = signal(true);
     verPasos = signal(true);
-    vista3d = signal(true);
     pasosAbiertos = signal(false);
     puntosAbiertos = signal(false);
     controlesAbiertos = signal(false);
@@ -275,6 +282,11 @@ export class MiRutaComponent implements OnInit {
             punto.facturas.push(p);
             if (punto.horaDesde == null && p.horaDesde != null) punto.horaDesde = p.horaDesde;
             if (punto.horaHasta == null && p.horaHasta != null) punto.horaHasta = p.horaHasta;
+            if (punto.referencia == null && p.referencia != null) punto.referencia = p.referencia;
+            if (punto.contacto == null && p.contacto != null) punto.contacto = p.contacto;
+            if (punto.telefono == null && p.telefono != null) punto.telefono = p.telefono;
+            if (punto.notaSucursal == null && p.notaSucursal != null)
+                punto.notaSucursal = p.notaSucursal;
         }
         return Array.from(mapa.values()).sort((a, b) => a.ordenVisita - b.ordenVisita);
     });
@@ -420,6 +432,10 @@ export class MiRutaComponent implements OnInit {
                             observaciones: entrega?.observaciones,
                             horaDesde: p.hora_desde,
                             horaHasta: p.hora_hasta,
+                            referencia: p.referencia,
+                            contacto: p.contacto,
+                            telefono: p.telefono,
+                            notaSucursal: p.nota_sucursal,
                         };
                     }),
             );
@@ -996,25 +1012,23 @@ private detenerAnimacionMarcador() {
 }
 
     /**
-     * Mueve la cámara siguiendo al chofer. Con `vista3d` activa usa la
-     * perspectiva isométrica tipo Google Maps Navigation: cámara inclinada
-     * 45° (angle), rotada según el rumbo y con zoom cercano.
+     * Mueve la cámara siguiendo al chofer en perspectiva isométrica tipo
+     * Google Maps Navigation: cámara inclinada 45° (angle), rotada según el
+     * rumbo y con zoom cercano.
      */
     private async seguirCamara(pos: LatLng) {
         const config = {
             coordinate: { lat: pos.lat, lng: pos.lng },
             animate: true,
-            ...(this.vista3d() ? { zoom: 17, angle: 45, bearing: this.navigation.rumbo() } : {}),
+            zoom: 17,
+            angle: 45,
+            bearing: this.navigation.rumbo(),
         };
         try {
             await this.mapa.setCamera(config);
         } catch (err) {
             console.error('Error siguiendo cámara', err);
         }
-    }
-
-    toggleVista3d() {
-        this.vista3d.update((v) => !v);
     }
 
     private crearMarcadorEntrega(index: number, p: ParadaMapa): Marker {
@@ -1151,9 +1165,8 @@ private detenerAnimacionMarcador() {
     }
 
     readonly velocidadOpciones = [
-        { label: 'Lenta', value: 15 },
-        { label: 'Normal', value: 40 },
-        { label: 'Rápida', value: 90 },
+        { label: 'Normal', value: 90 },
+        { label: 'Rápida', value: 180 },
     ];
 
     get velocidadSeleccionada(): number {
@@ -1397,6 +1410,25 @@ private detenerAnimacionMarcador() {
     /** Abre el sheet de entrega de un punto pendiente (desde la lista). */
     abrirPunto(i: number) {
         if (this.puntoTienePendientes(i)) this.puntoEntrega.set(i);
+    }
+
+    /** Punto del que se muestra la info de sucursal (diálogo). */
+    readonly infoSucursalPunto = signal<PuntoEntrega | null>(null);
+
+    get infoSucursalVisible(): boolean {
+        return this.infoSucursalPunto() !== null;
+    }
+
+    set infoSucursalVisible(v: boolean) {
+        if (!v) this.infoSucursalPunto.set(null);
+    }
+
+    abrirInfoSucursal(punto: PuntoEntrega) {
+        this.infoSucursalPunto.set(punto);
+    }
+
+    cerrarInfoSucursal() {
+        this.infoSucursalPunto.set(null);
     }
 
     /** Alterna el detalle del cliente/facturas en las vistas de entrega. */

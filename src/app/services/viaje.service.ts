@@ -95,6 +95,18 @@ export class ViajeService {
         if (error) throw error;
     }
 
+    /** Elimina un viaje por completo (solo staff, para pruebas): borra el viaje,
+     *  su historial de estados, las incidencias y devuelve las URLs de fotos
+     *  de incidencia para limpiar el storage. */
+    async eliminarViaje(idViaje: string): Promise<{ fotos_eliminadas?: string[] }> {
+        const { data, error } = await this.supabase.rpc('eliminar_viaje', {
+            p_id_viaje: idViaje,
+        });
+
+        if (error) throw error;
+        return (data as { fotos_eliminadas?: string[] }) || {};
+    }
+
     /** Finaliza el viaje (chofer al volver al almacén): todas las facturas hechas → 'finalizado'. */
     async finalizarViaje(idViaje: string): Promise<void> {
         const { error } = await this.supabase.rpc('finalizar_viaje', {

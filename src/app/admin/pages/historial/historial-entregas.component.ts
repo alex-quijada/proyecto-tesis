@@ -4,6 +4,10 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 import { ViajeService } from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
@@ -31,16 +35,29 @@ interface HistorialViaje {
 @Component({
     selector: 'app-historial-entregas',
     standalone: true,
-    imports: [CommonModule, TagModule, ButtonModule, SkeletonModule, TableModule],
+    imports: [
+        CommonModule,
+        TagModule,
+        ButtonModule,
+        SkeletonModule,
+        TableModule,
+        ConfirmDialogModule,
+        ToastModule,
+        TooltipModule,
+    ],
+    providers: [ConfirmationService, MessageService],
     templateUrl: './historial-entregas.component.html',
 })
 export class HistorialEntregasComponent implements OnInit {
     private viajeService = inject(ViajeService);
     private authService = inject(AuthService);
+    private confirmationService = inject(ConfirmationService);
+    private messageService = inject(MessageService);
 
     cargando = signal(true);
     private viajesFinalizados = signal<ViajeAdmin[]>([]);
     private incidenciasMap = new Map<string, any>();
+    eliminandoId = signal<string | null>(null);
 
     historial = computed<HistorialViaje[]>(() =>
         this.viajesFinalizados()
@@ -142,5 +159,51 @@ export class HistorialEntregasComponent implements OnInit {
             hour: '2-digit',
             minute: '2-digit',
         });
+    }
+
+    /** Pide confirmación y borra el viaje (para pruebas). */
+    borrarViaje(v: ViajeAdmin) {
+        this.confirmationService.confirm({
+            message: `¿Borrar el viaje de ${v.chofer || 'Chofer'}? Se eliminarán el viaje, el historial de estados, las incidencias y sus fotos. Esto es irreversible (para pruebas).`,
+            header: 'Borrar viaje',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Borrar',
+            acceptIcon: 'pi pi-trash',
+            rejectLabel: 'Cancelar',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => void this.confirmarBorrar(v),
+        });
+    }
+
+    private async confirmarBorrar(v: ViajeAdmin) {
+        if (this.eliminandoId()) return;
+        this.eliminandoId.set(v.id_viaje);
+        try {
+            const res = await this.viajeService.eliminarViaje(v.id_viaje);
+            if (res.fotos_eliminadas?.length) {
+                await this.viajeService
+                    .borrarFotosIncidencia(res.fotos_eliminadas)
+                    .catch((err) =>
+                        console.warn('No se pudieron borrar fotos de incidencia del storage', err),
+                    );
+            }
+            this.viajesFinalizados.update((lista) =>
+                lista.filter((x) => x.id_viaje !== v.id_viaje),
+            );
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Viaje borrado',
+                detail: 'El viaje y sus datos asociados se eliminaron.',
+            });
+        } catch (err: any) {
+            console.error('Error al borrar viaje', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo borrar el viaje.',
+            });
+        } finally {
+            this.eliminandoId.set(null);
+        }
     }
 }

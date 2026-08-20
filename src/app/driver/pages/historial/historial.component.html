@@ -1,25 +1,34 @@
 <div class="px-4 pt-4">
-    <div class="flex items-center justify-end gap-2 mb-2">
-        <p-button
-            icon="pi pi-flag"
-            [label]="soloIncidencias() ? 'Todas' : 'Solo incidencias'"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            (onClick)="toggleSoloIncidencias()"
+    <!-- Filtros -->
+    <div class="flex flex-col gap-2 mb-3">
+        <p-selectbutton
+            [options]="tipoOpciones"
+            [ngModel]="filtroTipo()"
+            (ngModelChange)="setFiltroTipo($event)"
+            optionLabel="label"
+            optionValue="value"
+            styleClass="w-full"
         />
-        <p-button
-            icon="pi pi-refresh"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            [loading]="cargando()"
-            (onClick)="cargar()"
-            pTooltip="Actualizar"
-            tooltipPosition="left"
-        />
+        <div class="flex items-center gap-2">
+            <p-select
+                [options]="municipiosDisponibles()"
+                [ngModel]="filtroMunicipio()"
+                (ngModelChange)="filtroMunicipio.set($event)"
+                placeholder="Todos los municipios"
+                styleClass="w-full"
+            />
+            <p-button
+                icon="pi pi-refresh"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                [loading]="cargando()"
+                (onClick)="cargar()"
+                pTooltip="Actualizar"
+                tooltipPosition="left"
+            />
+        </div>
     </div>
 
     @if (cargando()) {
@@ -28,23 +37,21 @@
                 <p-skeleton height="110px" borderRadius="10px" />
             }
         </div>
-    } @else if (viajesHistorial().length === 0) {
+    } @else if (historial().length === 0) {
         <div class="text-center py-14 text-surface-400 bg-white dark:bg-surface-800 rounded-xl shadow-sm">
             <i class="pi pi-inbox text-4xl block mb-2"></i>
-            <p class="text-sm font-semibold text-surface-500">
-                {{ soloIncidencias() ? 'Sin viajes con incidencias' : 'Sin viajes finalizados' }}
-            </p>
-            <p class="text-xs mt-1">Aún no hay entregas registradas.</p>
+            <p class="text-sm font-semibold text-surface-500">Sin entregas</p>
+            <p class="text-xs mt-1">Aún no hay entregas que coincidan con los filtros.</p>
         </div>
     } @else {
         <div class="flex flex-col gap-3">
-            @for (v of viajesHistorial(); track v.id_viaje) {
+            @for (h of historial(); track h.viaje.id_viaje) {
                 <div class="bg-white dark:bg-surface-800 rounded-xl shadow-sm overflow-hidden">
                     <!-- Cabecera del viaje -->
                     <div
                         class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 bg-surface-50 dark:bg-surface-800/60 border-b border-surface-200 dark:border-surface-700 text-xs"
                     >
-                        @if (esViajeActual(v)) {
+                        @if (esViajeActual(h.viaje)) {
                             <p-tag
                                 value="Viaje actual"
                                 severity="info"
@@ -54,24 +61,24 @@
                         }
                         <span class="text-surface-400 flex items-center gap-1">
                             <i class="pi pi-calendar"></i>
-                            {{ formatFecha(v.fecha_finalizacion || v.fecha_creacion) }}
+                            {{ formatFecha(h.viaje.fecha_finalizacion || h.viaje.fecha_creacion) }}
                         </span>
                         <span class="text-surface-400 flex items-center gap-1">
-                            <i class="pi pi-truck"></i>{{ v.placa_vehiculo || '—' }}
+                            <i class="pi pi-truck"></i>{{ h.viaje.placa_vehiculo || '—' }}
                         </span>
                         <span class="text-surface-400 flex items-center gap-1">
                             <i class="pi pi-clock"></i>
-                            {{ (v.ventana_inicio || '08:00').slice(0, 5) }} -
-                            {{ (v.ventana_fin || '16:30').slice(0, 5) }}
+                            {{ (h.viaje.ventana_inicio || '08:00').slice(0, 5) }} -
+                            {{ (h.viaje.ventana_fin || '16:30').slice(0, 5) }}
                         </span>
                         <span class="text-surface-500 ml-auto font-medium">
-                            {{ v.paradas.length || 0 }} factura(s)
+                            {{ h.paradas.length }} factura(s)
                         </span>
                     </div>
 
-                    <!-- Facturas del viaje -->
+                    <!-- Facturas -->
                     <div class="divide-y divide-surface-100 dark:divide-surface-700">
-                        @for (p of v.paradas || []; track p.id_factura) {
+                        @for (p of h.paradas; track p.id_factura) {
                             <div class="px-3 py-2.5">
                                 <div class="flex items-start gap-2">
                                     <div
@@ -95,6 +102,9 @@
                                             @if (p.codigo_guia) {
                                                 · {{ p.codigo_guia }}
                                             }
+                                            @if (p.municipio) {
+                                                · {{ p.municipio }}
+                                            }
                                         </div>
                                     </div>
                                     <p-tag
@@ -102,7 +112,7 @@
                                         [severity]="estadoSeverity(p.estado_factura || '')"
                                         styleClass="text-xs flex-shrink-0"
                                     />
-                                    @if (esReportable(v, p)) {
+                                    @if (esReportable(h.viaje, p)) {
                                         <p-button
                                             label="Reportar incidencia"
                                             icon="pi pi-exclamation-triangle"
@@ -121,13 +131,11 @@
                                     >
                                         <i class="pi pi-exclamation-triangle text-red-500 text-xs"></i>
                                         <span class="text-xs font-semibold text-red-600 dark:text-red-300">
-                                            {{ p.incidencia_tipo }}
+                                            {{ p.incidencia_tipo | tipoIncidencia }}
                                         </span>
                                         <p-tag
                                             [value]="
-                                                esRecuperable(p)
-                                                    ? 'Re-despachable'
-                                                    : 'Terminal'
+                                                esRecuperable(p) ? 'Re-despachable' : 'Terminal'
                                             "
                                             [severity]="
                                                 esRecuperable(p) ? 'warn' : 'secondary'

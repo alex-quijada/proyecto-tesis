@@ -44,7 +44,7 @@ const UMBRAL_RE_RUTEO_M = 300;
 const DEBOUNCE_RE_RUTEO_MS = 60000;
 const SIM_INTERVALO_MS = 200;
 /** Velocidad de la simulación en m/s (configurable desde la UI). */
-const VELOCIDAD_SIMULACION_DEFAULT = 40;
+const VELOCIDAD_SIMULACION_DEFAULT = 90;
 
 @Injectable()
 export class NavigationService {

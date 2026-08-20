@@ -20,6 +20,11 @@ export interface ParadaViaje {
     longitud?: number | null;
     estado_factura?: string;
     monto_dolares?: number | null;
+    /** Datos de la sucursal (para mostrar info al tocar el punto). */
+    referencia?: string | null;
+    contacto?: string | null;
+    telefono?: string | null;
+    nota_sucursal?: string | null;
     /** Ventana de recepción de la sucursal (formato HH:MM:SS). */
     hora_desde?: string | null;
     hora_hasta?: string | null;

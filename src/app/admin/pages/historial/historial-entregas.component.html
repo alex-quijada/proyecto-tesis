@@ -56,6 +56,17 @@
                         <span class="text-surface-400 text-xs ml-auto">
                             {{ h.paradas.length }} factura(s)
                         </span>
+                        <p-button
+                            icon="pi pi-trash"
+                            text
+                            rounded
+                            size="small"
+                            severity="danger"
+                            [loading]="eliminandoId() === h.viaje.id_viaje"
+                            (onClick)="borrarViaje(h.viaje)"
+                            pTooltip="Borrar viaje (para pruebas)"
+                            tooltipPosition="left"
+                        />
                     </div>
 
                     <!-- Paradas -->
@@ -131,3 +142,6 @@
         </div>
     }
 </div>
+
+<p-confirmdialog />
+<p-toast />
