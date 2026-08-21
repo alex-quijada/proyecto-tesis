@@ -33,6 +33,20 @@ export interface ParadaViaje {
     incidencia_foto?: string;
     incidencia_recuperable?: boolean;
     incidencia_id?: string;
+    /** Todas las incidencias de la factura (multi). */
+    incidencias?: IncidenciaParada[];
+    /** Existe al menos una incidencia pendiente (resuelta = false). */
+    tiene_incidencia_pendiente?: boolean;
+}
+
+export interface IncidenciaParada {
+    id_incidencia?: string;
+    tipo?: string;
+    descripcion?: string;
+    foto?: string;
+    hora_reporte?: string;
+    recuperable?: boolean;
+    resuelta?: boolean;
 }
 
 export interface PasoRutaPersistido {

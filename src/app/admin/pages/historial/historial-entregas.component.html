@@ -78,15 +78,31 @@
                     >
                         <ng-template #header>
                             <tr>
+                                <th style="width: 3rem"></th>
                                 <th style="min-width: 10rem">Cliente</th>
                                 <th style="min-width: 6rem">Factura</th>
                                 <th style="min-width: 7rem">Municipio</th>
                                 <th style="min-width: 7rem">Estado</th>
-                                <th style="min-width: 12rem">Incidencia</th>
                             </tr>
                         </ng-template>
                         <ng-template #body let-p>
+                            @let claveFila = h.viaje.id_viaje + ':' + p.idFactura;
                             <tr>
+                                <td>
+                                    <button
+                                        type="button"
+                                        pButton
+                                        [text]="true"
+                                        [rounded]="true"
+                                        [icon]="
+                                            filaExpandida()[claveFila]
+                                                ? 'pi pi-chevron-down'
+                                                : 'pi pi-chevron-right'
+                                        "
+                                        class="p-button-text p-button-secondary"
+                                        (click)="toggleFila(claveFila)"
+                                    ></button>
+                                </td>
                                 <td class="font-medium">{{ p.cliente }}</td>
                                 <td class="font-mono text-sm">{{ p.numeroFactura }}</td>
                                 <td class="text-surface-500">{{ p.municipio || '—' }}</td>
@@ -96,45 +112,157 @@
                                         [severity]="estadoSeverity(p.estado)"
                                     />
                                 </td>
-                                <td>
-                                    @if (p.incidenciaTipo) {
-                                        <div class="flex flex-col gap-1">
-                                            <div class="flex items-center gap-1.5 flex-wrap">
-                                                <p-tag
-                                                    [value]="p.incidenciaTipo"
-                                                    severity="danger"
-                                                    styleClass="text-xs"
-                                                />
-                                                <p-tag
-                                                    [value]="
-                                                        esRecuperable(p)
-                                                            ? 'Re-despachable'
-                                                            : 'Terminal'
-                                                    "
-                                                    [severity]="
-                                                        esRecuperable(p) ? 'warn' : 'secondary'
-                                                    "
-                                                    styleClass="text-xs"
-                                                />
+                            </tr>
+                            @if (filaExpandida()[claveFila]) {
+                                <tr>
+                                    <td colspan="5" class="!p-0">
+                                        <div class="p-3 space-y-3">
+                                            <!-- Datos relevantes -->
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="pi pi-map-marker text-primary mt-0.5"></i>
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-surface-500 uppercase">Dirección</div>
+                                                        <div class="text-surface-700 dark:text-surface-200">{{ p.direccion || '—' }}</div>
+                                                        @if (p.referencia) {
+                                                            <div class="text-xs text-surface-500 mt-0.5">{{ p.referencia }}</div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-start gap-2">
+                                                    <i class="pi pi-user text-primary mt-0.5"></i>
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-surface-500 uppercase">Contacto</div>
+                                                        <div class="text-surface-700 dark:text-surface-200">{{ p.contacto || '—' }}</div>
+                                                        @if (p.telefono) {
+                                                            <a [href]="'tel:' + p.telefono" class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5">
+                                                                <i class="pi pi-phone"></i>{{ p.telefono }}
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                @if (p.montoDolares != null) {
+                                                    <div class="flex items-start gap-2">
+                                                        <i class="pi pi-dollar text-primary mt-0.5"></i>
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-surface-500 uppercase">Monto</div>
+                                                            <div class="text-surface-700 dark:text-surface-200">
+                                                                {{ p.montoDolares | currency: 'USD' : 'symbol' : '1.2-2' }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                @if (p.horaDesde || p.horaHasta) {
+                                                    <div class="flex items-start gap-2">
+                                                        <i class="pi pi-clock text-primary mt-0.5"></i>
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-surface-500 uppercase">Ventana de recepción</div>
+                                                            <div class="text-surface-700 dark:text-surface-200">
+                                                                {{ (p.horaDesde || '').slice(0, 5) }} - {{ (p.horaHasta || '').slice(0, 5) }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                @if (p.notaSucursal) {
+                                                    <div class="flex items-start gap-2 md:col-span-2">
+                                                        <i class="pi pi-info text-primary mt-0.5"></i>
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-surface-500 uppercase">Nota</div>
+                                                            <div class="text-surface-700 dark:text-surface-200">{{ p.notaSucursal }}</div>
+                                                        </div>
+                                                    </div>
+                                                }
                                             </div>
-                                            @if (p.incidenciaDescripcion) {
-                                                <span class="text-xs text-surface-500">
-                                                    {{ p.incidenciaDescripcion }}
-                                                </span>
-                                            }
-                                            @if (p.incidenciaFoto) {
-                                                <img
-                                                    [src]="p.incidenciaFoto"
-                                                    class="w-16 h-12 object-cover rounded border border-surface-200 dark:border-surface-700"
-                                                    alt="Foto incidencia"
-                                                />
+
+                                            <!-- Incidencias -->
+                                            @if (p.incidencias?.length || p.incidenciaTipo) {
+                                                <div class="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/40 p-3">
+                                                    <div class="flex items-center gap-2 text-red-600 dark:text-red-300 font-semibold text-sm">
+                                                        <i class="pi pi-exclamation-triangle"></i>
+                                                        <span>Incidencia(s)</span>
+                                                    </div>
+                                                    @if (p.incidencias?.length) {
+                                                        <div class="mt-2 flex flex-col gap-2.5">
+                                                            @for (inc of p.incidencias; track inc.id_incidencia) {
+                                                                <div>
+                                                                    <div class="flex flex-wrap items-center gap-1.5">
+                                                                        <p-tag
+                                                                            [value]="inc.tipo | tipoIncidencia"
+                                                                            severity="danger"
+                                                                            styleClass="text-xs"
+                                                                        />
+                                                                        <p-tag
+                                                                            [value]="
+                                                                                inc.recuperable ? 'Re-despachable' : 'Terminal'
+                                                                            "
+                                                                            [severity]="inc.recuperable ? 'warn' : 'secondary'"
+                                                                            styleClass="text-xs"
+                                                                        />
+                                                                        <p-tag
+                                                                            [value]="inc.resuelta ? 'Resuelta' : 'Pendiente'"
+                                                                            [severity]="inc.resuelta ? 'success' : 'danger'"
+                                                                            styleClass="text-xs"
+                                                                        />
+                                                                    </div>
+                                                                    @if (inc.descripcion) {
+                                                                        <div class="text-sm text-surface-700 dark:text-surface-200 mt-1">
+                                                                            {{ inc.descripcion }}
+                                                                        </div>
+                                                                    }
+                                                                    @if (inc.hora_reporte) {
+                                                                        <div class="text-xs text-surface-500 mt-0.5">
+                                                                            Reportada: {{ formatFecha(inc.hora_reporte) }}
+                                                                        </div>
+                                                                    }
+                                                                    @if (inc.foto) {
+                                                                        <img
+                                                                            [src]="inc.foto"
+                                                                            class="mt-1.5 w-full max-w-[16rem] h-24 object-cover rounded-lg border border-surface-200 dark:border-surface-700"
+                                                                            alt="Foto incidencia"
+                                                                        />
+                                                                    }
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    } @else {
+                                                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                                            <p-tag
+                                                                [value]="p.incidenciaTipo | tipoIncidencia"
+                                                                severity="danger"
+                                                                styleClass="text-xs"
+                                                            />
+                                                            <p-tag
+                                                                [value]="
+                                                                    esRecuperable(p) ? 'Re-despachable' : 'Terminal'
+                                                                "
+                                                                [severity]="esRecuperable(p) ? 'warn' : 'secondary'"
+                                                                styleClass="text-xs"
+                                                            />
+                                                        </div>
+                                                        @if (p.incidenciaDescripcion) {
+                                                            <div class="text-sm text-surface-700 dark:text-surface-200 mt-2">
+                                                                {{ p.incidenciaDescripcion }}
+                                                            </div>
+                                                        }
+                                                        @if (p.incidenciaFecha) {
+                                                            <div class="text-xs text-surface-500 mt-1">
+                                                                Reportada: {{ formatFecha(p.incidenciaFecha) }}
+                                                            </div>
+                                                        }
+                                                        @if (p.incidenciaFoto) {
+                                                            <img
+                                                                [src]="p.incidenciaFoto"
+                                                                class="mt-2 w-full max-w-[16rem] h-28 object-cover rounded-lg border border-surface-200 dark:border-surface-700"
+                                                                alt="Foto incidencia"
+                                                            />
+                                                        }
+                                                    }
+                                                </div>
                                             }
                                         </div>
-                                    } @else {
-                                        <span class="text-surface-300 text-sm">—</span>
-                                    }
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                            }
                         </ng-template>
                     </p-table>
                 </div>

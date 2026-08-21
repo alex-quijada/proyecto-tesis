@@ -207,14 +207,17 @@ export class DriverStoreService implements OnDestroy {
     );
 
     /**
-     * Facturas del viaje EN PROCESO que están en 'incidencia' y cuya última
-     * incidencia fue marcada recuperable por el admin → deben re-entregarse.
+     * Facturas del viaje EN PROCESO que quedaron en 'incidencia' con al menos
+     * una incidencia pendiente recuperable → deben re-entregarse.
      */
     readonly reentregasPendientes = computed<ParadaViaje[]>(() => {
         const viaje = this.activeViaje();
         if (!viaje || viaje.estado !== 'proceso') return [];
         return (viaje.paradas || []).filter(
-            (p) => p.estado_factura === 'incidencia' && p.incidencia_recuperable === true,
+            (p) =>
+                p.estado_factura === 'incidencia' &&
+                (p.incidencias?.some((i) => i.recuperable && !i.resuelta) ||
+                    p.incidencia_recuperable === true),
         );
     });
 
@@ -508,20 +511,17 @@ export class DriverStoreService implements OnDestroy {
         }
     }
 
-    /** Reporta una incidencia sobre una factura. */
+    /** Reporta una o varias incidencias sobre una factura. */
     async reportarIncidencia(
         idFactura: string,
-        observaciones?: string,
-        tipo?: string,
-        foto?: string,
+        incidencias: {
+            tipo?: string | null;
+            descripcion?: string | null;
+            foto?: string | null;
+        }[],
     ) {
         try {
-            await this.choferService.reportarIncidencia(
-                idFactura,
-                observaciones || null,
-                tipo || null,
-                foto || null,
-            );
+            await this.choferService.reportarIncidencia(idFactura, incidencias);
             await this.recargarViajes();
             await this.recargarGuias().catch(() => undefined);
         } catch (err) {

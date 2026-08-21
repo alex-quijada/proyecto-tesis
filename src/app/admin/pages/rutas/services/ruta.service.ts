@@ -475,13 +475,13 @@ export class RutaService {
         const facturasDb = facturasRes.data || [];
         const facturasPorGuia = new Map<string, FacturaGuia[]>();
 
-        // Última incidencia por factura (para filtrar re-despachables).
-        const incidenciasTipoMap = new Map<string, any>();
+        // Incidencias por factura (todas, para filtrar re-despachables y mostrar multi).
+        const incidenciasPorFactura = new Map<string, any[]>();
         if (facturasDb.length) {
             const incRes = await this.supabase
                 .from('incidencias')
                 .select(
-                    'id_incidencia, id_detalle_fact, tipo_incidencia, descripcion, foto_evidencia_url, hora_reporte, recuperable',
+                    'id_incidencia, id_detalle_fact, tipo_incidencia, descripcion, foto_evidencia_url, hora_reporte, recuperable, resuelta',
                 )
                 .in(
                     'id_detalle_fact',
@@ -489,9 +489,9 @@ export class RutaService {
                 )
                 .order('hora_reporte', { ascending: false });
             for (const inc of (incRes.data || []) as any[]) {
-                if (!incidenciasTipoMap.has(inc.id_detalle_fact)) {
-                    incidenciasTipoMap.set(inc.id_detalle_fact, inc);
-                }
+                const lista = incidenciasPorFactura.get(inc.id_detalle_fact) || [];
+                lista.push(inc);
+                incidenciasPorFactura.set(inc.id_detalle_fact, lista);
             }
         }
 
@@ -517,13 +517,22 @@ export class RutaService {
                 prioridad:
                     prioridadesMap.get(cliente?.id_prioridad) || cliente?.nombre_prioridad || '',
                 idEstado: estadosMap.get(f.id_estado) || f.id_estado,
-                incidenciaTipo: incidenciasTipoMap.get(f.id_factura)?.tipo_incidencia,
-                incidenciaDescripcion: incidenciasTipoMap.get(f.id_factura)?.descripcion,
-                incidenciaFoto: incidenciasTipoMap.get(f.id_factura)?.foto_evidencia_url,
-                incidenciaFecha: incidenciasTipoMap.get(f.id_factura)?.hora_reporte,
+                incidenciaTipo: incidenciasPorFactura.get(f.id_factura)?.[0]?.tipo_incidencia,
+                incidenciaDescripcion: incidenciasPorFactura.get(f.id_factura)?.[0]?.descripcion,
+                incidenciaFoto: incidenciasPorFactura.get(f.id_factura)?.[0]?.foto_evidencia_url,
+                incidenciaFecha: incidenciasPorFactura.get(f.id_factura)?.[0]?.hora_reporte,
                 incidenciaRecuperable:
-                    incidenciasTipoMap.get(f.id_factura)?.recuperable ?? undefined,
-                incidenciaId: incidenciasTipoMap.get(f.id_factura)?.id_incidencia,
+                    incidenciasPorFactura.get(f.id_factura)?.[0]?.recuperable ?? undefined,
+                incidenciaId: incidenciasPorFactura.get(f.id_factura)?.[0]?.id_incidencia,
+                incidencias: (incidenciasPorFactura.get(f.id_factura) || []).map((inc) => ({
+                    id_incidencia: inc.id_incidencia,
+                    tipo: inc.tipo_incidencia,
+                    descripcion: inc.descripcion,
+                    foto: inc.foto_evidencia_url,
+                    hora_reporte: inc.hora_reporte,
+                    recuperable: inc.recuperable,
+                    resuelta: inc.resuelta,
+                })),
                 horaDesde: suc?.hora_desde ?? null,
                 horaHasta: suc?.hora_hasta ?? null,
             };

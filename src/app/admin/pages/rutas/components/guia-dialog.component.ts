@@ -122,6 +122,7 @@ export class GuiaDialogComponent implements OnInit {
     codigoDuplicado = signal(false);
     private codigoCheckCounter = 0;
     cargandoPDF = signal(false);
+    guardando = signal(false);
     clienteDialogVisible = signal(false);
     clientePendiente = signal<Cliente>({});
     clienteDialogFacturaIndex = signal(-1);
@@ -272,8 +273,9 @@ export class GuiaDialogComponent implements OnInit {
             if (idCliente) {
                 const cliente = this.clientesSig().find((c) => c.id === idCliente);
                 if (cliente) {
+                    console.log([cliente]);
                     group.patchValue({
-                        nombreCliente: cliente.nombreComercial || '',
+                        nombreCliente: cliente.personaContacto || '',
                         rifCliente: cliente.documentoIdentidad
                             ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
                             : '',
@@ -569,7 +571,7 @@ export class GuiaDialogComponent implements OnInit {
                     id: `fact-pdf-${i}`,
                     numeroFactura: f.numero || '',
                     idCliente: clienteMatch?.activo === false ? '' : clienteMatch?.id || '',
-                    nombreCliente: f.cliente || '',
+                    nombreCliente: clienteMatch?.personaContacto || '',
                     rifCliente: clienteMatch?.documentoIdentidad
                         ? `${clienteMatch.documentoIdentidad.prefijo}-${clienteMatch.documentoIdentidad.numero}`
                         : '',
@@ -602,9 +604,25 @@ export class GuiaDialogComponent implements OnInit {
     }): Cliente | null {
         const nombreLimpio = pdfFactura.cliente.replace(/^\d+\s*/g, '').trim();
         if (nombreLimpio) {
+            // Plan A: Fuse.js por nombre.
             const results = this.fuseClientes.search(nombreLimpio);
             if (results.length > 0 && results[0].score! < 0.4) {
                 return results[0].item;
+            }
+
+            // Plan B: similitudTexto (normaliza acentos/puntuación/razón social),
+            // mismo criterio que se usa para las empresas.
+            let mejor: Cliente | null = null;
+            let mejorScore = 0;
+            for (const c of this.clientesSig()) {
+                const score = similitudTexto(c.nombreComercial || '', nombreLimpio);
+                if (score > mejorScore) {
+                    mejorScore = score;
+                    mejor = c;
+                }
+            }
+            if (mejor && mejorScore >= 0.6) {
+                return mejor;
             }
         }
 
@@ -679,7 +697,7 @@ export class GuiaDialogComponent implements OnInit {
                 });
                 group.patchValue({
                     idCliente: { label: cliente.nombreComercial || '', value: cliente.id || '' },
-                    nombreCliente: cliente.nombreComercial || '',
+                    nombreCliente: cliente.personaContacto || '',
                     rifCliente: cliente.documentoIdentidad
                         ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
                         : '',
@@ -741,7 +759,7 @@ export class GuiaDialogComponent implements OnInit {
         const cliente = this.clientesSig().find((c) => c.id === idCliente);
         if (cliente) {
             group.patchValue({
-                nombreCliente: cliente.nombreComercial || '',
+                nombreCliente: cliente.personaContacto || '',
                 rifCliente: cliente.documentoIdentidad
                     ? `${cliente.documentoIdentidad.prefijo}-${cliente.documentoIdentidad.numero}`
                     : '',
@@ -865,7 +883,7 @@ export class GuiaDialogComponent implements OnInit {
 
     abrirRegistroCliente(index: number) {
         const group = this.facturas.at(index);
-        const nombre = group.get('nombreCliente')?.value || '';
+        const nombre = group.get('personaContacto')?.value || '';
         const telefono = group.get('telefono')?.value || '';
         const direccion = group.get('direccion')?.value || '';
         let idMunicipio = '';
@@ -990,7 +1008,7 @@ export class GuiaDialogComponent implements OnInit {
                 id: this.guiaData().facturas?.[i]?.id || `fact-${Date.now()}-${i}`,
                 numeroFactura: f.numeroFactura,
                 idCliente: fIdCliente,
-                nombreCliente: f.nombreCliente || cliente?.nombreComercial || '',
+                nombreCliente: f.nombreCliente || cliente?.personaContacto || '',
                 rifCliente: f.rifCliente || '',
                 telefono: f.telefono || cliente?.telefono || '',
                 direccion: f.direccion || '',
@@ -1027,6 +1045,7 @@ export class GuiaDialogComponent implements OnInit {
         };
 
         try {
+            this.guardando.set(true);
             const esEdicion = !!this.guiaData().id;
             const guardada = esEdicion
                 ? await this.rutaService.actualizarGuia(guiaFinal)
@@ -1039,6 +1058,8 @@ export class GuiaDialogComponent implements OnInit {
             this.errorMessage.set(
                 error?.message || 'Error al guardar la guía en la base de datos.',
             );
+        } finally {
+            this.guardando.set(false);
         }
     }
 }

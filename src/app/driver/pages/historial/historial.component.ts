@@ -18,7 +18,7 @@ import {
     IncidenciaGuia,
     IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
-import { TipoIncidenciaPipe } from '../../pipes/tipo-incidencia.pipe';
+import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
 
 type FiltroTipo = 'todas' | 'finalizadas' | 'incidencias';
 
@@ -103,7 +103,7 @@ export class HistorialComponent implements OnInit {
                 if (tipo === 'finalizadas') {
                     paradas = paradas.filter((p) => p.estado_factura === 'finalizado');
                 } else if (tipo === 'incidencias') {
-                    paradas = paradas.filter((p) => p.incidencia_tipo);
+                    paradas = paradas.filter((p) => p.incidencias?.length || p.incidencia_tipo);
                 }
                 return { viaje, paradas };
             })
@@ -120,6 +120,13 @@ export class HistorialComponent implements OnInit {
      */
     esReportable(v: ViajeAdmin, p: ViajeAdmin['paradas'][number]): boolean {
         return this.esViajeActual(v) && p.estado_factura !== 'incidencia';
+    }
+
+    /** Factura (por id) actualmente expandida en el historial. Una a la vez. */
+    readonly facturaExpandida = signal<string | null>(null);
+
+    toggleFactura(id: string) {
+        this.facturaExpandida.set(this.facturaExpandida() === id ? null : id);
     }
 
     incidenciaGuia = signal<ViajeAdmin['paradas'][number] | null>(null);
@@ -220,12 +227,7 @@ export class HistorialComponent implements OnInit {
         const p = this.incidenciaGuia();
         if (!p) return;
         try {
-            await this.store.reportarIncidencia(
-                p.id_factura,
-                datos.descripcion,
-                datos.tipo,
-                datos.foto || undefined,
-            );
+            await this.store.reportarIncidencia(p.id_factura, datos.incidencias);
             await this.cargar();
         } finally {
             this.cerrarIncidencia();

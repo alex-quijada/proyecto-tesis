@@ -31,6 +31,16 @@ export interface FacturaGuia {
     /** Flag de la última incidencia: decidido por el staff en la BD. */
     incidenciaRecuperable?: boolean;
     incidenciaId?: string;
+    /** Todas las incidencias de la factura (multi). */
+    incidencias?: {
+        id_incidencia?: string;
+        tipo?: string;
+        descripcion?: string;
+        foto?: string;
+        hora_reporte?: string;
+        recuperable?: boolean;
+        resuelta?: boolean;
+    }[];
     /** Ventana de recepción de la sucursal (HH:MM:SS). */
     horaDesde?: string | null;
     horaHasta?: string | null;

@@ -299,7 +299,7 @@
                                     </div>
                                     <div class="col-span-4 flex flex-col gap-1">
                                         <label class="text-xs font-semibold"
-                                            >Nombre del Cliente</label
+                                            >Nombre del Contacto</label
                                         >
                                         <input
                                             pInputText
@@ -380,7 +380,13 @@
     <ng-template #footer>
         @if (!cargandoPDF()) {
             <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
-            <p-button label="Guardar Guía" icon="pi pi-check" (onClick)="save()" />
+            <p-button
+                label="Guardar Guía"
+                icon="pi pi-check"
+                [loading]="guardando()"
+                [disabled]="guardando()"
+                (onClick)="save()"
+            />
         }
     </ng-template>
 </p-dialog>

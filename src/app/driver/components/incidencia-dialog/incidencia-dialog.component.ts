@@ -7,6 +7,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
+import { TooltipModule } from 'primeng/tooltip';
 
 export interface IncidenciaGuia {
     cliente: string;
@@ -14,10 +15,14 @@ export interface IncidenciaGuia {
     numeroFactura?: string;
 }
 
-export interface IncidenciaDatos {
+export interface IncidenciaItem {
     tipo: string;
     descripcion: string;
     foto: string | null;
+}
+
+export interface IncidenciaDatos {
+    incidencias: IncidenciaItem[];
 }
 
 export const TIPOS_INCIDENCIA = [
@@ -32,7 +37,15 @@ export const TIPOS_INCIDENCIA = [
 @Component({
     selector: 'app-incidencia-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, DialogModule, TextareaModule, SelectModule],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        DialogModule,
+        TextareaModule,
+        SelectModule,
+        TooltipModule,
+    ],
     template: `
         <p-dialog
             [(visible)]="visible"
@@ -40,10 +53,10 @@ export const TIPOS_INCIDENCIA = [
             [style]="{ width: '95%', maxWidth: '440px' }"
             [draggable]="false"
             [resizable]="false"
-            header="Reportar incidencia"
+            header="Reportar incidencias"
             (onHide)="cancelar()"
         >
-            <div class="space-y-4">
+            <div class="space-y-3">
                 @if (guia) {
                     <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3 text-sm">
                         <div class="text-surface-700 dark:text-surface-200 font-semibold">
@@ -56,63 +69,100 @@ export const TIPOS_INCIDENCIA = [
                     </div>
                 }
 
-                <!-- Tipo de incidencia -->
-                <div>
-                    <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1.5">
-                        Tipo de incidencia *
-                    </label>
-                    <p-select
-                        [options]="tipos"
-                        [(ngModel)]="tipo"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Selecciona el tipo"
-                        styleClass="w-full"
-                    />
-                </div>
-
-                <!-- Descripción / observaciones -->
-                <div>
-                    <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1.5">
-                        Descripción y observaciones
-                    </label>
-                    <textarea
-                        pTextarea
-                        rows="3"
-                        placeholder="Describe la incidencia..."
-                        [(ngModel)]="descripcion"
-                        [style]="{ width: '100%', maxWidth: '100%' }"
-                    ></textarea>
-                </div>
-
-                <!-- Adjuntar foto (cámara) -->
-                <div>
-                    <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1.5">
-                        Foto
-                    </label>
-                    @if (!foto()) {
-                        <button
-                            type="button"
-                            class="w-full border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl p-6 flex flex-col items-center gap-2 text-surface-400 hover:border-primary cursor-pointer transition-colors"
-                            (click)="tomarFoto()"
+                <!-- Lista de incidencias (una por form) -->
+                <div class="flex flex-col gap-3">
+                    @for (item of items; track $index) {
+                        <div
+                            class="border border-surface-300 dark:border-surface-600 rounded-lg p-3 bg-surface-0 dark:bg-surface-900"
                         >
-                            <i class="pi pi-camera text-2xl"></i>
-                            <span class="text-sm">Tomar foto con la cámara</span>
-                        </button>
-                    } @else {
-                        <div class="relative rounded-xl overflow-hidden border border-surface-200 dark:border-surface-700">
-                            <img [src]="foto()" class="w-full h-40 object-cover" alt="Foto incidencia" />
-                            <button
-                                type="button"
-                                class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer"
-                                (click)="quitarFoto()"
-                                pTooltip="Quitar foto"
-                            >
-                                <i class="pi pi-times text-sm"></i>
-                            </button>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold text-primary">
+                                    <i class="pi pi-exclamation-circle mr-1"></i>
+                                    Incidencia #{{ $index + 1 }}
+                                </span>
+                                @if (items.length > 1) {
+                                    <button
+                                        type="button"
+                                        class="w-7 h-7 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center cursor-pointer"
+                                        (click)="quitarItem($index)"
+                                        pTooltip="Quitar incidencia"
+                                    >
+                                        <i class="pi pi-times text-xs"></i>
+                                    </button>
+                                }
+                            </div>
+
+                            <!-- Tipo -->
+                            <div>
+                                <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1">
+                                    Tipo de incidencia *
+                                </label>
+                                <p-select
+                                    [options]="tipos"
+                                    [(ngModel)]="item.tipo"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    placeholder="Selecciona el tipo"
+                                    styleClass="w-full"
+                                />
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="mt-2">
+                                <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1">
+                                    Descripción y observaciones
+                                </label>
+                                <textarea
+                                    pTextarea
+                                    rows="2"
+                                    placeholder="Describe la incidencia..."
+                                    [(ngModel)]="item.descripcion"
+                                    [style]="{ width: '100%', maxWidth: '100%' }"
+                                ></textarea>
+                            </div>
+
+                            <!-- Foto -->
+                            <div class="mt-2">
+                                <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1">
+                                    Foto
+                                </label>
+                                @if (!item.foto) {
+                                    <button
+                                        type="button"
+                                        class="w-full border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl py-4 flex flex-col items-center gap-1.5 text-surface-400 hover:border-primary cursor-pointer transition-colors"
+                                        (click)="tomarFoto($index)"
+                                    >
+                                        <i class="pi pi-camera text-xl"></i>
+                                        <span class="text-xs">Tomar foto</span>
+                                    </button>
+                                } @else {
+                                    <div class="relative rounded-xl overflow-hidden border border-surface-200 dark:border-surface-700">
+                                        <img [src]="item.foto" class="w-full h-32 object-cover" alt="Foto incidencia" />
+                                        <button
+                                            type="button"
+                                            class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer"
+                                            (click)="quitarFoto($index)"
+                                            pTooltip="Quitar foto"
+                                        >
+                                            <i class="pi pi-times text-xs"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     }
                 </div>
+
+                <!-- Agregar otra incidencia -->
+                <p-button
+                    label="Agregar incidencia"
+                    icon="pi pi-plus"
+                    severity="info"
+                    outlined
+                    size="small"
+                    styleClass="w-full"
+                    (onClick)="agregarItem()"
+                />
             </div>
             <ng-template pTemplate="footer">
                 <div class="flex gap-2 w-full">
@@ -126,7 +176,7 @@ export const TIPOS_INCIDENCIA = [
                         label="Confirmar"
                         severity="danger"
                         icon="pi pi-exclamation-triangle"
-                        [disabled]="!tipo"
+                        [disabled]="!tieneAlguna()"
                         (onClick)="confirmar()"
                         styleClass="flex-1"
                     />
@@ -142,21 +192,29 @@ export class IncidenciaDialogComponent {
 
     visible = false;
     tipos = TIPOS_INCIDENCIA;
-    tipo = '';
-    descripcion = '';
-    foto = signal<string | null>(null);
-    tomandoFoto = signal(false);
+    items: IncidenciaItem[] = [];
+    tomandoFotoIndex = signal<number | null>(null);
 
     open() {
         this.visible = true;
-        this.tipo = '';
-        this.descripcion = '';
-        this.foto.set(null);
+        this.items = [this.nuevoItem()];
     }
 
-    async tomarFoto() {
-        if (this.tomandoFoto()) return;
-        this.tomandoFoto.set(true);
+    private nuevoItem(): IncidenciaItem {
+        return { tipo: '', descripcion: '', foto: null };
+    }
+
+    agregarItem() {
+        this.items.push(this.nuevoItem());
+    }
+
+    quitarItem(index: number) {
+        this.items.splice(index, 1);
+    }
+
+    async tomarFoto(index: number) {
+        if (this.tomandoFotoIndex() !== null) return;
+        this.tomandoFotoIndex.set(index);
         try {
             const image = await Camera.getPhoto({
                 quality: 70,
@@ -166,27 +224,27 @@ export class IncidenciaDialogComponent {
                     ? CameraSource.Camera
                     : CameraSource.Prompt,
             });
-            this.foto.set(image.dataUrl ?? null);
+            this.items[index].foto = image.dataUrl ?? null;
         } catch (err) {
-            // Usuario canceló o error de cámara.
             console.warn('Foto cancelada/error:', err);
         } finally {
-            this.tomandoFoto.set(false);
+            this.tomandoFotoIndex.set(null);
         }
     }
 
-    quitarFoto() {
-        this.foto.set(null);
+    quitarFoto(index: number) {
+        this.items[index].foto = null;
     }
 
     confirmar() {
-        if (!this.tipo) return;
+        const incidencias = this.items.filter((i) => i.tipo).map((i) => ({ ...i }));
+        if (incidencias.length === 0) return;
         this.visible = false;
-        this.confirm.emit({
-            tipo: this.tipo,
-            descripcion: this.descripcion,
-            foto: this.foto(),
-        });
+        this.confirm.emit({ incidencias });
+    }
+
+    tieneAlguna(): boolean {
+        return this.items.some((i) => i.tipo);
     }
 
     cancelar() {

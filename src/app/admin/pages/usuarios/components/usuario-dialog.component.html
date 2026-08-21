@@ -5,7 +5,7 @@
     [modal]="true"
 >
     <ng-template #content>
-        <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
+        <form [formGroup]="form" class="flex flex-col gap-4 pt-2" autocomplete="off">
             <p-message
                 *ngIf="errorMessage()"
                 severity="error"
@@ -29,6 +29,7 @@
                             pInputText
                             formControlName="email"
                             placeholder="correo@brandia.com"
+                            autocomplete="off"
                             (blur)="onBlurDominio()"
                         />
                         <small *ngIf="submitted && form.get('email')?.invalid" class="text-red-500"
@@ -46,6 +47,7 @@
                             [toggleMask]="true"
                             [fluid]="true"
                             [feedback]="false"
+                            autocomplete="new-password"
                         ></p-password>
                         <small
                             *ngIf="submitted && form.get('password')?.invalid"
@@ -94,6 +96,7 @@
                             [useGrouping]="false"
                             placeholder="12345678"
                         />
+                        <input type="hidden" name="username" autocomplete="off" />
                         <small
                             *ngIf="submitted && form.get('numeroDoc')?.invalid"
                             class="text-red-500"
@@ -125,6 +128,7 @@
                             pInputText
                             formControlName="nombreCompleto"
                             placeholder="Nombre completo"
+                            autocomplete="off"
                         />
                         <small
                             *ngIf="submitted && form.get('nombreCompleto')?.invalid"
@@ -159,6 +163,7 @@
                                     pInputText
                                     formControlName="licenciaNumero"
                                     placeholder="L-12345678"
+                                    autocomplete="off"
                                 />
                                 <small
                                     *ngIf="submitted && form.get('licenciaNumero')?.invalid"
@@ -227,6 +232,7 @@
                                 pInputText
                                 formControlName="certMedicoNumero"
                                 placeholder="CMV-987654"
+                                autocomplete="off"
                             />
                             <small
                                 *ngIf="submitted && form.get('certMedicoNumero')?.invalid"

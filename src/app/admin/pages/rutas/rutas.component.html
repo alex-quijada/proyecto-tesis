@@ -10,17 +10,6 @@
     <p-toolbar styleClass="mb-6 flex-wrap gap-2">
         <ng-template #start>
             <div class="flex flex-wrap gap-2 items-center">
-                <p-button
-                    label="Crear Guía"
-                    icon="pi pi-plus"
-                    severity="success"
-                    (onClick)="openCrearGuia()"
-                />
-            </div>
-        </ng-template>
-
-        <ng-template #end>
-            <div class="flex flex-wrap gap-2 items-center">
                 <p-select
                     [(ngModel)]="filtroMunicipio"
                     [options]="municipioFiltros"
@@ -29,6 +18,17 @@
                     placeholder="Filtrar por municipio"
                     appendTo="body"
                     styleClass="w-44"
+                />
+            </div>
+        </ng-template>
+
+        <ng-template #end>
+            <div class="flex flex-wrap gap-2 items-center">
+                <p-button
+                    label="Crear Guía"
+                    icon="pi pi-plus"
+                    severity="success"
+                    (onClick)="openCrearGuia()"
                 />
             </div>
         </ng-template>

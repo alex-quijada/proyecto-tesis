@@ -129,25 +129,37 @@ export class ChoferService {
         return (data || {}) as { total_actualizadas: number };
     }
 
-    /** Reporta una incidencia en la factura (estado → 'incidencia').
-     *  Sube la foto a storage (si viene en base64) y guarda en la tabla
-     *  incidencias + historial de estados. */
+    /**
+     * Reporta una o varias incidencias en la factura (estado → 'incidencia').
+     * Cada incidencia sube su foto a storage (si viene en base64) y se guarda
+     * como fila en incidencias (una por tipo) + historial de estados.
+     */
     async reportarIncidencia(
         idFactura: string,
-        descripcion?: string | null,
-        tipo?: string | null,
-        fotoBase64?: string | null,
+        incidencias: { tipo?: string | null; descripcion?: string | null; foto?: string | null }[],
     ): Promise<void> {
-        let fotoUrl: string | null = null;
-        if (fotoBase64) {
-            fotoUrl = await this.subirFotoIncidencia(idFactura, fotoBase64);
+        const items: { tipo: string; descripcion: string; foto: string }[] = [];
+        for (const inc of incidencias) {
+            const tipoCodigo = mapearTipoIncidencia(inc.tipo);
+            if (!tipoCodigo || tipoCodigo === 'INCIDENCIA') continue;
+            let fotoUrl: string | null = null;
+            if (inc.foto) {
+                fotoUrl = await this.subirFotoIncidencia(idFactura, inc.foto);
+            }
+            items.push({
+                tipo: tipoCodigo,
+                descripcion: inc.descripcion || '',
+                foto: fotoUrl || '',
+            });
         }
-        const tipoCodigo = mapearTipoIncidencia(tipo);
-        const { error } = await this.supabase.rpc('reportar_incidencia', {
+        if (items.length === 0) return;
+        const { error } = await this.supabase.rpc('reportar_incidencias', {
             p_id_factura: idFactura,
-            p_tipo: tipoCodigo,
-            p_descripcion: descripcion || null,
-            p_foto_url: fotoUrl,
+            p_incidencias: items.map((i) => ({
+                tipo: i.tipo,
+                descripcion: i.descripcion,
+                foto: i.foto || null,
+            })),
         });
         if (error) throw new Error(`Error al reportar la incidencia: ${error.message}`);
     }

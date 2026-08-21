@@ -1331,12 +1331,7 @@ private detenerAnimacionMarcador() {
         const factura = this.incidenciaGuia();
         if (!factura) return;
         try {
-            await this.store.reportarIncidencia(
-                factura.id,
-                datos.descripcion,
-                datos.tipo,
-                datos.foto || undefined,
-            );
+            await this.store.reportarIncidencia(factura.id, datos.incidencias);
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',

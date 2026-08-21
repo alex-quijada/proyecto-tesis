@@ -291,9 +291,15 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** Una factura es re-despachable si está 'nuevo' o su incidencia está marcada recuperable en BD. */
+    /** Una factura es re-despachable si está 'nuevo' o tiene al menos una
+     *  incidencia pendiente recuperable en BD. */
     private esFacturaReespachable(f: FacturaGuia): boolean {
-        return f.idEstado === 'nuevo' || (f.idEstado === 'incidencia' && f.incidenciaRecuperable === true);
+        if (f.idEstado === 'nuevo') return true;
+        if (f.idEstado !== 'incidencia') return false;
+        return (
+            f.incidencias?.some((i) => i.recuperable && !i.resuelta) ??
+            f.incidenciaRecuperable === true
+        );
     }
 
     get municipiosConteo(): MunicipioConteo[] {

@@ -11,7 +11,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 
 import { ViajeService } from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
-import { ViajeAdmin } from '@/app/services/viaje.types';
+import { ViajeAdmin, IncidenciaParada } from '@/app/services/viaje.types';
+import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
 
 interface HistorialParada {
     idFactura: string;
@@ -25,6 +26,15 @@ interface HistorialParada {
     incidenciaFoto?: string;
     incidenciaFecha?: string;
     incidenciaRecuperable?: boolean;
+    incidencias?: IncidenciaParada[];
+    telefono?: string;
+    direccion?: string;
+    montoDolares?: number | null;
+    referencia?: string | null;
+    contacto?: string | null;
+    notaSucursal?: string | null;
+    horaDesde?: string | null;
+    horaHasta?: string | null;
 }
 
 interface HistorialViaje {
@@ -44,6 +54,7 @@ interface HistorialViaje {
         ConfirmDialogModule,
         ToastModule,
         TooltipModule,
+        TipoIncidenciaPipe,
     ],
     providers: [ConfirmationService, MessageService],
     templateUrl: './historial-entregas.component.html',
@@ -108,8 +119,26 @@ export class HistorialEntregasComponent implements OnInit {
                 incidenciaFoto: inc?.foto_evidencia_url,
                 incidenciaFecha: inc?.hora_reporte,
                 incidenciaRecuperable: p.incidencia_recuperable,
+                incidencias: p.incidencias,
+                telefono: p.telefono ?? undefined,
+                direccion: p.direccion,
+                montoDolares: p.monto_dolares,
+                referencia: p.referencia,
+                contacto: p.contacto,
+                notaSucursal: p.nota_sucursal,
+                horaDesde: p.hora_desde,
+                horaHasta: p.hora_hasta,
             };
         });
+    }
+
+    /** Filas (facturas) expandidas en el historial. Una a la vez. */
+    readonly filaExpandida = signal<Record<string, boolean>>({});
+
+    toggleFila(id: string) {
+        this.filaExpandida.update((mapa) =>
+            mapa[id] ? {} : { [id]: true },
+        );
     }
 
     esRecuperable(p: HistorialParada): boolean {
