@@ -65,11 +65,11 @@
 
         <div class="flex items-center gap-2">
             <div class="text-base text-surface-600 font-medium flex-1">
-                @if (store.pendingGuiasCount() > 0) {
+                @if (store.pendingGuiasViajeCount() > 0) {
                     Tienes
-                    <span class="font-bold text-primary">{{ store.pendingGuiasCount() }}</span>
+                    <span class="font-bold text-primary">{{ store.pendingGuiasViajeCount() }}</span>
                     {{
-                        store.pendingGuiasCount() === 1 ? 'guía por entregar' : 'guías por entregar'
+                        store.pendingGuiasViajeCount() === 1 ? 'guía por entregar' : 'guías por entregar'
                     }}
                 } @else {
                     No tienes guías pendientes
@@ -91,7 +91,7 @@
             </div>
         </div>
 
-        @for (guia of store.guiasPendientesAgrupadas(); track guia.id) {
+        @for (guia of store.guiasPendientesDelViaje(); track guia.id) {
             <div
                 class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border-l-4 overflow-hidden transition-all duration-200 cursor-pointer"
                 [ngClass]="[store.getColorBorde(guia.facturas[0]?.estado || 'nuevo')]"

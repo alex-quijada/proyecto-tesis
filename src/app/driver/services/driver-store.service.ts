@@ -182,6 +182,25 @@ export class DriverStoreService implements OnDestroy {
 
     readonly pendingGuiasCount = computed(() => this.guiasPendientesAgrupadas().length);
 
+    /**
+     * Guías pendientes que pertenecen al viaje activo del chofer. El home solo
+     * muestra estas (las que el analista asignó al viaje), no todas las guías
+     * registradas a nombre del chofer.
+     */
+    readonly guiasPendientesDelViaje = computed<GuiaPendiente[]>(() => {
+        const viaje = this.activeViaje();
+        if (!viaje) return [];
+        const idsGuiaViaje = new Set(
+            (viaje.paradas || []).map((p) => p.id_guia).filter((x): x is string => !!x),
+        );
+        if (idsGuiaViaje.size === 0) return [];
+        return this.guiasPendientesAgrupadas().filter((g) => idsGuiaViaje.has(g.id));
+    });
+
+    readonly pendingGuiasViajeCount = computed(
+        () => this.guiasPendientesDelViaje().length,
+    );
+
     /** Viaje activo del chofer (programado o en proceso). */
     readonly activeViaje = computed<ViajeChofer | null>(
         () => this.viajesChofer()[0] || null,
