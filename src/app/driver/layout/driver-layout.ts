@@ -1,21 +1,25 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule, RouterOutlet } from '@angular/router';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 import { trigger, transition, style, animate, query } from '@angular/animations';
 
 import { DriverStoreService } from '../services/driver-store.service';
 import { NavigationService } from '../services/navigation.service';
 import { PosicionService } from '../services/posicion.service';
+import { TiemposService } from '../services/tiempos.service';
 import { DriverTopbar } from './driver-topbar';
 import { DriverBottomNav } from './driver-bottom-nav';
 
 @Component({
     selector: 'app-driver-layout',
     standalone: true,
-    imports: [CommonModule, RouterModule, ToastModule, DriverTopbar, DriverBottomNav],
-    providers: [MessageService, DriverStoreService, NavigationService, PosicionService],
+    imports: [CommonModule, RouterModule, DriverTopbar, DriverBottomNav],
+    providers: [
+        DriverStoreService,
+        NavigationService,
+        PosicionService,
+        TiemposService,
+    ],
     animations: [
         trigger('routeAnimations', [
             // El mapa nativo se dibuja debajo del WebView con position: fixed;
@@ -43,7 +47,6 @@ import { DriverBottomNav } from './driver-bottom-nav';
             [class.bg-surface-50]="!fondoMapa()"
             [class.dark:bg-surface-950]="!fondoMapa()"
         >
-            <p-toast position="top-center" />
             @if (mostrarTopbar()) {
                 <app-driver-topbar />
             }

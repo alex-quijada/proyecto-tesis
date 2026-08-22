@@ -125,8 +125,115 @@ export class HistorialComponent implements OnInit {
     /** Factura (por id) actualmente expandida en el historial. Una a la vez. */
     readonly facturaExpandida = signal<string | null>(null);
 
+    /** Historial de estados por viaje (cronograma del desplegable). */
+    readonly historialFactura = signal<
+        {
+            idViaje: string;
+            estadoViaje: string;
+            fechaViaje: string;
+            transiciones: { estado: string; observacion?: string; fecha: string }[];
+        }[] | null
+    >(null);
+    cargandoHistorialFactura = signal(false);
+
     toggleFactura(id: string) {
-        this.facturaExpandida.set(this.facturaExpandida() === id ? null : id);
+        const nueva = this.facturaExpandida() === id ? null : id;
+        this.facturaExpandida.set(nueva);
+        if (nueva) void this.cargarHistorialFactura(id.split(':')[1]);
+    }
+
+    private async cargarHistorialFactura(idFactura: string) {
+        this.cargandoHistorialFactura.set(true);
+        this.historialFactura.set(null);
+        try {
+            // 1) Viajes donde aparece la factura (con sus rangos temporales).
+            const viajesRes = await this.authService.client
+                .from('itinerario_viaje')
+                .select(
+                    `id_viaje, viajes!itinerario_id_viaje_fkey (id_viaje, fecha_creacion, fecha_finalizacion, estado)`,
+                )
+                .eq('id_factura', idFactura);
+            if (viajesRes.error) throw viajesRes.error;
+
+            // 2) Historial de estados de la factura.
+            const histRes = await this.authService.client
+                .from('historial_estados_factura')
+                .select(`id_estado_nuevo (nombre_estado), observacion, fecha_cambio`)
+                .eq('id_factura', idFactura)
+                .order('fecha_cambio', { ascending: true });
+            if (histRes.error) throw histRes.error;
+
+            const viajes = (viajesRes.data || []) as any[];
+            const transiciones = (histRes.data || []).map((r: any) => ({
+                estado: r.id_estado_nuevo?.nombre_estado || '',
+                observacion: r.observacion,
+                fecha: r.fecha_cambio,
+            }));
+
+            // Agrupar las transiciones por viaje según su rango temporal:
+            // cada transición pertenece al viaje cuyo [fecha_creacion, cierre]
+            // contiene su fecha_cambio. Si no encaja, al viaje con la creación
+            // anterior más cercana.
+            const grupos = new Map<
+                string,
+                {
+                    idViaje: string;
+                    estadoViaje: string;
+                    fechaViaje: string;
+                    transiciones: typeof transiciones;
+                }
+            >();
+            for (const v of viajes) {
+                const viaje = v.viajes;
+                if (!viaje) continue;
+                const id = viaje.id_viaje;
+                grupos.set(id, {
+                    idViaje: id,
+                    estadoViaje: viaje.estado,
+                    fechaViaje: viaje.fecha_creacion,
+                    transiciones: [],
+                });
+            }
+
+            for (const t of transiciones) {
+                const fechaT = new Date(t.fecha).getTime();
+                let asignado: { idViaje: string; fechaCreacion: number } | null = null;
+                for (const v of viajes) {
+                    const viaje = v.viajes;
+                    if (!viaje) continue;
+                    const inicio = new Date(viaje.fecha_creacion).getTime();
+                    const cierre = viaje.fecha_finalizacion
+                        ? new Date(viaje.fecha_finalizacion).getTime()
+                        : Infinity;
+                    if (fechaT >= inicio && fechaT <= cierre) {
+                        if (!asignado || inicio > asignado.fechaCreacion) {
+                            asignado = { idViaje: viaje.id_viaje, fechaCreacion: inicio };
+                        }
+                    }
+                }
+                if (!asignado) {
+                    // Fallback: viaje con la creación anterior más cercana.
+                    let mejor: { idViaje: string; fechaCreacion: number } | null = null;
+                    for (const v of viajes) {
+                        const viaje = v.viajes;
+                        if (!viaje) continue;
+                        const inicio = new Date(viaje.fecha_creacion).getTime();
+                        if (inicio <= fechaT && (!mejor || inicio > mejor.fechaCreacion)) {
+                            mejor = { idViaje: viaje.id_viaje, fechaCreacion: inicio };
+                        }
+                    }
+                    asignado = mejor;
+                }
+                const grupo = asignado ? grupos.get(asignado.idViaje) : undefined;
+                if (grupo) grupo.transiciones.push(t);
+            }
+
+            this.historialFactura.set(Array.from(grupos.values()));
+        } catch (err) {
+            console.error('Error cargando historial de la factura:', err);
+        } finally {
+            this.cargandoHistorialFactura.set(false);
+        }
     }
 
     incidenciaGuia = signal<ViajeAdmin['paradas'][number] | null>(null);
@@ -191,6 +298,25 @@ export class HistorialComponent implements OnInit {
                 return 'En carga';
             default:
                 return estado || '—';
+        }
+    }
+
+    cronogramaColor(estado: string): string {
+        switch (estado) {
+            case 'finalizado':
+                return '#10b981';
+            case 'incidencia':
+                return '#ef4444';
+            case 'entrega':
+                return '#06b6d4';
+            case 'espera':
+                return '#f59e0b';
+            case 'proceso':
+                return '#3b82f6';
+            case 'embarque':
+                return '#8b5cf6';
+            default:
+                return '#94a3b8';
         }
     }
 

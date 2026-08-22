@@ -20,7 +20,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmationService } from 'primeng/api';
-import { MessageService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
+import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
+
 
 import { environment } from '@/environments/environment';
 import { ViajeAdmin } from '@/app/services/viaje.types';
@@ -56,11 +58,21 @@ interface ParadaDetalle {
     estado: string;
     incidenciaId?: string;
     incidenciaRecuperable?: boolean;
+    incidenciaTipo?: string;
+    incidenciaDescripcion?: string;
 }
 
 interface LineaTiempoItem {
     id: string;
-    tipo: 'almacen' | 'salida' | 'llegada' | 'entrega' | 'incidencia' | 'pendiente' | 'completado';
+    tipo:
+        | 'almacen'
+        | 'salida'
+        | 'llegada'
+        | 'proceso'
+        | 'entrega'
+        | 'incidencia'
+        | 'pendiente'
+        | 'completado';
     label: string;
     numero?: number;
     icono?: string;
@@ -103,16 +115,17 @@ function colorDeChofer(id: string): string {
         SkeletonModule,
         SelectButtonModule,
         TooltipModule,
+        TipoIncidenciaPipe,
         ConfirmDialogModule,
         ToastModule,
     ],
-    providers: [SeguimientoService, ConfirmationService, MessageService],
+    providers: [SeguimientoService, ConfirmationService],
     templateUrl: './seguimiento.component.html',
 })
 export class SeguimientoComponent implements OnInit, OnDestroy {
     protected readonly service = inject(SeguimientoService);
     private confirmationService = inject(ConfirmationService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private viajeService = inject(ViajeService);
     private mapaEl = viewChild.required<ElementRef<HTMLDivElement>>('mapaElement');
 
@@ -210,12 +223,15 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             case 'en-linea':
                 return lista.filter((c) => c.online);
             default:
-                return lista;
+                // "Todos": solo choferes con viaje (evita mostrar al admin logueado
+                // u otros usuarios sin viaje que tengan una posición registrada).
+                return lista.filter((c) => c.estadoViaje !== 'sin-viaje');
         }
     });
 
     readonly totales = computed(() => {
-        const lista = this.monitoreo();
+        // Solo choferes con viaje (excluye admin/usuarios sin viaje con posición).
+        const lista = this.monitoreo().filter((c) => c.estadoViaje !== 'sin-viaje');
         return {
             enRuta: lista.filter((c) => c.estadoViaje === 'proceso').length,
             enEspera: lista.filter((c) => c.estadoViaje === 'programado').length,
@@ -232,34 +248,37 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         const ahora = this.tick();
         const items: LineaTiempoItem[] = [];
 
-        const porFactura = new Map<string, Map<string, Date>>();
+        // Historial por factura: TODAS las transiciones {estado, fecha} en orden cronológico
+        // (sin deduplicar, para reflejar re-entregas: proceso→espera→…→incidencia→proceso→…).
+        const porFactura = new Map<string, { estado: string; fecha: Date }[]>();
         for (const h of this.historial()) {
-            let mapa = porFactura.get(h.id_factura);
-            if (!mapa) {
-                mapa = new Map<string, Date>();
-                porFactura.set(h.id_factura, mapa);
+            let lista = porFactura.get(h.id_factura);
+            if (!lista) {
+                lista = [];
+                porFactura.set(h.id_factura, lista);
             }
-            const f = new Date(h.fecha_cambio);
-            const prev = mapa.get(h.estado);
-            if (!prev || f.getTime() < prev.getTime()) mapa.set(h.estado, f);
+            lista.push({ estado: h.estado, fecha: new Date(h.fecha_cambio) });
         }
+        for (const lista of porFactura.values()) {
+            lista.sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+        }
+
+        const detalle = this.detalleActual();
+        const viaje = detalle?.idViaje
+            ? this.viajes().find((v) => v.id_viaje === detalle.idViaje)
+            : null;
 
         const primeraGlobal = (estado: string): Date | null => {
             let mejor: Date | null = null;
-            for (const mapa of porFactura.values()) {
-                const f = mapa.get(estado);
-                if (f && (!mejor || f.getTime() < mejor.getTime())) mejor = f;
+            for (const lista of porFactura.values()) {
+                const t = lista.find((x) => x.estado === estado);
+                if (t && (!mejor || t.fecha.getTime() < mejor.getTime())) mejor = t.fecha;
             }
             return mejor;
         };
 
         const embarque = primeraGlobal('embarque');
         const proceso = primeraGlobal('proceso');
-
-        const detalle = this.detalleActual();
-        const viaje = detalle?.idViaje
-            ? this.viajes().find((v) => v.id_viaje === detalle.idViaje)
-            : null;
 
         items.push({
             id: 'almacen',
@@ -285,63 +304,12 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             chip: null,
         });
 
+        // Por cada parada en orden de visita: mostrar TODAS sus transiciones en orden.
         for (const [idx, p] of this.paradasDetalle().entries()) {
             const numero = idx + 1;
-            const mapa = porFactura.get(p.idFactura) ?? new Map<string, Date>();
-            const espera = mapa.get('espera') ?? null;
-            const entrega = mapa.get('entrega') ?? null;
-            const final = mapa.get('finalizado') ?? null;
-            const incidencia = mapa.get('incidencia') ?? null;
+            const transiciones = porFactura.get(p.idFactura) ?? [];
 
-            if (espera) {
-                const cierre = entrega ?? final;
-                items.push({
-                    id: `llegada-${p.idFactura}`,
-                    tipo: 'llegada',
-                    label: `Llegada a ${p.cliente}`,
-                    numero,
-                    icono: 'pi pi-map-marker',
-                    color: '#f59e0b',
-                    fecha: espera,
-                    chip: cierre
-                        ? `Espera: ${this.formatoDuracion(cierre.getTime() - espera.getTime())}`
-                        : `En espera: ${this.formatoDuracion(ahora - espera.getTime())}`,
-                    estadoParada: p.estado,
-                });
-            }
-
-            if (entrega || final) {
-                items.push({
-                    id: `entrega-${p.idFactura}`,
-                    tipo: 'entrega',
-                    label: `Entrega ${p.numeroFactura} · ${p.cliente}`,
-                    numero,
-                    icono: final ? 'pi pi-check-circle' : 'pi pi-bolt',
-                    color: final ? '#10b981' : '#06b6d4',
-                    fecha: (final ?? entrega) as Date,
-                    chip: entrega
-                        ? final
-                            ? `Entrega: ${this.formatoDuracion(final.getTime() - entrega.getTime())}`
-                            : `Entregando: ${this.formatoDuracion(ahora - entrega.getTime())}`
-                        : null,
-                    estadoParada: final ? 'finalizado' : 'entrega',
-                });
-            }
-
-            if (incidencia) {
-                items.push({
-                    id: `incidencia-${p.idFactura}`,
-                    tipo: 'incidencia',
-                    label: `Incidencia — ${p.numeroFactura} · ${p.cliente}`,
-                    icono: 'pi pi-exclamation-circle',
-                    color: '#ef4444',
-                    fecha: incidencia,
-                    chip: null,
-                    estadoParada: 'incidencia',
-                });
-            }
-
-            if (!espera && !entrega && !final && !incidencia) {
+            if (transiciones.length === 0) {
                 items.push({
                     id: `pendiente-${p.idFactura}`,
                     tipo: 'pendiente',
@@ -353,6 +321,93 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                     chip: null,
                     estadoParada: p.estado,
                 });
+                continue;
+            }
+
+            let contador = 0;
+            for (let t = 0; t < transiciones.length; t++) {
+                const trans = transiciones[t];
+                const siguiente = transiciones[t + 1];
+
+                switch (trans.estado) {
+                    case 'proceso':
+                        items.push({
+                            id: `proceso-${p.idFactura}-${contador++}`,
+                            tipo: 'proceso',
+                            label: `En camino a ${p.cliente}`,
+                            numero,
+                            icono: 'pi pi-truck',
+                            color: '#3b82f6',
+                            fecha: trans.fecha,
+                            chip: null,
+                            estadoParada: 'proceso',
+                        });
+                        break;
+
+                    case 'espera':
+                        items.push({
+                            id: `llegada-${p.idFactura}-${contador++}`,
+                            tipo: 'llegada',
+                            label: `Llegada a ${p.cliente}`,
+                            numero,
+                            icono: 'pi pi-map-marker',
+                            color: '#f59e0b',
+                            fecha: trans.fecha,
+                            chip: siguiente
+                                ? `Espera: ${this.formatoDuracion(
+                                      siguiente.fecha.getTime() - trans.fecha.getTime(),
+                                  )}`
+                                : `En espera: ${this.formatoDuracion(ahora - trans.fecha.getTime())}`,
+                            estadoParada: 'espera',
+                        });
+                        break;
+
+                    case 'entrega':
+                        items.push({
+                            id: `entrega-${p.idFactura}-${contador++}`,
+                            tipo: 'entrega',
+                            label: `Entregando ${p.numeroFactura} · ${p.cliente}`,
+                            numero,
+                            icono: 'pi pi-bolt',
+                            color: '#06b6d4',
+                            fecha: trans.fecha,
+                            chip: siguiente
+                                ? `Entrega: ${this.formatoDuracion(
+                                      siguiente.fecha.getTime() - trans.fecha.getTime(),
+                                  )}`
+                                : `Entregando: ${this.formatoDuracion(ahora - trans.fecha.getTime())}`,
+                            estadoParada: 'entrega',
+                        });
+                        break;
+
+                    case 'finalizado':
+                        items.push({
+                            id: `finalizado-${p.idFactura}-${contador++}`,
+                            tipo: 'completado',
+                            label: `Entregado ${p.numeroFactura} · ${p.cliente}`,
+                            numero,
+                            icono: 'pi pi-check-circle',
+                            color: '#10b981',
+                            fecha: trans.fecha,
+                            chip: null,
+                            estadoParada: 'finalizado',
+                        });
+                        break;
+
+                    case 'incidencia':
+                        items.push({
+                            id: `incidencia-${p.idFactura}-${contador++}`,
+                            tipo: 'incidencia',
+                            label: `Incidencia — ${p.numeroFactura} · ${p.cliente}`,
+                            numero,
+                            icono: 'pi pi-exclamation-circle',
+                            color: '#ef4444',
+                            fecha: trans.fecha,
+                            chip: null,
+                            estadoParada: 'incidencia',
+                        });
+                        break;
+                }
             }
         }
 
@@ -378,15 +433,20 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         if (!viaje) return [];
         return [...viaje.paradas]
             .sort((a, b) => a.orden_visita - b.orden_visita)
-            .map((p) => ({
-                idFactura: p.id_factura,
-                numeroFactura: p.numero_factura,
-                cliente: p.nombre_cliente ?? '—',
-                municipio: p.municipio ?? '',
-                estado: p.estado_factura ?? '',
-                incidenciaId: p.incidencia_id,
-                incidenciaRecuperable: p.incidencia_recuperable,
-            }));
+            .map((p) => {
+                const inc = p.incidencias?.[0];
+                return {
+                    idFactura: p.id_factura,
+                    numeroFactura: p.numero_factura,
+                    cliente: p.nombre_cliente ?? '—',
+                    municipio: p.municipio ?? '',
+                    estado: p.estado_factura ?? '',
+                    incidenciaId: p.incidencia_id,
+                    incidenciaRecuperable: p.incidencia_recuperable,
+                    incidenciaTipo: inc?.tipo ?? p.incidencia_tipo,
+                    incidenciaDescripcion: inc?.descripcion ?? p.incidencia_descripcion,
+                };
+            });
     });
 
     readonly entregasConteo = computed(() => {
@@ -525,7 +585,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                 this.ventanaFin(),
             );
             this.ventanaEditando.set(false);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Ventana actualizada',
                 detail: `${this.ventanaInicio()} - ${this.ventanaFin()}`,
@@ -533,7 +593,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             await this.service.refrescar();
             if (c.idViaje) await this.cargarHistorial(c.idViaje);
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo actualizar la ventana laboral.',
@@ -555,7 +615,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         this.resolviendoId.set(factura.idFactura);
         try {
             await this.viajeService.resolverIncidencia(factura.idFactura);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Incidencia resuelta',
                 detail: `${factura.numeroFactura} — ${factura.cliente} volvió a disponible.`,
@@ -564,7 +624,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             const c = this.detalleActual();
             if (c?.idViaje) await this.cargarHistorial(c.idViaje);
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo resolver la incidencia.',
@@ -585,7 +645,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                 factura.incidenciaId,
                 objetivo,
             );
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: objetivo ? 'Re-despachable' : 'Terminal',
                 detail: `${factura.numeroFactura} — ${factura.cliente} marcada como ${
@@ -596,7 +656,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             const c = this.detalleActual();
             if (c?.idViaje) await this.cargarHistorial(c.idViaje);
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo cambiar la incidencia.',
@@ -633,7 +693,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                         console.warn('No se pudieron borrar fotos de incidencia del storage', err),
                     );
             }
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Viaje reiniciado',
                 detail: `El viaje de ${c.nombre} volvió a programado (incidencias, fotos e historial limpiados).`,
@@ -642,7 +702,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             if (c.idViaje) await this.cargarHistorial(c.idViaje);
         } catch (err: any) {
             console.error('Error al reiniciar viaje', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo reiniciar el viaje.',

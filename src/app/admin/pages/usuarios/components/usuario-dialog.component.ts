@@ -1,5 +1,6 @@
 import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '@/app/services/notification.service';
 import {
     ReactiveFormsModule,
     FormBuilder,
@@ -20,7 +21,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../../../../auth/service/auth.service';
-import { MessageService } from 'primeng/api';
+
 
 import { Usuario, ROLES, PREFIJOS_DOCUMENTO, GRADOS_LICENCIA } from '../data/usuarios-mock';
 
@@ -48,13 +49,12 @@ const ROL_MAP_TO_DB: Record<string, string> = {
         DatePickerModule,
         PasswordModule,
     ],
-    providers: [MessageService],
     templateUrl: './usuario-dialog.component.html',
 })
 export class UsuarioDialogComponent {
     private fb = inject(FormBuilder);
     private authService = inject(AuthService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
 
     visible = model<boolean>(false);
     usuarioData = input<Usuario>({} as Usuario);
@@ -340,7 +340,7 @@ export class UsuarioDialogComponent {
 
         await this.authService.registrarUsuarioPorRol(payload);
 
-        this.messageService.add({
+        this.notif.add({
             severity: 'success',
             summary: 'Registrado',
             detail: `${raw.nombreCompleto} creado exitosamente.`,
@@ -384,7 +384,7 @@ export class UsuarioDialogComponent {
 
         await this.authService.actualizarUsuarioPorRol(payload);
 
-        this.messageService.add({
+        this.notif.add({
             severity: 'success',
             summary: 'Actualizado',
             detail: `${raw.nombreCompleto} modificado exitosamente.`,

@@ -13,6 +13,7 @@ import {
     untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '@/app/services/notification.service';
 import {
     ReactiveFormsModule,
     FormBuilder,
@@ -33,9 +34,8 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { ToastModule } from 'primeng/toast';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
-import { MessageService } from 'primeng/api';
+
 
 import { GuiaDespacho, FacturaGuia } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
@@ -93,12 +93,10 @@ interface VehiculoOption {
         AccordionModule,
         TooltipModule,
         ProgressSpinnerModule,
-        ToastModule,
         AutoCompleteModule,
         ClienteDialogComponent,
         VehiculoDialogComponent,
     ],
-    providers: [MessageService],
     templateUrl: './guia-dialog.component.html',
 })
 export class GuiaDialogComponent implements OnInit {
@@ -108,7 +106,7 @@ export class GuiaDialogComponent implements OnInit {
     private clienteService = inject(ClienteService);
     private vehiculoService = inject(VehiculoService);
     private rutaService = inject(RutaService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
 
     @ViewChild('pdfInput') pdfInput!: ElementRef<HTMLInputElement>;
 
@@ -426,7 +424,7 @@ export class GuiaDialogComponent implements OnInit {
                 );
                 if (yaExiste) {
                     this.codigoDuplicado.set(true);
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'warn',
                         summary: 'Guía duplicada',
                         detail: `El código ${datos.codigoGuia} ya existe en el sistema. Revisa antes de guardar.`,
@@ -488,7 +486,7 @@ export class GuiaDialogComponent implements OnInit {
                 );
                 if (match) {
                     if (!match.activo) {
-                        this.messageService.add({
+                        this.notif.add({
                             severity: 'warn',
                             summary: 'Chofer inactivo',
                             detail: `El chofer ${match.nombreChofer} está inactivo. Selecciona otro.`,
@@ -498,7 +496,7 @@ export class GuiaDialogComponent implements OnInit {
                         this.form.patchValue({ idChofer: match.value });
                     }
                 } else {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'warn',
                         summary: 'Chofer no registrado',
                         detail: `El chofer "${datos.chofer}" no está registrado en el sistema. Contacta al administrador para registrarlo.`,
@@ -517,7 +515,7 @@ export class GuiaDialogComponent implements OnInit {
                             match.estado === 'MANTENIMIENTO'
                                 ? 'está en mantenimiento'
                                 : 'está inactivo';
-                        this.messageService.add({
+                        this.notif.add({
                             severity: 'warn',
                             summary: 'Vehículo no disponible',
                             detail: `El vehículo ${match.placaVehiculo} ${detalle}. Selecciona uno operativo.`,
@@ -527,7 +525,7 @@ export class GuiaDialogComponent implements OnInit {
                         this.form.patchValue({ idVehiculo: match.value });
                     }
                 } else {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'warn',
                         summary: 'Vehículo no registrado',
                         detail: `El vehículo con placa ${datos.placa} no está registrado. Abriendo el formulario para registrarlo...`,
@@ -555,7 +553,7 @@ export class GuiaDialogComponent implements OnInit {
             const pdfFacturas = (datos.facturas || []).map((f, i) => {
                 const clienteMatch = this.matchClientePorFacturaPdf(f);
                 if (clienteMatch && clienteMatch.activo === false) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'warn',
                         summary: 'Cliente inactivo',
                         detail: `El cliente ${clienteMatch.nombreComercial} está inactivo (Factura #${

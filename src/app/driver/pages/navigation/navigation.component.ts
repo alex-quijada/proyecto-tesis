@@ -12,8 +12,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
@@ -30,6 +28,7 @@ import {
     IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { ViajeService } from '@/app/services/viaje.service';
+import { NotificationService } from '@/app/services/notification.service';
 import { environment } from '@/environments/environment';
 import { haversine, calcularBearing } from '../viajes/navegacion.util';
 
@@ -70,7 +69,6 @@ interface PuntoEntrega {
     imports: [
         CommonModule,
         FormsModule,
-        ToastModule,
         ButtonModule,
         TagModule,
         TooltipModule,
@@ -80,7 +78,6 @@ interface PuntoEntrega {
         FirmaDialogComponent,
         IncidenciaDialogComponent,
     ],
-    providers: [MessageService],
     templateUrl: './navigation.component.html',
 })
 export class NavigationComponent implements OnInit, OnDestroy {
@@ -88,7 +85,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
     sdk = inject(NavigationSdkService);
     private viajeService = inject(ViajeService);
     private router = inject(Router);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
 
     @ViewChild(FirmaDialogComponent) private firmaDialog!: FirmaDialogComponent;
     @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
@@ -474,13 +471,13 @@ export class NavigationComponent implements OnInit, OnDestroy {
         this.entregando.set(true);
         try {
             await this.store.iniciarEntrega(punto.facturaIds);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Entrega iniciada',
                 detail: 'Marca cada factura como finalizada o reporta una incidencia.',
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo iniciar la entrega.',
@@ -511,13 +508,13 @@ export class NavigationComponent implements OnInit, OnDestroy {
                 event.firma,
                 event.observaciones,
             );
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Entrega completada',
                 detail: `${factura.nombreCliente} — ${factura.numeroFactura || factura.numeroGuia}`,
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo guardar la entrega.',
@@ -542,13 +539,13 @@ export class NavigationComponent implements OnInit, OnDestroy {
         if (!factura) return;
         try {
             await this.store.reportarIncidencia(factura.id, datos.incidencias);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',
                 detail: `${factura.nombreCliente} — ${factura.numeroFactura || factura.numeroGuia}`,
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo reportar la incidencia.',
@@ -567,14 +564,14 @@ export class NavigationComponent implements OnInit, OnDestroy {
             await this.store.recargarViajes();
             await this.sdk.cleanup();
             document.documentElement.classList.remove('mapa-nativo');
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Viaje finalizado',
                 detail: 'Regresaste al almacén con todas las entregas completadas.',
             });
             this.router.navigate(['/driver/home']);
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo finalizar el viaje.',

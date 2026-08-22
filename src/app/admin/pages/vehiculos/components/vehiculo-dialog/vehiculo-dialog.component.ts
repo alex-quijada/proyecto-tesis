@@ -11,8 +11,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, JsonPipe } from '@angular/common';
+import { NotificationService } from '@/app/services/notification.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MessageService } from 'primeng/api';
+
 
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -22,7 +23,6 @@ import { SelectModule } from 'primeng/select';
 import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
 import { DividerModule } from 'primeng/divider';
-import { ToastModule } from 'primeng/toast';
 
 import { Vehiculo } from '../../data/vehiculos-mock';
 import { VehiculoService } from '../../service/vehiculo.service';
@@ -41,15 +41,13 @@ import { VehiculoService } from '../../service/vehiculo.service';
         FluidModule,
         MessageModule,
         DividerModule,
-        ToastModule,
     ],
-    providers: [MessageService],
     templateUrl: './vehiculo-dialog.component.html',
 })
 export class VehiculoDialogComponent {
     private fb = inject(FormBuilder);
     private vehiculoService = inject(VehiculoService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
 
     visible = model<boolean>(false);
     vehiculoData = input<Vehiculo>({});
@@ -300,7 +298,7 @@ export class VehiculoDialogComponent {
 
             if (esEdicion) {
                 await this.vehiculoService.actualizarVehiculo(vehiculoFinal);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Actualizado',
                     detail: 'Unidad modificada correctamente',
@@ -310,7 +308,7 @@ export class VehiculoDialogComponent {
                 const nuevoId = await this.vehiculoService.crearVehiculo(vehiculoFinal);
                 vehiculoFinal.id_vehiculo = nuevoId;
                 vehiculoFinal.id = nuevoId;
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Registrado',
                     detail: 'Unidad agregada correctamente',

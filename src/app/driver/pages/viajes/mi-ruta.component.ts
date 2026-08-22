@@ -13,8 +13,8 @@ import {
     effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '@/app/services/notification.service';
 import { FormsModule } from '@angular/forms';
-import { MessageService } from 'primeng/api';
 import { Capacitor } from '@capacitor/core';
 import { GoogleMap, LatLngBounds, Marker, Polyline } from '@capacitor/google-maps';
 
@@ -103,7 +103,7 @@ interface PuntoEntrega {
     styleUrl: './mi-ruta.component.css',
 })
 export class MiRutaComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private viajeService = inject(ViajeService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private destroyRef = inject(DestroyRef);
@@ -477,7 +477,7 @@ export class MiRutaComponent implements OnInit {
             this.mapaListo.set(true);
         } catch (err) {
             console.error('Error al crear el mapa', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudo inicializar el mapa.',
@@ -728,7 +728,7 @@ export class MiRutaComponent implements OnInit {
             viaje?.id_viaje,
         );
         if (!ok && this.viajeEnProceso) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Sin navegación',
                 detail: 'No se pudo calcular la ruta detallada para este viaje.',
@@ -796,7 +796,7 @@ export class MiRutaComponent implements OnInit {
             const total = await this.store.reagregarReentregas();
             if (total < 1) return;
 
-            this.messageService.add({
+            this.notif.add({
                 severity: 'info',
                 summary: 'Re-entrega autorizada',
                 detail: 'Se volverá a entregar una parada pendiente. Recalculando ruta optimizada…',
@@ -864,7 +864,7 @@ export class MiRutaComponent implements OnInit {
             void this.mostrarRutaEnMapa();
 
             if (cerradas.length > 0) {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'warn',
                     summary: 'Empresas cerradas ahora',
                     detail: `${cerradas.length} parada(s) fuera de su ventana quedan al final de la ruta.`,
@@ -872,7 +872,7 @@ export class MiRutaComponent implements OnInit {
             }
         } catch (err) {
             console.error('Error procesando re-entrega', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudo recalcular la ruta para la re-entrega.',
@@ -1052,7 +1052,7 @@ private detenerAnimacionMarcador() {
 
         const conPuntos = this.puntos();
         if (conPuntos.length < 1) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Sin coordenadas',
                 detail: 'Las paradas no tienen ubicación para calcular la ruta.',
@@ -1078,7 +1078,7 @@ private detenerAnimacionMarcador() {
             if (!this.connectivity.isOnline()) {
                 const persistida = viaje.ruta_detallada;
                 if (!persistida || persistida.pasos.length < 1) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'warn',
                         summary: 'Sin conexión',
                         detail: 'No hay ruta precalculada guardada. Conecta a internet primero.',
@@ -1087,7 +1087,7 @@ private detenerAnimacionMarcador() {
                     return;
                 }
                 await this.iniciarNavegacion(persistida);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Viaje iniciado',
                     detail: 'Navegando con la ruta guardada (sin conexión).',
@@ -1123,7 +1123,7 @@ private detenerAnimacionMarcador() {
 
             await this.iniciarNavegacion(detallada);
 
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Viaje iniciado',
                 detail:
@@ -1133,7 +1133,7 @@ private detenerAnimacionMarcador() {
             });
         } catch (err) {
             console.error('Error al iniciar el viaje', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudo iniciar el viaje. Intenta nuevamente.',
@@ -1264,13 +1264,13 @@ private detenerAnimacionMarcador() {
         this.entregando.set(true);
         try {
             await this.store.iniciarEntrega(punto.facturaIds);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Entrega iniciada',
                 detail: 'Marca cada factura como finalizada o reporta una incidencia.',
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo iniciar la entrega.',
@@ -1301,13 +1301,13 @@ private detenerAnimacionMarcador() {
                 event.firma,
                 event.observaciones,
             );
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Entrega completada',
                 detail: `${factura.nombreCliente} — ${factura.numeroFactura || factura.numeroGuia}`,
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo guardar la entrega.',
@@ -1332,13 +1332,13 @@ private detenerAnimacionMarcador() {
         if (!factura) return;
         try {
             await this.store.reportarIncidencia(factura.id, datos.incidencias);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Incidencia reportada',
                 detail: `${factura.nombreCliente} — ${factura.numeroFactura || factura.numeroGuia}`,
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo reportar la incidencia.',
@@ -1442,13 +1442,13 @@ private detenerAnimacionMarcador() {
             this.puntoEntrega.set(null);
             this.navigation.puntoEntregaGuardado.set(null);
             await this.navigation.limpiarSimulacionGuardada(viaje.id_viaje);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Viaje finalizado',
                 detail: 'Regresaste al almacén con todas las entregas completadas.',
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo finalizar el viaje.',

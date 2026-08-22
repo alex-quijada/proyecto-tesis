@@ -204,6 +204,30 @@
                                                                             styleClass="text-xs"
                                                                         />
                                                                     </div>
+                                                                    <p-button
+                                                                        [label]="
+                                                                            inc.recuperable
+                                                                                ? 'Recuperable'
+                                                                                : 'No recuperable'
+                                                                        "
+                                                                        [icon]="
+                                                                            inc.recuperable
+                                                                                ? 'pi pi-verified'
+                                                                                : 'pi pi-ban'
+                                                                        "
+                                                                        [severity]="
+                                                                            inc.recuperable ? 'warn' : 'secondary'
+                                                                        "
+                                                                        size="small"
+                                                                        outlined
+                                                                        [loading]="
+                                                                            togglingRecuperableId() === inc.id_incidencia
+                                                                        "
+                                                                        (onClick)="toggleRecuperable(inc)"
+                                                                        pTooltip="¿Se puede volver a entregar? Decisión del analista/administrador"
+                                                                        tooltipPosition="top"
+                                                                        styleClass="mt-1"
+                                                                    />
                                                                     @if (inc.descripcion) {
                                                                         <div class="text-sm text-surface-700 dark:text-surface-200 mt-1">
                                                                             {{ inc.descripcion }}
@@ -272,4 +296,4 @@
 </div>
 
 <p-confirmdialog />
-<p-toast />
+

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '@/app/services/notification.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MessageService } from 'primeng/api';
 
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -51,7 +51,7 @@ interface ParadaDisplay {
 })
 export class RutaComponent implements OnInit {
     store = inject(DriverStoreService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private viajeService = inject(ViajeService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private route = inject(ActivatedRoute);
@@ -70,11 +70,21 @@ export class RutaComponent implements OnInit {
     readonly activeViaje = computed(() => this.store.viajesChofer()[0] || null);
 
     readonly guiasPendientes = computed(() =>
-        this.paradas().filter((p) => p.estado !== 'finalizado' && p.estado !== 'cancelado'),
+        this.paradas().filter(
+            (p) =>
+                p.estado !== 'finalizado' &&
+                p.estado !== 'cancelado' &&
+                p.estado !== 'incidencia',
+        ),
     );
 
     readonly guiasCompletadas = computed(() =>
-        this.paradas().filter((p) => p.estado === 'finalizado' || p.estado === 'cancelado'),
+        this.paradas().filter(
+            (p) =>
+                p.estado === 'finalizado' ||
+                p.estado === 'cancelado' ||
+                p.estado === 'incidencia',
+        ),
     );
 
     readonly completedCount = computed(() => this.guiasCompletadas().length);
@@ -152,7 +162,7 @@ export class RutaComponent implements OnInit {
             (p) => p.latitud != null && p.longitud != null,
         );
         if (conCoords.length < 1) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Sin coordenadas',
                 detail: 'Las paradas pendientes no tienen ubicación para calcular la ruta.',
@@ -164,7 +174,7 @@ export class RutaComponent implements OnInit {
         try {
             const viaje = this.activeViaje();
             if (!viaje) {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'warn',
                     summary: 'Sin viaje',
                     detail: 'No hay un viaje activo para guardar la ruta.',
@@ -185,7 +195,7 @@ export class RutaComponent implements OnInit {
 
             const result = await this.googleOptimization.optimize(waypoints, warehouse, warehouse);
             if (!result) {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'info',
                     summary: 'Sin optimización',
                     detail: 'No se pudo calcular la ruta optimizada. Se mantiene el orden actual.',
@@ -210,7 +220,7 @@ export class RutaComponent implements OnInit {
                 await this.viajeService.guardarRutaViaje(viaje.id_viaje, detallada);
             }
 
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Ruta optimizada',
                 detail: `Nuevo orden guardado (${(result.distance / 1000).toFixed(1)} km, ${Math.round(
@@ -220,7 +230,7 @@ export class RutaComponent implements OnInit {
             this.avisoIrMapa.set(true);
         } catch (err) {
             console.error('Error al optimizar ruta', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudo optimizar la ruta. Intenta nuevamente.',
@@ -249,7 +259,7 @@ export class RutaComponent implements OnInit {
             await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, ids);
         } catch (err) {
             console.error('Error al persistir el orden de la ruta', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudo guardar el orden de la ruta.',
@@ -333,13 +343,13 @@ export class RutaComponent implements OnInit {
             this.selectedGuia.set(null);
             await this.store.recargarViajes();
             this.sincronizarParadas();
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Entrega completada',
                 detail: `${entrega.cliente} — ${entrega.numeroFactura || entrega.numeroGuia}`,
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo guardar la entrega.',

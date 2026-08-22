@@ -1,7 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -49,11 +50,11 @@ import { MunicipioService } from '../../services/municipio.service';
         ChipModule,
         GuiaDialogComponent,
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './rutas.component.html',
 })
 export class RutasComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
     private authService = inject(AuthService);
     private rutaService = inject(RutaService);
@@ -116,7 +117,7 @@ export class RutasComponent implements OnInit {
             this.estadosFacturaMap.set(estadosMap);
         } catch (err) {
             console.error('Error cargando guías:', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudieron cargar las guías de despacho.',
@@ -202,7 +203,7 @@ export class RutasComponent implements OnInit {
 
     async onSaveGuia(guia: GuiaDespacho) {
         if (!guia.facturas?.length) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Factura requerida',
                 detail: 'La guía debe tener al menos una factura para ser registrada.',
@@ -213,13 +214,13 @@ export class RutasComponent implements OnInit {
         try {
             const guias = await this.rutaService.obtenerGuias();
             this.guias.set(guias);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Guía guardada',
                 detail: `${guia.numeroGuia} procesada exitosamente.`,
             });
         } catch (err: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'Error al recargar las guías.',
@@ -234,7 +235,7 @@ export class RutasComponent implements OnInit {
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.guias.set(this.guias().filter((g) => g.id !== guia.id));
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Eliminada',
                     detail: `Guía ${guia.numeroGuia} eliminada.`,

@@ -69,7 +69,9 @@
                     Tienes
                     <span class="font-bold text-primary">{{ store.pendingGuiasViajeCount() }}</span>
                     {{
-                        store.pendingGuiasViajeCount() === 1 ? 'guía por entregar' : 'guías por entregar'
+                        store.pendingGuiasViajeCount() === 1
+                            ? 'guía por entregar'
+                            : 'guías por entregar'
                     }}
                 } @else {
                     No tienes guías pendientes
@@ -268,7 +270,7 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <i class="pi pi-id-card text-surface-400"></i
-                                        ><span>RIF: {{ guia.rif }}</span>
+                                        ><span>Documento: {{ guia.rif }}</span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <i class="pi pi-building text-surface-400"></i

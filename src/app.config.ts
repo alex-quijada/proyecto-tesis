@@ -8,6 +8,7 @@ import {
 } from '@angular/router';
 import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
+import { MessageService } from 'primeng/api';
 import { appRoutes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -24,5 +25,6 @@ export const appConfig: ApplicationConfig = {
         provideZonelessChangeDetection(),
         provideAnimations(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
+        MessageService,
     ],
 };

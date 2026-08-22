@@ -28,6 +28,10 @@ export interface ChoferFactura {
     telefono_cliente: string | null;
     persona_contacto: string | null;
     nombre_prioridad: string | null;
+    /** Momento en que la factura entró a 'embarque' (inicio de carga). */
+    fecha_inicio_carga: string | null;
+    /** Última transición de estado de la factura (entrada al estado actual). */
+    fecha_ultimo_cambio: string | null;
 }
 
 export interface ChoferGuia {

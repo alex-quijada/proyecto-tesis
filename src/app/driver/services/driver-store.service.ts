@@ -1,15 +1,15 @@
-import { Injectable, OnDestroy, inject, signal, computed } from '@angular/core';
-import { MessageService } from 'primeng/api';
+import { Injectable, OnDestroy, inject, signal, computed, Signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 import { AuthService } from '@/app/auth/service/auth.service';
-import { ESTADOS_FACTURA } from '@/app/admin/pages/rutas/data/rutas-mock';
 import { Chofer } from '@/app/admin/pages/choferes/data/choferes-mock';
 import { ViajeService } from '@/app/services/viaje.service';
 import { ViajeChofer, ParadaViaje } from '@/app/services/viaje.types';
 import { ConnectivityService } from '@/app/services/connectivity.service';
 import { OfflineStorageService } from './offline-storage.service';
 import { ChoferService, ChoferGuia, ChoferVehiculo } from './chofer.service';
+import { TiemposService } from './tiempos.service';
+import { NotificationService } from '@/app/services/notification.service';
 
 export interface Incidencia {
     tipo: string;
@@ -36,6 +36,10 @@ export interface Entrega {
     eventos: any[];
     incidencia?: Incidencia;
     fechaEntrega?: string;
+    /** Momento en que la factura entró a 'embarque' (inicio real de carga). */
+    fechaInicioCarga?: string;
+    /** Última transición de estado (entrada al estado actual). */
+    fechaUltimoCambio?: string;
     latitud?: number;
     longitud?: number;
 }
@@ -108,7 +112,7 @@ export class DriverStoreService implements OnDestroy {
     private authService = inject(AuthService);
     private choferService = inject(ChoferService);
     private viajeService = inject(ViajeService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private connectivity = inject(ConnectivityService);
     private offlineStorage = inject(OfflineStorageService);
 
@@ -126,9 +130,6 @@ export class DriverStoreService implements OnDestroy {
     /** Momento de la última carga exitosa de datos (para "actualizado hace"). */
     readonly ultimaActualizacion = signal<Date | null>(null);
 
-    readonly now = signal(new Date());
-    private guiaStartTimes = new Map<string, Date>();
-    private timerId: ReturnType<typeof setInterval> | null = null;
     private uid: string | null = null;
     private realtimeCanal: RealtimeChannel | null = null;
     private debounceRealtime: ReturnType<typeof setTimeout> | null = null;
@@ -282,7 +283,6 @@ export class DriverStoreService implements OnDestroy {
                 vehiculos: this.mapearVehiculos(guias, vehiculos),
             }));
             this.guiasAsignadas.set(await this.enriquecerConIncidencias(this.mapearEntregas(guias)));
-            this.initGuiaStartTimes();
             this.datosOffline.set(false);
             this.ultimaActualizacion.set(new Date());
             await this.offlineStorage.guardar(this.uid, 'guias', this.guiasAsignadas());
@@ -291,11 +291,10 @@ export class DriverStoreService implements OnDestroy {
             const caché = await this.offlineStorage.leer<Entrega[]>(this.uid, 'guias');
             if (caché && caché.data.length > 0) {
                 this.guiasAsignadas.set(caché.data);
-                this.initGuiaStartTimes();
                 this.datosOffline.set(true);
                 console.info('[Offline] Guías cargadas desde la caché local.');
             } else {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: 'No se pudieron cargar tus guías. Intenta de nuevo.',
@@ -306,7 +305,6 @@ export class DriverStoreService implements OnDestroy {
         await this.cargarViajes();
         this.initRealtime();
 
-        this.initTimer();
         this.cargando.set(false);
         this.escucharReconexion();
     }
@@ -458,7 +456,7 @@ export class DriverStoreService implements OnDestroy {
                 });
                 await this.offlineStorage.guardar(this.uid, 'pendientes', pendientes);
                 this.pendientesSincronizar.set(pendientes.length);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'warn',
                     summary: 'Entrega guardada localmente',
                     detail: 'Se sincronizará cuando recuperes conexión.',
@@ -555,7 +553,7 @@ export class DriverStoreService implements OnDestroy {
             if (restantes.length === 0) {
                 await this.offlineStorage.eliminar(this.uid, 'pendientes');
                 this.pendientesSincronizar.set(0);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Sincronizado',
                     detail: 'Tus entregas guardadas se sincronizaron correctamente.',
@@ -571,7 +569,6 @@ export class DriverStoreService implements OnDestroy {
     }
 
     ngOnDestroy() {
-        if (this.timerId) clearInterval(this.timerId);
         if (this.debounceRealtime) clearTimeout(this.debounceRealtime);
         if (this.escuchandoReconexion) {
             window.removeEventListener('online', this.alReconectar);
@@ -586,7 +583,6 @@ export class DriverStoreService implements OnDestroy {
     async recargarGuias() {
         const guias = await this.choferService.obtenerGuias();
         this.guiasAsignadas.set(await this.enriquecerConIncidencias(this.mapearEntregas(guias)));
-        this.initGuiaStartTimes();
         this.ultimaActualizacion.set(new Date());
     }
 
@@ -653,7 +649,6 @@ export class DriverStoreService implements OnDestroy {
                 this.guiasAsignadas.set(
                     await this.enriquecerConIncidencias(this.mapearEntregas(guias)),
                 );
-                this.initGuiaStartTimes();
                 this.ultimaActualizacion.set(new Date());
             }
         } catch (err) {
@@ -661,58 +656,35 @@ export class DriverStoreService implements OnDestroy {
         }
     }
 
-    private initTimer() {
-        this.timerId = setInterval(() => this.now.set(new Date()), 30000);
+    /** Tiempos y presentación de estados (lógica en TiemposService). */
+    private tiempos = inject(TiemposService);
+
+    get now(): Signal<Date> {
+        return this.tiempos.now;
     }
 
-    private initGuiaStartTimes() {
-        this.guiaStartTimes.clear();
-        this.guiasPendientes().forEach((g, i) => {
-            this.guiaStartTimes.set(g.id, new Date(Date.now() - (7 + i * 12) * 60000));
-        });
+    /** Tiempo real de carga (delegado a TiemposService). */
+    getTiempoCarga(entrega: Entrega): string {
+        return this.tiempos.getTiempoCarga(entrega);
     }
 
-    getTiempoCarga(guiaId: string): string {
-        const start = this.guiaStartTimes.get(guiaId);
-        if (!start) return 'Pendiente';
-        const mins = Math.floor((this.now().getTime() - start.getTime()) / 60000);
-        if (mins < 1) return 'Menos de 1 min';
-        return `${mins} mins subiendo mercancía`;
+    /** Tiempo en el estado actual de la factura (delegado a TiemposService). */
+    getTiempoEstado(entrega: Entrega): string {
+        return this.tiempos.getTiempoEstado(entrega);
     }
 
     getEstadoLabel(e: string): string {
-        if (e === 'cancelado' || e === 'CANCELADO') return 'Cancelado';
-        const found = ESTADOS_FACTURA.find((ef) => ef.value === e);
-        return found?.label || e;
+        return this.tiempos.getEstadoLabel(e);
     }
 
     getEstadoSeverity(
         e: string,
     ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        if (e === 'cancelado' || e === 'CANCELADO') return 'danger';
-        const found = ESTADOS_FACTURA.find((ef) => ef.value === e);
-        return (found?.severity as any) || 'info';
+        return this.tiempos.getEstadoSeverity(e);
     }
 
     getColorBorde(e: string): string {
-        switch (e) {
-            case 'nuevo':
-                return 'border-l-surface-300';
-            case 'embarque':
-                return 'border-l-yellow-500';
-            case 'proceso':
-                return 'border-l-blue-500';
-            case 'espera':
-                return 'border-l-orange-500';
-            case 'entrega':
-                return 'border-l-fuchsia-500';
-            case 'incidencia':
-                return 'border-l-red-500';
-            case 'finalizado':
-                return 'border-l-green-500';
-            default:
-                return 'border-l-surface-300';
-        }
+        return this.tiempos.getColorBorde(e);
     }
 
     vehiculoPrincipal() {
@@ -765,6 +737,8 @@ export class DriverStoreService implements OnDestroy {
                     tuvoDevolucion: false,
                     eventos: [],
                     fechaEntrega: estado === 'finalizado' ? guia.fecha_despacho : undefined,
+                    fechaInicioCarga: f.fecha_inicio_carga || undefined,
+                    fechaUltimoCambio: f.fecha_ultimo_cambio || undefined,
                     latitud: f.latitud ?? undefined,
                     longitud: f.longitud ?? undefined,
                 });

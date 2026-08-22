@@ -7,7 +7,8 @@ import { TableModule } from 'primeng/table';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 
 import { ViajeService } from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
@@ -56,14 +57,14 @@ interface HistorialViaje {
         TooltipModule,
         TipoIncidenciaPipe,
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './historial-entregas.component.html',
 })
 export class HistorialEntregasComponent implements OnInit {
     private viajeService = inject(ViajeService);
     private authService = inject(AuthService);
     private confirmationService = inject(ConfirmationService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
 
     cargando = signal(true);
     private viajesFinalizados = signal<ViajeAdmin[]>([]);
@@ -145,6 +146,33 @@ export class HistorialEntregasComponent implements OnInit {
         return p.incidenciaRecuperable === true;
     }
 
+    readonly togglingRecuperableId = signal<string | null>(null);
+
+    async toggleRecuperable(inc: IncidenciaParada) {
+        if (!inc.id_incidencia || this.togglingRecuperableId()) return;
+        this.togglingRecuperableId.set(inc.id_incidencia);
+        const objetivo = inc.recuperable === true ? false : true;
+        try {
+            await this.viajeService.setIncidenciaRecuperable(inc.id_incidencia, objetivo);
+            this.notif.add({
+                severity: 'success',
+                summary: objetivo ? 'Re-despachable' : 'Terminal',
+                detail: `Incidencia marcada como ${
+                    objetivo ? 'recuperable' : 'no recuperable'
+                }.`,
+            });
+            await this.ngOnInit();
+        } catch (err: any) {
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo cambiar la incidencia.',
+            });
+        } finally {
+            this.togglingRecuperableId.set(null);
+        }
+    }
+
     estadoSeverity(estado: string): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {
         switch (estado) {
             case 'finalizado':
@@ -219,14 +247,14 @@ export class HistorialEntregasComponent implements OnInit {
             this.viajesFinalizados.update((lista) =>
                 lista.filter((x) => x.id_viaje !== v.id_viaje),
             );
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Viaje borrado',
                 detail: 'El viaje y sus datos asociados se eliminaron.',
             });
         } catch (err: any) {
             console.error('Error al borrar viaje', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo borrar el viaje.',

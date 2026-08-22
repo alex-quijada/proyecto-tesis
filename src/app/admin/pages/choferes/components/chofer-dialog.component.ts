@@ -1,5 +1,6 @@
 import { Component, input, output, model, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '@/app/services/notification.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { DialogModule } from 'primeng/dialog';
@@ -8,10 +9,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
-import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
-import { MessageService } from 'primeng/api';
+
 
 import { Chofer, PREFIJOS_CEDULA, GRADOS_LICENCIA } from '../data/choferes-mock';
 import { AuthService } from '../../../../auth/service/auth.service';
@@ -28,17 +28,15 @@ import { AuthService } from '../../../../auth/service/auth.service';
         SelectModule,
         FluidModule,
         MessageModule,
-        ToastModule,
         DatePickerModule,
         DividerModule,
     ],
-    providers: [MessageService],
     templateUrl: './chofer-dialog.component.html',
 })
 export class ChoferDialogComponent {
     private fb = inject(FormBuilder);
     private authService = inject(AuthService);
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
 
     visible = model<boolean>(false);
     choferData = input<Chofer>({});
@@ -206,7 +204,7 @@ export class ChoferDialogComponent {
                     : null,
             });
 
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Completado',
                 detail: `Datos de ${raw.nombreCompleto} actualizados`,

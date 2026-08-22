@@ -1,5 +1,4 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { MessageService } from 'primeng/api';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation, Position } from '@capacitor/geolocation';
 
@@ -12,6 +11,7 @@ import {
 import { RutaPersistida } from '@/app/services/viaje.types';
 import { ConnectivityService } from '@/app/services/connectivity.service';
 import { AuthService } from '@/app/auth/service/auth.service';
+import { NotificationService } from '@/app/services/notification.service';
 import { OfflineStorageService } from './offline-storage.service';
 import {
     distanciaAPolyline,
@@ -48,7 +48,7 @@ const VELOCIDAD_SIMULACION_DEFAULT = 90;
 
 @Injectable()
 export class NavigationService {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private connectivity = inject(ConnectivityService);
     private authService = inject(AuthService);
@@ -118,7 +118,7 @@ export class NavigationService {
                 legs: rutaPrecomputada.legs || [],
             };
         } else if (!this.connectivity.isOnline()) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Sin conexión',
                 detail: 'No se puede calcular la ruta. Conecta a internet o usa una ruta precalculada.',
@@ -331,7 +331,7 @@ export class NavigationService {
             return;
         }
         if (!('geolocation' in navigator)) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'GPS no disponible',
                 detail: 'Este navegador no soporta geolocalización. Usa el modo Simular.',
@@ -344,7 +344,7 @@ export class NavigationService {
             },
             (err) => {
                 console.error('Error de geolocalización', err);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'warn',
                     summary: 'Error de GPS',
                     detail: 'No se pudo obtener tu ubicación. Usa el modo Simular.',
@@ -358,7 +358,7 @@ export class NavigationService {
         try {
             const permisos = await Geolocation.requestPermissions({ permissions: ['location'] });
             if (permisos.location !== 'granted') {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'warn',
                     summary: 'GPS denegado',
                     detail: 'Se requiere el permiso de ubicación. Usa el modo Simular.',
@@ -372,7 +372,7 @@ export class NavigationService {
         const callback = (position: Position | null, err?: unknown) => {
             if (err || !position) {
                 console.error('Error de geolocalización', err);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'warn',
                     summary: 'Error de GPS',
                     detail: 'No se pudo obtener tu ubicación. Usa el modo Simular.',
@@ -396,7 +396,7 @@ export class NavigationService {
             this.watchId = id;
         } catch (err) {
             console.error('Error iniciando geolocalización', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Error de GPS',
                 detail: 'No se pudo obtener tu ubicación. Usa el modo Simular.',
@@ -575,13 +575,13 @@ export class NavigationService {
             this.pausarParaEntrega();
             if (idx < paradas.length - 1) {
                 this.paradaActual.set(idx + 1);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Has llegado',
                     detail: `${parada.nombreCliente} — ${parada.numeroGuia || parada.numeroFactura}`,
                 });
             } else {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Ruta completada',
                     detail: 'Llegaste a la última parada.',
@@ -628,7 +628,7 @@ export class NavigationService {
         this.recalculando.set(false);
 
         if (!ruta || ruta.pasos.length < 1) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'No se pudo recalcular',
                 detail: 'Se mantiene la ruta actual.',
@@ -641,7 +641,7 @@ export class NavigationService {
         this.legs.set(ruta.legs || []);
         this.pasoActual.set(0);
         this.precalcularSim();
-        this.messageService.add({
+        this.notif.add({
             severity: 'info',
             summary: 'Ruta recalculada',
             detail: 'Se ajustó la ruta desde tu posición actual.',

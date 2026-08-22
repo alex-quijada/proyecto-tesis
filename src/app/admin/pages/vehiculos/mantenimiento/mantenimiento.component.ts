@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 
 import { MantenimientoDialogComponent } from './components/mantenimiento-dialog.component';
 import { Mantenimiento, MANTENIMIENTOS_MOCK } from './data/mantenimiento-mock';
@@ -37,11 +38,11 @@ import { FormsModule } from '@angular/forms';
         SelectModule,
         MantenimientoDialogComponent,
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './mantenimiento.component.html',
 })
 export class MantenimientoComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
 
     mantenimientos = signal<Mantenimiento[]>([]);
@@ -105,7 +106,7 @@ export class MantenimientoComponent implements OnInit {
             listaActual[index] = mCapturado;
             this.mantenimientos.set([...listaActual]);
 
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Actualizado',
                 detail: `Mantenimiento de ${mCapturado.placaVehiculo} actualizado`,
@@ -115,7 +116,7 @@ export class MantenimientoComponent implements OnInit {
             mCapturado.id = crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9);
             this.mantenimientos.set([...listaActual, mCapturado]);
 
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Registrado',
                 detail: `Mantenimiento programado para ${mCapturado.placaVehiculo}`,
@@ -133,7 +134,7 @@ export class MantenimientoComponent implements OnInit {
             acceptButtonProps: { label: 'Eliminar', severity: 'danger' },
             accept: () => {
                 this.mantenimientos.set(this.mantenimientos().filter((v) => v.id !== m.id));
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Completado',
                     detail: 'Mantenimiento eliminado',
@@ -154,7 +155,7 @@ export class MantenimientoComponent implements OnInit {
                 const ids = this.mantenimientoSelected().map((m) => m.id);
                 this.mantenimientos.set(this.mantenimientos().filter((m) => !ids.includes(m.id)));
                 this.mantenimientoSelected.set([]);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Completado',
                     detail: 'Registros eliminados',

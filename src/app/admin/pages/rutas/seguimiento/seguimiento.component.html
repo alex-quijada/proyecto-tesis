@@ -112,7 +112,9 @@
                                 (onClick)="cancelarVentana()"
                             />
                         } @else {
-                            <span class="font-medium">{{ ventanaLabel(c) || '08:00 - 16:30' }}</span>
+                            <span class="font-medium">{{
+                                ventanaLabel(c) || '08:00 - 16:30'
+                            }}</span>
                             <p-button
                                 icon="pi pi-pencil"
                                 size="small"
@@ -201,12 +203,12 @@
                         <div class="flex-1 min-h-0 overflow-y-auto mt-4 pb-2 pr-0.5">
                             <!-- Recorrido del viaje (línea de tiempo única) -->
                             <div>
-                                <h3
+                                <h4
                                     class="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-3 flex items-center gap-1.5"
                                 >
                                     <i class="pi pi-history text-primary"></i>
                                     Recorrido del viaje
-                                </h3>
+                                </h4>
 
                                 @if (incidencias() > 0) {
                                     <div
@@ -335,18 +337,20 @@
                             <!-- Incidencias por resolver -->
                             @if (incidenciasPendientes().length > 0) {
                                 <div class="mt-6">
-                                    <h3
+                                    <h5
                                         class="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-3 flex items-center gap-1.5"
                                     >
                                         <i class="pi pi-exclamation-triangle text-red-500"></i>
                                         Incidencias por resolver
-                                    </h3>
+                                    </h5>
                                     <div class="space-y-1.5">
                                         @for (p of incidenciasPendientes(); track p.idFactura) {
                                             <div
-                                                class="flex items-center justify-between gap-2 rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/60 dark:bg-red-900/10 px-2.5 py-2"
+                                                class="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50/60 dark:bg-red-900/10 px-2.5 py-2"
                                             >
-                                                <div class="min-w-0">
+                                                <div
+                                                    class="flex items-center justify-between gap-2"
+                                                >
                                                     <div
                                                         class="text-xs font-medium text-surface-700 dark:text-surface-200 truncate"
                                                     >
@@ -358,40 +362,66 @@
                                                         {{ p.numeroFactura }}
                                                     </div>
                                                 </div>
-                                                <div class="flex items-center gap-2 flex-shrink-0">
-                                                    <p-button
-                                                        [label]="
-                                                            p.incidenciaRecuperable === true
-                                                                ? 'Recuperable'
-                                                                : 'No recuperable'
-                                                        "
-                                                        [icon]="
-                                                            p.incidenciaRecuperable === true
-                                                                ? 'pi pi-verified'
-                                                                : 'pi pi-ban'
-                                                        "
-                                                        [severity]="
-                                                            p.incidenciaRecuperable === true
-                                                                ? 'warn'
-                                                                : 'secondary'
-                                                        "
-                                                        size="small"
-                                                        outlined
-                                                        [loading]="
-                                                            togglingRecuperableId() === p.incidenciaId
-                                                        "
-                                                        (onClick)="toggleRecuperable(p)"
-                                                        pTooltip="¿Se puede volver a entregar? Decisión del analista/administrador"
-                                                        tooltipPosition="top"
-                                                    />
-                                                    <p-button
-                                                        label="Resolver"
-                                                        icon="pi pi-check"
-                                                        severity="success"
-                                                        size="small"
-                                                        [loading]="resolviendoId() === p.idFactura"
-                                                        (onClick)="resolverIncidencia(p)"
-                                                    />
+                                                <div
+                                                    class="flex items-center justify-between gap-2"
+                                                >
+                                                    <div class="min-w-0">
+                                                        @if (p.incidenciaTipo) {
+                                                            <div
+                                                                class="flex items-center gap-1.5 mt-1 flex-wrap"
+                                                            >
+                                                                <p-tag
+                                                                    [value]="
+                                                                        p.incidenciaTipo
+                                                                            | tipoIncidencia
+                                                                    "
+                                                                    severity="danger"
+                                                                    styleClass="text-[10px]"
+                                                                />
+                                                                @if (p.incidenciaDescripcion) {
+                                                                    <span
+                                                                        class="text-[10px] text-surface-500 truncate"
+                                                                    >
+                                                                        {{
+                                                                            p.incidenciaDescripcion
+                                                                        }}
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div class="flex items-center gap-2 shrink-0">
+                                                        <p-button
+                                                            [label]="
+                                                                p.incidenciaRecuperable === true
+                                                                    ? 'Recuperable'
+                                                                    : 'No recuperable'
+                                                            "
+                                                            [icon]="
+                                                                p.incidenciaRecuperable === true
+                                                                    ? 'pi pi-verified'
+                                                                    : 'pi pi-ban'
+                                                            "
+                                                            [severity]="
+                                                                p.incidenciaRecuperable === true
+                                                                    ? 'warn'
+                                                                    : 'secondary'
+                                                            "
+                                                            size="small"
+                                                            outlined
+                                                            [loading]="
+                                                                togglingRecuperableId() ===
+                                                                p.incidenciaId
+                                                            "
+                                                            (onClick)="toggleRecuperable(p)"
+                                                            [pTooltip]="
+                                                                p.incidenciaRecuperable === true
+                                                                    ? 'Cambiar a no recuperable (terminal)'
+                                                                    : 'Cambiar a recuperable (re-despachable)'
+                                                            "
+                                                            tooltipPosition="top"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         }
@@ -596,6 +626,5 @@
         </div>
     </div>
 
-    <p-toast />
     <p-confirmdialog />
 </div>

@@ -1,7 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -42,11 +43,11 @@ import { AuthService } from '../../../auth/service/auth.service';
         CardModule,
         UsuarioDialogComponent,
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './usuarios.component.html',
 })
 export class UsuariosComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
     private authService = inject(AuthService);
 
@@ -103,7 +104,7 @@ export class UsuariosComponent implements OnInit {
             this.usuarios.set(data);
         } catch (error: any) {
             console.error('Error al cargar usuarios desde Supabase:', error);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Usando datos de respaldo',
                 detail: 'No se pudo conectar con la base de datos. Mostrando datos locales.',
@@ -175,7 +176,7 @@ export class UsuariosComponent implements OnInit {
                     } else {
                         await this.authService.reactivarUsuario(usuario.id!);
                     }
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'success',
                         summary: desactivando ? 'Desactivado' : 'Reactivado',
                         detail: `${usuario.nombreCompleto} ${
@@ -184,7 +185,7 @@ export class UsuariosComponent implements OnInit {
                     });
                     await this.cargarUsuarios();
                 } catch (error: any) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'error',
                         summary: 'Error',
                         detail:
@@ -199,7 +200,7 @@ export class UsuariosComponent implements OnInit {
     desactivarSelectedUsuarios() {
         const selected = this.usuariosSelected().filter((u) => u.activo);
         if (!selected.length) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'info',
                 summary: 'Sin cambios',
                 detail: 'No hay usuarios activos seleccionados.',
@@ -219,14 +220,14 @@ export class UsuariosComponent implements OnInit {
                         await this.authService.desactivarUsuario(u.id!);
                     }
                     this.usuariosSelected.set([]);
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'success',
                         summary: 'Desactivados',
                         detail: `${selected.length} usuario(s) desactivados.`,
                     });
                     await this.cargarUsuarios();
                 } catch (error: any) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'error',
                         summary: 'Error',
                         detail: error.message || 'Error al desactivar usuarios.',
@@ -238,7 +239,7 @@ export class UsuariosComponent implements OnInit {
 
     refrescar() {
         this.cargarUsuarios();
-        this.messageService.add({
+        this.notif.add({
             severity: 'info',
             summary: 'Actualizado',
             detail: 'Datos refrescados.',

@@ -20,10 +20,10 @@ import { DriverStoreService } from '../services/driver-store.service';
                 >
                     <div class="relative">
                         <i class="pi pi-home text-xl"></i>
-                        @if (store.pendingGuiasCount() > 0) {
+                        @if (store.pendingGuiasViajeCount() > 0) {
                             <span
                                 class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1"
-                                >{{ store.pendingGuiasCount() }}</span
+                                >{{ store.pendingGuiasViajeCount() }}</span
                             >
                         }
                     </div>

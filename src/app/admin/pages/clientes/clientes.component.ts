@@ -1,7 +1,8 @@
 import { Component, signal, computed, inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 import { Table, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -47,11 +48,11 @@ import { CapitalizePipe } from './pipes/capitalize.pipe';
         SucursalDialogComponent,
         CapitalizePipe,
     ],
-    providers: [MessageService, ConfirmationService],
+    providers: [ConfirmationService],
     templateUrl: './clientes.component.html',
 })
 export class ClientesComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
     private clienteService = inject(ClienteService);
 
@@ -115,7 +116,7 @@ export class ClientesComponent implements OnInit {
             const data = await this.clienteService.obtenerClientes();
             this.clientes.set(data);
         } catch (e: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: e.message || 'No se pudieron cargar los clientes',
@@ -212,7 +213,7 @@ export class ClientesComponent implements OnInit {
             accept: async () => {
                 try {
                     await this.clienteService.cambiarEstadoCliente(cliente, !desactivando);
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'success',
                         summary: 'Completado',
                         detail: `Cliente "${cliente.nombreComercial}" ${
@@ -222,7 +223,7 @@ export class ClientesComponent implements OnInit {
                     });
                     await this.cargarClientes();
                 } catch (error: any) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'error',
                         summary: 'Error',
                         detail: error.message || 'No se pudo actualizar el estado del cliente',
@@ -236,7 +237,7 @@ export class ClientesComponent implements OnInit {
     desactivarSelectedClientes() {
         const selected = this.selectedClientes.filter((c) => c.activo !== false);
         if (!selected.length) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'info',
                 summary: 'Sin cambios',
                 detail: 'No hay clientes activos seleccionados.',
@@ -256,7 +257,7 @@ export class ClientesComponent implements OnInit {
                         await this.clienteService.cambiarEstadoCliente(c, false);
                     }
                     this.selectedClientes = [];
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'success',
                         summary: 'Desactivados',
                         detail: 'Clientes desactivados correctamente',
@@ -264,7 +265,7 @@ export class ClientesComponent implements OnInit {
                     });
                     await this.cargarClientes();
                 } catch (error: any) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'error',
                         summary: 'Error',
                         detail: error.message || 'Error al desactivar clientes',
@@ -311,7 +312,7 @@ export class ClientesComponent implements OnInit {
     }
 
     handleSaveSucursal() {
-        this.messageService.add({
+        this.notif.add({
             severity: 'success',
             summary: 'Sucursal guardada',
             detail: 'La sucursal se ha guardado correctamente',
@@ -329,7 +330,7 @@ export class ClientesComponent implements OnInit {
 
     handleSaveCliente(clienteCapturado: Cliente) {
         const esEdicion = !!clienteCapturado.id;
-        this.messageService.add({
+        this.notif.add({
             severity: 'success',
             summary: esEdicion ? 'Actualizado' : 'Registrado',
             detail: `Cliente "${clienteCapturado.nombreComercial}" ${

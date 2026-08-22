@@ -1,7 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 
 import { VehiculoDetalleDialogComponent } from './components/vehiculo-detalle-dialog.component';
 import { VehiculoDialogComponent } from './components/vehiculo-dialog/vehiculo-dialog.component';
@@ -47,11 +48,11 @@ import { SelectModule } from 'primeng/select';
         TipoVehiculoIconoPipe,
         TipoCajaLabelPipe,
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './vehiculos.component.html',
 })
 export class VehiculosComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
     private vehiculoService = inject(VehiculoService);
 
@@ -106,7 +107,7 @@ export class VehiculosComponent implements OnInit {
             this.vehiculos.set(data);
         } catch (error: any) {
             console.error('Error al cargar vehículos:', error);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: error.message || 'No se pudieron cargar los vehículos',
@@ -161,7 +162,7 @@ export class VehiculosComponent implements OnInit {
                         vehiculo,
                         desactivando ? 'INACTIVO' : 'OPERATIVO',
                     );
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'success',
                         summary: 'Completado',
                         detail: desactivando ? 'Unidad desactivada' : 'Unidad reactivada',
@@ -169,7 +170,7 @@ export class VehiculosComponent implements OnInit {
                     });
                     await this.cargarVehiculos();
                 } catch (error: any) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'error',
                         summary: 'Error',
                         detail: error.message || 'No se pudo actualizar el estado del vehículo',
@@ -185,7 +186,7 @@ export class VehiculosComponent implements OnInit {
             (v) => (v.estado || '').toUpperCase() !== 'INACTIVO',
         );
         if (!selected.length) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'info',
                 summary: 'Sin cambios',
                 detail: 'No hay unidades activas seleccionadas.',
@@ -205,7 +206,7 @@ export class VehiculosComponent implements OnInit {
                         await this.vehiculoService.cambiarEstadoVehiculo(v, 'INACTIVO');
                     }
                     this.vehiculoSelected.set([]);
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'success',
                         summary: 'Completado',
                         detail: 'Unidades desactivadas',
@@ -213,7 +214,7 @@ export class VehiculosComponent implements OnInit {
                     });
                     await this.cargarVehiculos();
                 } catch (error: any) {
-                    this.messageService.add({
+                    this.notif.add({
                         severity: 'error',
                         summary: 'Error',
                         detail: error.message || 'Error al desactivar vehículos',

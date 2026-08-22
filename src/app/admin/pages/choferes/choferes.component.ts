@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 
 import { ChoferDialogComponent } from './components/chofer-dialog.component';
 import { Chofer, GRADOS_LICENCIA } from './data/choferes-mock';
@@ -40,11 +41,11 @@ import { FormsModule } from '@angular/forms';
         SelectButtonModule,
         ChoferDialogComponent,
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './choferes.component.html',
 })
 export class ChoferesComponent implements OnInit {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
     private authService = inject(AuthService);
 
@@ -80,7 +81,7 @@ export class ChoferesComponent implements OnInit {
             this.choferes.set(data);
         } catch (error: any) {
             console.error('Error cargando choferes:', error);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: error.message || 'No se pudieron cargar los choferes',
@@ -165,14 +166,14 @@ export class ChoferesComponent implements OnInit {
                 await this.authService.reactivarUsuario(chofer.id);
             }
             await this.cargarChoferes();
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Completado',
                 detail: desactivando ? 'Chofer desactivado' : 'Chofer reactivado',
                 life: 3000,
             });
         } catch (error: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: error.message,
@@ -184,7 +185,7 @@ export class ChoferesComponent implements OnInit {
     async deleteSelectedChoferes() {
         const selected = this.choferSelected().filter((c) => c.activo !== false);
         if (!selected.length) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'info',
                 summary: 'Sin cambios',
                 detail: 'No hay personal activo seleccionado.',
@@ -212,14 +213,14 @@ export class ChoferesComponent implements OnInit {
             }
             this.choferSelected.set([]);
             await this.cargarChoferes();
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Completado',
                 detail: 'Choferes desactivados',
                 life: 3000,
             });
         } catch (error: any) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: error.message,

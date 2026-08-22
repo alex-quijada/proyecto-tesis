@@ -61,11 +61,12 @@ const TRAMOS_BLOQUEADOS: TramoBloqueado[] = [
             { lat: 10.957506, lng: -63.8716 },
             { lat: 10.958224, lng: -63.871237 },
         ],
-        radioM: 40,
+        radioM: 60,
     },
 ];
-/** Distancia perpendicular (m) a la que se coloca el waypoint de desvío. */
-const OFFSET_DESVIO_M = 60;
+/** Distancias perpendiculares (m) que se prueban para el waypoint de desvío,
+ *  de menor a mayor. Si Google ignora el desvío corto, se prueba el siguiente. */
+const OFFSETS_DESVIO_M = [60, 100, 150, 200];
 
 @Injectable({ providedIn: 'root' })
 export class GoogleMapsOptimizationService {
@@ -333,8 +334,8 @@ export class GoogleMapsOptimizationService {
         return { punto, dist: haversine(p, punto) };
     }
 
-    /** Dos puntos a ±OFFSET_DESVIO_M perpendicular a la dirección del tramo bloqueado. */
-    private candidatosDesvio(cruce: CruceBloqueo): { lat: number; lng: number }[] {
+    /** Dos puntos a ±offsetM perpendicular a la dirección del tramo bloqueado. */
+    private candidatosDesvio(cruce: CruceBloqueo, offsetM: number): { lat: number; lng: number }[] {
         const seg = cruce.tramo.segmento;
         const a = seg[0];
         const b = seg[seg.length - 1];
@@ -346,8 +347,8 @@ export class GoogleMapsOptimizationService {
         const latM = 1 / 111320;
         const lngM =
             1 / (111320 * Math.max(0.1, Math.cos((cruce.punto.lat * Math.PI) / 180)));
-        const ox = -dy * OFFSET_DESVIO_M * lngM;
-        const oy = dx * OFFSET_DESVIO_M * latM;
+        const ox = -dy * offsetM * lngM;
+        const oy = dx * offsetM * latM;
         return [
             { lat: cruce.punto.lat + oy, lng: cruce.punto.lng + ox },
             { lat: cruce.punto.lat - oy, lng: cruce.punto.lng - ox },
@@ -357,7 +358,8 @@ export class GoogleMapsOptimizationService {
     /**
      * Calcula la ruta evitando los puntos bloqueados: si la ruta normal pasa
      * cerca de uno, inserta un waypoint "via" (no parada) en el leg que cruza,
-     * primero a un lado y luego al otro. Si ambos fallan, devuelve la original.
+     * probando distancias de desvío crecientes a ambos lados. Si ninguna evita
+     * el cruce, devuelve la original.
      */
     private async pedirRuta(
         request: google.maps.DirectionsRequest,
@@ -367,18 +369,19 @@ export class GoogleMapsOptimizationService {
         const cruce = this.hallarCruce(res.routes[0]);
         if (!cruce) return res;
 
-        const candidatos = this.candidatosDesvio(cruce);
         const pos = Math.min(cruce.legIndex, request.waypoints?.length ?? 0);
 
-        for (const w of candidatos) {
-            const waypoints = [...(request.waypoints || [])];
-            waypoints.splice(pos, 0, {
-                location: new google.maps.LatLng(w.lat, w.lng),
-                stopover: false,
-            });
-            const res2 = await this.llamar({ ...request, waypoints });
-            if (!res2) continue;
-            if (!this.hallarCruce(res2.routes[0])) return res2;
+        for (const offsetM of OFFSETS_DESVIO_M) {
+            for (const w of this.candidatosDesvio(cruce, offsetM)) {
+                const waypoints = [...(request.waypoints || [])];
+                waypoints.splice(pos, 0, {
+                    location: new google.maps.LatLng(w.lat, w.lng),
+                    stopover: false,
+                });
+                const res2 = await this.llamar({ ...request, waypoints });
+                if (!res2) continue;
+                if (!this.hallarCruce(res2.routes[0])) return res2;
+            }
         }
         return res;
     }

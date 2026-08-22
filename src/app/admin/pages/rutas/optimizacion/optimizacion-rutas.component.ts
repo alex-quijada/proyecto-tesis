@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
+import { NotificationService } from '@/app/services/notification.service';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -27,7 +28,6 @@ import { environment } from '@/environments/environment';
 import { GuiaDespacho, FacturaGuia, Ruta, RUTAS_MOCK } from '../data/rutas-mock';
 import { RutaService } from '../services/ruta.service';
 import { MunicipioService } from '@/app/admin/services/municipio.service';
-import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import {
     GoogleMapsOptimizationService,
     Waypoint,
@@ -100,12 +100,12 @@ const MAPA_DIA: Record<number, string> = {
         ConfirmDialogModule,
         DatePickerModule,
     ],
-    providers: [MessageService, ConfirmationService],
+    providers: [ConfirmationService],
     templateUrl: './optimizacion-rutas.component.html',
     styleUrl: './optimizacion-rutas.component.css',
 })
 export class OptimizacionRutasComponent implements OnInit, OnDestroy {
-    private messageService = inject(MessageService);
+    private notif = inject(NotificationService);
     private confirmationService = inject(ConfirmationService);
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private rutaService = inject(RutaService);
@@ -174,7 +174,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             this.guias.set(guias);
         } catch (err) {
             console.error('Error al cargar guías', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudieron cargar las guías desde la base de datos.',
@@ -235,7 +235,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     private async confirmarReinicio(viaje: ViajeAdmin) {
         try {
             await this.viajeService.reiniciarViaje(viaje.id_viaje);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Viaje reiniciado',
                 detail: `El viaje de ${viaje.chofer || ''} volvió a programado.`,
@@ -243,7 +243,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             await this.cargarViajesAdmin();
         } catch (err: any) {
             console.error('Error al reiniciar viaje', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo reiniciar el viaje.',
@@ -348,11 +348,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     get choferesOptions(): ChoferOption[] {
         const choferesEnMunicipio = this.guiasDelMunicipio.reduce(
             (acc: ChoferOption[], g: GuiaDespacho) => {
-                const ch = CHOFERES_MOCK.find((c) => c.id === g.idChofer);
-                if (ch && !acc.some((a: ChoferOption) => a.value === ch.id)) {
+                const id = g.idChofer;
+                if (id && !acc.some((a: ChoferOption) => a.value === id)) {
                     acc.push({
-                        label: `${ch.nombreCompleto} — ${ch.documentoIdentidad?.prefijo}-${ch.documentoIdentidad?.numero}`,
-                        value: ch.id!,
+                        label: `${g.nombreChofer || 'Chofer'} — ${g.cedulaChofer || '—'}`,
+                        value: id,
                     });
                 }
                 return acc;
@@ -435,7 +435,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         for (const [choferId, guias] of gruposMap) {
             const vehiculos = new Set(guias.map((g) => g.idVehiculo));
             if (vehiculos.size > 1) {
-                this.messageService.add({
+                this.notif.add({
                     severity: 'error',
                     summary: 'Vehículo inconsistente',
                     detail: `El chofer ${guias[0].nombreChofer} tiene guías con diferentes vehículos. Corrige antes de iniciar viaje.`,
@@ -523,7 +523,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
                 results.push(result);
             } catch (err) {
                 console.error('Error al crear viaje', err);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: `No se pudo agregar el viaje para ${group.nombreChofer}.`,
@@ -555,7 +555,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             partes.push(
                 `${agregados} ${agregados === 1 ? 'viaje actualizado' : 'viajes actualizados'}`,
             );
-        this.messageService.add({
+        this.notif.add({
             severity: 'success',
             summary: 'Guías agregadas al viaje',
             detail: `${partes.join(' · ')}. Las facturas quedaron en estado embarque.`,
@@ -586,7 +586,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     async optimizarRuta() {
         const ids = Array.from(this.selectedGuias());
         if (ids.length < 1) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Selecciona al menos 1 guía',
                 detail: 'Para optimizar la ruta necesitas seleccionar al menos 1 guía.',
@@ -614,7 +614,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         }
 
         if (waypoints.length < 1) {
-            this.messageService.add({
+            this.notif.add({
                 severity: 'warn',
                 summary: 'Coordenadas insuficientes',
                 detail: 'Se necesita al menos 1 factura con ubicación para optimizar.',
@@ -660,7 +660,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
 
                 const distKm = (result.distance / 1000).toFixed(1);
                 const durMin = Math.round(result.duration / 60);
-                this.messageService.add({
+                this.notif.add({
                     severity: 'success',
                     summary: 'Ruta optimizada',
                     detail: `Distancia: ${distKm} km — Duración: ~${durMin} min`,
@@ -676,7 +676,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     }
 
     private mostrarRutaEstimada(waypoints: Waypoint[]) {
-        this.messageService.add({
+        this.notif.add({
             severity: 'info',
             summary: 'Ruta estimada',
             detail: 'Mostrando ruta en orden de municipios.',
@@ -777,14 +777,14 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             await this.rutaService.guardarCronograma(
                 this.cronograma().map((d) => ({ dia: d.dia, municipios: d.municipios })),
             );
-            this.messageService.add({
+            this.notif.add({
                 severity: 'success',
                 summary: 'Cronograma guardado',
                 detail: 'La programación semanal se guardó correctamente.',
             });
         } catch (err) {
             console.error('Error al guardar cronograma', err);
-            this.messageService.add({
+            this.notif.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: 'No se pudo guardar el cronograma.',
