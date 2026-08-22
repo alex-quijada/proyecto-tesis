@@ -10,10 +10,12 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { NotificationService } from '@/app/services/notification.service';
 
-import { ViajeService } from '@/app/services/viaje.service';
+import { ViajeService, TrazaViajePunto } from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ViajeAdmin, IncidenciaParada } from '@/app/services/viaje.types';
 import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
+import { MetricasDesvio, calcularMetricasDesvio } from './devios.util';
+import { environment } from '@/environments/environment';
 
 interface HistorialParada {
     idFactura: string;
@@ -261,6 +263,175 @@ export class HistorialEntregasComponent implements OnInit {
             });
         } finally {
             this.eliminandoId.set(null);
+        }
+    }
+
+    // ---------------- Análisis de ruta (planificada vs real) ----------------
+
+    /** Viajes con el acordeón de análisis abierto. */
+    readonly analisisAbierto = signal<Record<string, boolean>>({});
+
+    toggleAnalisis(idViaje: string) {
+        const abierto = !this.analisisAbierto()[idViaje];
+        this.analisisAbierto.update((mapa) => ({ ...mapa, [idViaje]: abierto }));
+        if (abierto) void this.cargarAnalisis(idViaje);
+        else this.limpiarMapaAnalisis(idViaje);
+    }
+
+    private trazas = new Map<string, TrazaViajePunto[]>();
+    private metricas = new Map<string, MetricasDesvio | null>();
+    private analisisCargando = new Map<string, boolean>();
+    private analisisError = new Map<string, string>();
+
+    cargandoAnalisis(idViaje: string): boolean {
+        return this.analisisCargando.get(idViaje) ?? false;
+    }
+
+    errorAnalisis(idViaje: string): string {
+        return this.analisisError.get(idViaje) ?? '';
+    }
+
+    metricasAnalisis(idViaje: string): MetricasDesvio | null {
+        return this.metricas.get(idViaje) ?? null;
+    }
+
+    trazaAnalisis(idViaje: string): TrazaViajePunto[] {
+        return this.trazas.get(idViaje) ?? [];
+    }
+
+    private async cargarAnalisis(idViaje: string) {
+        if (this.trazas.has(idViaje)) return;
+        this.analisisCargando.set(idViaje, true);
+        this.analisisError.set(idViaje, '');
+        try {
+            const traza = await this.viajeService.obtenerTrazaViaje(idViaje);
+            this.trazas.set(idViaje, traza);
+            const viaje = this.viajesFinalizados().find((v) => v.id_viaje === idViaje);
+            const planeada = viaje?.ruta_detallada?.path ?? [];
+            this.metricas.set(idViaje, calcularMetricasDesvio(traza, planeada));
+            // Inicializar el mapa comparativo una vez que el div esté en el DOM.
+            setTimeout(() => this.initMapaPorId(idViaje), 150);
+        } catch (err: any) {
+            this.analisisError.set(idViaje, err?.message || 'No se pudo cargar la traza.');
+        } finally {
+            this.analisisCargando.set(idViaje, false);
+        }
+    }
+
+    private initMapaPorId(idViaje: string) {
+        const el = document.getElementById(`mapa-analisis-${idViaje}`);
+        if (el) this.initMapaAnalisis(idViaje, el);
+    }
+
+    // ---------------- Mapa comparativo ----------------
+
+    private mapas = new Map<string, google.maps.Map>();
+    private polylinesMapas = new Map<string, { planeada: google.maps.Polyline; real: google.maps.Polyline }>();
+
+    initMapaAnalisis(idViaje: string, el: HTMLElement) {
+        if (this.mapas.has(idViaje)) return;
+        if (!el) return;
+        if (el.clientHeight === 0) {
+            // Aún no renderizado: reintentar en el siguiente frame.
+            setTimeout(() => {
+                const actual = document.getElementById(`mapa-analisis-${idViaje}`);
+                if (actual) this.initMapaAnalisis(idViaje, actual);
+            }, 200);
+            return;
+        }
+        const mapa = new google.maps.Map(el, {
+            center: { lat: environment.warehouseLat, lng: environment.warehouseLng },
+            zoom: 11,
+            mapId: 'seguimiento',
+            disableDefaultUI: true,
+        });
+        this.mapas.set(idViaje, mapa);
+        google.maps.event.addListenerOnce(mapa, 'idle', () => {
+            const traza = this.trazas.get(idViaje) ?? [];
+            const viaje = this.viajesFinalizados().find((v) => v.id_viaje === idViaje);
+            const planeada = viaje?.ruta_detallada?.path ?? [];
+
+            const realPath = traza
+                .filter((t) => t.latitud != null && t.longitud != null)
+                .map((t) => ({ lat: t.latitud, lng: t.longitud }));
+            const planeadaPath = planeada.map((p) => ({ lat: p.lat, lng: p.lng }));
+
+            const polylineReal = new google.maps.Polyline({
+                path: realPath,
+                strokeColor: '#ef4444',
+                strokeWeight: 4,
+                strokeOpacity: 0.9,
+                map: mapa,
+            });
+            const polylinePlaneada = new google.maps.Polyline({
+                path: planeadaPath,
+                strokeColor: '#3b82f6',
+                strokeWeight: 3,
+                strokeOpacity: 0.9,
+                map: mapa,
+            });
+            this.polylinesMapas.set(idViaje, {
+                planeada: polylinePlaneada,
+                real: polylineReal,
+            });
+
+            // Almacén (morado) + paradas (números).
+            this.agregarMarcadorAlmacen(mapa);
+            this.agregarMarcadoresParadas(mapa, viaje);
+
+            // Encuadre que abarque ambas rutas.
+            const bounds = new google.maps.LatLngBounds();
+            for (const p of planeadaPath) bounds.extend(p);
+            for (const p of realPath) bounds.extend(p);
+            bounds.extend({ lat: environment.warehouseLat, lng: environment.warehouseLng });
+            if (!bounds.isEmpty()) mapa.fitBounds(bounds, 60);
+        });
+    }
+
+    private agregarMarcadorAlmacen(mapa: google.maps.Map) {
+        const div = document.createElement('div');
+        div.innerHTML =
+            '<div style="width:26px;height:26px;background:#8b5cf6;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
+        new google.maps.marker.AdvancedMarkerElement({
+            position: { lat: environment.warehouseLat, lng: environment.warehouseLng },
+            map: mapa,
+            content: div.firstElementChild as HTMLElement,
+            title: 'Almacén central',
+            zIndex: 1,
+        });
+    }
+
+    private agregarMarcadoresParadas(mapa: google.maps.Map, viaje?: ViajeAdmin) {
+        if (!viaje) return;
+        const paradas = [...(viaje.paradas || [])].sort(
+            (a, b) => a.orden_visita - b.orden_visita,
+        );
+        for (const [idx, p] of paradas.entries()) {
+            if (p.latitud == null || p.longitud == null) continue;
+            const div = document.createElement('div');
+            div.innerHTML = `<div style="width:24px;height:24px;background:#f59e0b;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${idx + 1}</div>`;
+            new google.maps.marker.AdvancedMarkerElement({
+                position: { lat: p.latitud, lng: p.longitud },
+                map: mapa,
+                content: div.firstElementChild as HTMLElement,
+                title: `${idx + 1} · ${p.nombre_cliente || ''}`,
+                zIndex: 2,
+            });
+        }
+    }
+
+    /** Limpia el mapa comparativo de un viaje (al cerrar el análisis o destruir). */
+    limpiarMapaAnalisis(idViaje: string) {
+        const polylines = this.polylinesMapas.get(idViaje);
+        if (polylines) {
+            polylines.planeada.setMap(null);
+            polylines.real.setMap(null);
+            this.polylinesMapas.delete(idViaje);
+        }
+        const mapa = this.mapas.get(idViaje);
+        if (mapa) {
+            google.maps.event.clearInstanceListeners(mapa);
+            this.mapas.delete(idViaje);
         }
     }
 }

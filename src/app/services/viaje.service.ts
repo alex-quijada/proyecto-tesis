@@ -187,4 +187,23 @@ export class ViajeService {
         if (error) throw error;
         return (data as ViajeAdmin[]) || [];
     }
+
+    /** Puntos de la traza real del viaje (staff, para el análisis de desvíos). */
+    async obtenerTrazaViaje(idViaje: string): Promise<TrazaViajePunto[]> {
+        const { data, error } = await this.supabase.rpc('obtener_traza_viaje', {
+            p_id_viaje: idViaje,
+        });
+
+        if (error) throw error;
+        return (data as TrazaViajePunto[]) || [];
+    }
+}
+
+export interface TrazaViajePunto {
+    latitud: number;
+    longitud: number;
+    velocidad_kmh?: number | null;
+    rumbo?: number | null;
+    es_simulacion?: boolean;
+    creada_en: string;
 }

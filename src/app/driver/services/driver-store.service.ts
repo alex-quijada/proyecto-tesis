@@ -10,6 +10,7 @@ import { OfflineStorageService } from './offline-storage.service';
 import { ChoferService, ChoferGuia, ChoferVehiculo } from './chofer.service';
 import { TiemposService } from './tiempos.service';
 import { NotificationService } from '@/app/services/notification.service';
+import { TrazaService } from './traza.service';
 
 export interface Incidencia {
     tipo: string;
@@ -115,6 +116,7 @@ export class DriverStoreService implements OnDestroy {
     private notif = inject(NotificationService);
     private connectivity = inject(ConnectivityService);
     private offlineStorage = inject(OfflineStorageService);
+    private trazaService = inject(TrazaService);
 
     readonly driverInfo = signal<DriverInfo | null>(null);
     readonly guiasAsignadas = signal<Entrega[]>([]);
@@ -407,9 +409,11 @@ export class DriverStoreService implements OnDestroy {
 
     // ---------------- Fase 4: reconexión ----------------
 
-    /** Al reconectar: refetch completo + sincronizar la cola de firmas. */
+    /** Al reconectar: refetch completo + sincronizar la cola de firmas y las
+     *  trazas de viajes que no alcanzaron a enviarse al finalizar. */
     private readonly alReconectar = () => {
         void this.sincronizarPendientes();
+        void this.trazaService.sincronizarTrazasPendientes();
         void this.cargarViajes(true);
         void this.recargarGuias().catch(() => undefined);
     };

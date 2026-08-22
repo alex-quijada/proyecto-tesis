@@ -43,6 +43,7 @@ import {
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 import { ordenarPorVentana } from '../../services/time-window.router';
+import { TrazaService } from '../../services/traza.service';
 
 interface ParadaMapa {
     id: string;
@@ -108,6 +109,7 @@ export class MiRutaComponent implements OnInit {
     private googleOptimization = inject(GoogleMapsOptimizationService);
     private destroyRef = inject(DestroyRef);
     private connectivity = inject(ConnectivityService);
+    private trazaService = inject(TrazaService);
     navigation = inject(NavigationService);
     store = inject(DriverStoreService);
 
@@ -1437,6 +1439,9 @@ private detenerAnimacionMarcador() {
         if (!viaje || this.finalizando()) return;
         this.finalizando.set(true);
         try {
+            // Enviar la traza real acumulada en local antes de cerrar el viaje
+            // (queda en buffer y se reintenta al reconectar si falla).
+            await this.trazaService.enviarTraza(viaje.id_viaje);
             await this.viajeService.finalizarViaje(viaje.id_viaje);
             await this.store.recargarViajes();
             this.puntoEntrega.set(null);
