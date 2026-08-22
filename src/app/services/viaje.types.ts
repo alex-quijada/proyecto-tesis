@@ -111,5 +111,11 @@ export interface ViajeGroup {
     nombreChofer: string;
     idVehiculo: string;
     placaVehiculo: string;
-    guias: { id: string; numeroGuia: string; facturaIds: string[] }[];
+    guias: {
+        id: string;
+        numeroGuia: string;
+        facturaIds: string[];
+        /** Facturas que se incluirán en el viaje (número + cliente), para el diálogo. */
+        facturasIncluidas?: { numero: string; cliente: string }[];
+    }[];
 }

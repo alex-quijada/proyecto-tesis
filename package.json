@@ -8,7 +8,7 @@
         "watch": "ng build --watch --configuration development",
         "build:android": "ng build && npx cap sync android",
           "deploy:android": "%LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe install -r android/app/build/outputs/apk/debug/app-debug.apk && %LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe shell monkey -p com.tesis.driver -c android.intent.category.LAUNCHER 1",
-          "apk:build": "ng build && npx cap sync android && cd android && gradlew.bat assembleDebug",
+          "apk:build": "ng build && npx cap sync android && powershell -ExecutionPolicy Bypass -File scripts/navigation-plugin.ps1 -Save && cd android && gradlew.bat assembleDebug",
         "emulator:start": "%LOCALAPPDATA%\\Android\\Sdk\\emulator\\emulator.exe -avd Medium_Phone_API_36",
         "emulator:stop": "%LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe emu kill",
         "emulator:devices": "%LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe devices",

@@ -319,77 +319,49 @@
                                                     Cargando...
                                                 </div>
                                             } @else if (historialFactura()?.length) {
-                                                <div class="flex flex-col gap-3">
+                                                @let grupoCronograma = historialFactura()![0];
+                                                <div class="flex flex-col gap-2">
                                                     @for (
-                                                        grupo of historialFactura();
-                                                        track grupo.idViaje
+                                                        item of grupoCronograma.transiciones;
+                                                        track item.fecha
                                                     ) {
-                                                        <div>
+                                                        <div
+                                                            class="flex items-center gap-2"
+                                                        >
                                                             <div
-                                                                class="flex items-center gap-1.5 text-[11px] font-semibold text-primary mb-1.5"
+                                                                class="w-2 h-2 rounded-full shrink-0"
+                                                                [style.background]="
+                                                                    cronogramaColor(
+                                                                        item.estado
+                                                                    )
+                                                                "
+                                                            ></div>
+                                                            <span
+                                                                class="text-xs font-medium text-surface-700 dark:text-surface-200"
                                                             >
-                                                                <i class="pi pi-truck"></i>
-                                                                Viaje:
-                                                                {{ formatFecha(grupo.fechaViaje) }}
-                                                                <p-tag
-                                                                    [value]="
-                                                                        estadoLabel(
-                                                                            grupo.estadoViaje
-                                                                        )
-                                                                    "
-                                                                    [severity]="
-                                                                        estadoSeverity(
-                                                                            grupo.estadoViaje
-                                                                        )
-                                                                    "
-                                                                    styleClass="text-[9px]"
-                                                                />
-                                                            </div>
-                                                            <div class="flex flex-col gap-2">
-                                                                @for (
-                                                                    item of grupo.transiciones;
-                                                                    track item.fecha
-                                                                ) {
-                                                                    <div
-                                                                        class="flex items-center gap-2"
-                                                                    >
-                                                                        <div
-                                                                            class="w-2 h-2 rounded-full shrink-0"
-                                                                            [style.background]="
-                                                                                cronogramaColor(
-                                                                                    item.estado
-                                                                                )
-                                                                            "
-                                                                        ></div>
-                                                                        <span
-                                                                            class="text-xs font-medium text-surface-700 dark:text-surface-200"
-                                                                        >
-                                                                            {{
-                                                                                estadoLabel(
-                                                                                    item.estado
-                                                                                )
-                                                                            }}
-                                                                        </span>
-                                                                        <span
-                                                                            class="text-[10px] text-surface-400 ml-auto shrink-0"
-                                                                        >
-                                                                            {{
-                                                                                formatFecha(
-                                                                                    item.fecha
-                                                                                )
-                                                                            }}
-                                                                        </span>
-                                                                    </div>
-                                                                    @if (item.observacion) {
-                                                                        <div
-                                                                            class="text-[10px] text-surface-500 -mt-1 ml-4"
-                                                                        >
-                                                                            {{ item.observacion }}
-                                                                        </div>
-                                                                    }
-                                                                }
-                                                            </div>
+                                                                {{
+                                                                    estadoLabel(
+                                                                        item.estado
+                                                                    )
+                                                                }}
+                                                            </span>
+                                                            <span
+                                                                class="text-[10px] text-surface-400 ml-auto shrink-0"
+                                                            >
+                                                                {{
+                                                                    formatFecha(
+                                                                        item.fecha
+                                                                    )
+                                                                }}
+                                                            </span>
                                                         </div>
+                                                        @if (item.observacion) {
+                                                            <div
+                                                                class="text-[10px] text-surface-500 -mt-1 ml-4"
+                                                            >
+                                                                {{ item.observacion }}
+                                                            </div>
+                                                        }
                                                     }
                                                 </div>
                                             } @else {

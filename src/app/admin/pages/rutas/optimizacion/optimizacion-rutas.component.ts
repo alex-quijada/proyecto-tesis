@@ -59,6 +59,12 @@ interface ChoferOption {
     value: string;
 }
 
+const PLURAL_FACTURAS: Record<string, string> = {
+    '=0': 'sin facturas',
+    '=1': '1 factura',
+    other: '# facturas',
+};
+
 const DIAS_LABEL: Record<string, string> = {
     LUNES: 'Lunes',
     MARTES: 'Martes',
@@ -157,6 +163,24 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     viajesResultados = signal<CrearViajeResult[]>([]);
     ultimoOrdenFacturas = signal<string[]>([]);
     fechaViaje = signal<Date>(new Date());
+    /** Guías excluidas por vehículo distinto al del viaje del chofer. */
+    guiasExcluidasVehiculo = signal<{ chofer: string; guias: string[] }[]>([]);
+    editandoFecha = signal(false);
+    /** Guía actualmente expandida en el diálogo de confirmar. */
+    guiaExpandida = signal<string | null>(null);
+
+    /** Guía actualmente expandida en la lista de selección del municipio. */
+    guiaListaExpandida = signal<string | null>(null);
+
+    readonly pluralFacturas = PLURAL_FACTURAS;
+
+    toggleGuiaExpandida(id: string) {
+        this.guiaExpandida.set(this.guiaExpandida() === id ? null : id);
+    }
+
+    toggleGuiaListaExpandida(id: string) {
+        this.guiaListaExpandida.set(this.guiaListaExpandida() === id ? null : id);
+    }
 
     viajesAdmin = signal<ViajeAdmin[]>([]);
     viajesAbierto = signal(false);
@@ -302,6 +326,29 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         );
     }
 
+    /** Facturas pendientes de despacho de una guía (nuevas o con incidencia
+     *  recuperable). */
+    facturasPendientes(guia: GuiaDespacho): FacturaGuia[] {
+        return guia.facturas?.filter((f) => this.esFacturaReespachable(f)) ?? [];
+    }
+
+    private prioridadRank(prioridad: string): number {
+        switch (prioridad) {
+            case 'Alta':
+                return 0;
+            case 'Media':
+                return 1;
+            default:
+                return 2;
+        }
+    }
+
+    /** Mejor prioridad entre las facturas pendientes de la guía. */
+    private prioridadMaxima(guia: GuiaDespacho): number {
+        const ranks = this.facturasPendientes(guia).map((f) => this.prioridadRank(f.prioridad));
+        return ranks.length ? Math.min(...ranks) : 3;
+    }
+
     get municipiosConteo(): MunicipioConteo[] {
         const hoyArr = this.cronograma().find((d) => d.dia === this.hoy)?.municipios || [];
         const guiasNuevas = this.guias().filter((g) =>
@@ -366,13 +413,15 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         const municipio = this.selectedMunicipio();
         if (!municipio) return [];
         let list = this.guias().filter(
-            (g) => g.municipio === municipio && g.facturas?.some((f) => this.esFacturaReespachable(f)),
+            (g) =>
+                g.municipio === municipio && g.facturas?.some((f) => this.esFacturaReespachable(f)),
         );
         const chofer = this.filtroChofer();
         if (chofer) {
             list = list.filter((g) => g.idChofer === chofer);
         }
-        return list;
+        // Prioridad Alta primero, luego Media y al final Baja.
+        return [...list].sort((a, b) => this.prioridadMaxima(a) - this.prioridadMaxima(b));
     }
 
     get todasSeleccionadas(): boolean {
@@ -420,7 +469,6 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     iniciarViaje() {
         const ids = Array.from(this.selectedGuias());
         if (!ids.length) return;
-        console.log('[iniciarViaje] creandoViaje before:', this.creandoViaje());
 
         const gruposMap = new Map<string, GuiaDespacho[]>();
         for (const id of ids) {
@@ -432,32 +480,85 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         }
 
         const groups: ViajeGroup[] = [];
+        const excluidas: { chofer: string; guias: string[] }[] = [];
+
         for (const [choferId, guias] of gruposMap) {
-            const vehiculos = new Set(guias.map((g) => g.idVehiculo));
-            if (vehiculos.size > 1) {
-                this.notif.add({
-                    severity: 'error',
-                    summary: 'Vehículo inconsistente',
-                    detail: `El chofer ${guias[0].nombreChofer} tiene guías con diferentes vehículos. Corrige antes de iniciar viaje.`,
+            // Vehículo objetivo: el del viaje 'programado' abierto del chofer,
+            // si no, el de la primera guía seleccionada.
+            const viajeProgramado = this.viajesAdmin().find(
+                (v) => v.id_chofer === choferId && v.estado === 'programado',
+            );
+            const vehiculoObjetivo = viajeProgramado?.id_vehiculo || guias[0].idVehiculo;
+
+            // Separar guías que coinciden con el vehículo objetivo.
+            const compatibles = guias.filter((g) => g.idVehiculo === vehiculoObjetivo);
+            const noCompatibles = guias.filter((g) => g.idVehiculo !== vehiculoObjetivo);
+
+            if (noCompatibles.length > 0) {
+                excluidas.push({
+                    chofer: guias[0].nombreChofer,
+                    guias: noCompatibles.map((g) => g.numeroGuia || g.id),
                 });
-                return;
             }
+
+            if (compatibles.length === 0) continue;
+
+            const nombreChofer = guias[0].nombreChofer;
+            const vehiculo = compatibles[0];
+
             groups.push({
                 idChofer: choferId,
-                nombreChofer: guias[0].nombreChofer,
-                idVehiculo: guias[0].idVehiculo,
-                placaVehiculo: guias[0].placaVehiculo,
-                guias: guias.map((g) => ({
-                    id: g.id,
-                    numeroGuia: g.numeroGuia,
-                    facturaIds: g.facturas
-                        .filter((f) => this.esFacturaReespachable(f))
-                        .map((f) => f.id),
-                })),
+                nombreChofer,
+                idVehiculo: vehiculo.idVehiculo,
+                placaVehiculo: vehiculo.placaVehiculo,
+                guias: compatibles.map((g) => {
+                    const facturasReespachables = g.facturas.filter((f) =>
+                        this.esFacturaReespachable(f),
+                    );
+                    return {
+                        id: g.id,
+                        numeroGuia: g.numeroGuia,
+                        facturaIds: facturasReespachables.map((f) => f.id),
+                        facturasIncluidas: facturasReespachables.map((f) => ({
+                            numero: f.numeroFactura,
+                            cliente: f.nombreCliente || '',
+                        })),
+                    };
+                }),
             });
         }
 
+        if (excluidas.length > 0) {
+            this.guiasExcluidasVehiculo.set(excluidas);
+            for (const e of excluidas) {
+                this.notif.add({
+                    severity: 'error',
+                    summary: 'Vehículo distinto',
+                    detail: `El chofer ${e.chofer} tiene guías con otro vehículo que no se incluirán: ${e.guias.join(', ')}`,
+                    life: 6000,
+                });
+            }
+        } else {
+            this.guiasExcluidasVehiculo.set([]);
+        }
+
         this.viajeGroups.set(groups);
+        this.editandoFecha.set(false);
+
+        // Fecha por defecto: la del viaje 'programado' abierto del primer
+        // chofer del grupo; si no hay, la de hoy.
+        const primerChofer = groups[0]?.idChofer;
+        const viajeAbierto = primerChofer
+            ? this.viajesAdmin().find(
+                  (v) => v.id_chofer === primerChofer && v.estado === 'programado',
+              )
+            : undefined;
+        this.fechaViaje.set(
+            viajeAbierto?.fecha_viaje
+                ? new Date(viajeAbierto.fecha_viaje + 'T00:00:00')
+                : new Date(),
+        );
+
         this.showConfirmDialog.set(true);
     }
 
@@ -480,8 +581,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             const facturasRuteables = allFacturaIds
                 .map((id) => facturaPorId.get(id))
                 .filter(
-                    (f): f is FacturaGuia =>
-                        !!f && f.sucursalLat != null && f.sucursalLng != null,
+                    (f): f is FacturaGuia => !!f && f.sucursalLat != null && f.sucursalLng != null,
                 );
 
             // Orden VRPTW desde el almacén: las empresas que cierran pronto se
@@ -602,7 +702,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
         const waypoints: Waypoint[] = [];
         for (const g of guiasSel) {
             for (const f of g.facturas) {
-                if (f.sucursalLat != null && f.sucursalLng != null && this.esFacturaReespachable(f)) {
+                if (
+                    f.sucursalLat != null &&
+                    f.sucursalLng != null &&
+                    this.esFacturaReespachable(f)
+                ) {
                     waypointMetas.push({ guiaId: g.id, facturaId: f.id });
                     waypoints.push({
                         lat: f.sucursalLat!,
@@ -901,7 +1005,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             const guia = this.guias().find((g) => g.id === id);
             if (!guia) continue;
 
-            for (const f of guia.facturas) {
+            for (const f of this.facturasPendientes(guia)) {
                 if (f.sucursalLat == null || f.sucursalLng == null) continue;
 
                 const div = document.createElement('div');
@@ -948,7 +1052,7 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     }
 
     tieneAltaPrioridad(guia: GuiaDespacho): boolean {
-        return guia.facturas?.some((f) => f.prioridad === 'Alta') ?? false;
+        return this.facturasPendientes(guia).some((f) => f.prioridad === 'Alta');
     }
 
     getMunicipioLabelFrom(value: string): string {

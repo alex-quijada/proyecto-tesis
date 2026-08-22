@@ -29,5 +29,12 @@
         "strictInjectionParameters": true,
         "strictInputAccessModifiers": true,
         "strictTemplates": true
-    }
+    },
+    "exclude": [
+        "node_modules",
+        "dist",
+        "supabase",
+        "_saves",
+        "android"
+    ]
 }

@@ -6,8 +6,11 @@ import { ConnectivityService } from '@/app/services/connectivity.service';
 import { NavigationService } from './navigation.service';
 import { DriverStoreService } from './driver-store.service';
 
-/** Intervalo mínimo entre envíos de posición al servidor. */
+/** Intervalo entre envíos de posición en GPS real. */
 const INTERVALO_ENVIO_MS = 30_000;
+/** Intervalo en modo simulación: el marcador virtual avanza rápido y el
+ *  admin necesita una traza fluida sin saturar Supabase. */
+const INTERVALO_ENVIO_SIMULACION_MS = 5_000;
 
 /**
  * Envía la posición del chofer a `posiciones_chofer` (UPSERT) mientras
@@ -24,6 +27,7 @@ export class PosicionService {
 
     private uid: string | null = null;
     private ultimoEnvio = 0;
+    private estabaPausado = false;
 
     constructor() {
         this.uid = this.authService.getCurrentUser()?.id ?? null;
@@ -33,6 +37,19 @@ export class PosicionService {
             if (!pos || !this.uid) return;
             this.programarEnvio(pos.lat, pos.lng);
         });
+
+        // Al detenerse el movimiento (llegada a la parada o pausa manual) el
+        // throttle ya no dispara: enviar la posición final de inmediato para
+        // que el admin vea al chofer en el punto exacto.
+        effect(() => {
+            const pausado = this.navigationService.pausado();
+            const pos = this.navigationService.posicionDriver();
+            const transicion = pausado && !this.estabaPausado;
+            this.estabaPausado = pausado;
+            if (!transicion || !pos || !this.uid) return;
+            this.ultimoEnvio = Date.now();
+            void this.enviar(pos.lat, pos.lng);
+        });
     }
 
     private get supabase(): SupabaseClient {
@@ -40,8 +57,11 @@ export class PosicionService {
     }
 
     private programarEnvio(lat: number, lng: number) {
+        const intervalo = this.navigationService.simulando()
+            ? INTERVALO_ENVIO_SIMULACION_MS
+            : INTERVALO_ENVIO_MS;
         const ahora = Date.now();
-        if (ahora - this.ultimoEnvio < INTERVALO_ENVIO_MS) return;
+        if (ahora - this.ultimoEnvio < intervalo) return;
         this.ultimoEnvio = ahora;
         void this.enviar(lat, lng);
     }

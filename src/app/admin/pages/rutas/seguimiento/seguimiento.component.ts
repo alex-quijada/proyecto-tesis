@@ -305,7 +305,12 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         });
 
         // Por cada parada en orden de visita: mostrar TODAS sus transiciones en orden.
-        for (const [idx, p] of this.paradasDetalle().entries()) {
+        // El camión solo está "en camino" hacia la PRIMERA parada aún no
+        // alcanzada (estado 'proceso'): a las paradas posteriores se les
+        // oculta su transición de salida y quedan listadas como pendientes.
+        const paradas = this.paradasDetalle();
+        const idxDestinoActual = paradas.findIndex((p) => p.estado === 'proceso');
+        for (const [idx, p] of paradas.entries()) {
             const numero = idx + 1;
             const transiciones = porFactura.get(p.idFactura) ?? [];
 
@@ -331,6 +336,11 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
                 switch (trans.estado) {
                     case 'proceso':
+                        // Oculto el "En camino a" de paradas más adelante del
+                        // destino actual del camión (primera en 'proceso').
+                        // Si no hay destino activo (viaje completado o camión
+                        // detenido) se muestran todas: es historial.
+                        if (idxDestinoActual >= 0 && idx > idxDestinoActual) break;
                         items.push({
                             id: `proceso-${p.idFactura}-${contador++}`,
                             tipo: 'proceso',
@@ -408,6 +418,22 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                         });
                         break;
                 }
+            }
+
+            if (contador === 0 && transiciones.length > 0) {
+                // Todas sus transiciones estaban ocultas (parada futura):
+                // listarla como pendiente para que siga visible en la ruta.
+                items.push({
+                    id: `pendiente-${p.idFactura}`,
+                    tipo: 'pendiente',
+                    label: `Parada ${numero} · ${p.cliente}`,
+                    numero,
+                    icono: 'pi pi-map-marker',
+                    color: '#e2e8f0',
+                    fecha: null,
+                    chip: null,
+                    estadoParada: p.estado,
+                });
             }
         }
 

@@ -1,6 +1,5 @@
 <!-- Ajustado h-full por una altura dinámica basada en el viewport para Sakai -->
 <div class="card h-[calc(100vh-8.4rem)] flex flex-col overflow-hidden">
-    
     <p-confirmdialog />
 
     <div class="flex items-center gap-3 mb-4 shrink-0">
@@ -182,42 +181,98 @@
                                 class="flex-1 min-h-0 overflow-y-auto divide-y divide-surface-100 dark:divide-surface-800"
                             >
                                 @for (guia of guiasDelMunicipio; track guia.id) {
+                                    @let pendientes = facturasPendientes(guia);
+                                    @let abierta = guiaListaExpandida() === guia.id;
                                     <div
-                                        class="flex items-center gap-2 px-3 py-2.5 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+                                        class="px-3 py-2.5 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
                                         [class.bg-primary-50]="selectedGuias().has(guia.id)"
                                     >
-                                        <p-checkbox
-                                            [binary]="true"
-                                            [ngModel]="selectedGuias().has(guia.id)"
-                                            (onChange)="toggleGuia(guia.id)"
-                                        />
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-1.5 min-w-0">
-                                                @if (tieneAltaPrioridad(guia)) {
-                                                    <i
-                                                        class="pi pi-exclamation-triangle text-red-500 text-[10px] shrink-0"
-                                                        pTooltip="Cliente de alta prioridad"
-                                                    ></i>
-                                                }
-                                                <span
-                                                    class="font-semibold text-sm text-primary truncate"
-                                                    >{{ guia.numeroGuia }}</span
+                                        <div class="flex items-center gap-2">
+                                            <p-checkbox
+                                                [binary]="true"
+                                                [ngModel]="selectedGuias().has(guia.id)"
+                                                (onChange)="toggleGuia(guia.id)"
+                                            />
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center gap-1.5 min-w-0">
+                                                    <button
+                                                        type="button"
+                                                        class="cursor-pointer text-surface-300 hover:text-primary transition-colors p-0 bg-transparent border-none leading-none"
+                                                        (click)="toggleGuiaListaExpandida(guia.id)"
+                                                        [pTooltip]="
+                                                            abierta
+                                                                ? 'Ocultar facturas'
+                                                                : 'Ver facturas'
+                                                        "
+                                                        tooltipPosition="top"
+                                                    >
+                                                        <i
+                                                            class="pi text-[10px] transition-transform"
+                                                            [class.pi-chevron-down]="abierta"
+                                                            [class.pi-chevron-right]="!abierta"
+                                                        ></i>
+                                                    </button>
+                                                    @if (tieneAltaPrioridad(guia)) {
+                                                        <span
+                                                            class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400 text-[10px] font-semibold cursor-help"
+                                                            pTooltip="Cliente de alta prioridad"
+                                                            tooltipPosition="top"
+                                                        >
+                                                            <i
+                                                                class="pi pi-exclamation-triangle text-[9px]"
+                                                            ></i>
+                                                            Alta
+                                                        </span>
+                                                    }
+                                                    <span
+                                                        class="font-semibold text-sm text-primary truncate"
+                                                        >{{ guia.numeroGuia }}</span
+                                                    >
+                                                    <span
+                                                        class="text-[11px] text-surface-400 shrink-0"
+                                                        >{{ guia.placaVehiculo }}</span
+                                                    >
+                                                </div>
+                                                <div
+                                                    class="text-xs text-surface-600 dark:text-surface-300 truncate"
                                                 >
-                                                <span
-                                                    class="text-[11px] text-surface-400 shrink-0"
-                                                    >{{ guia.placaVehiculo }}</span
-                                                >
-                                            </div>
-                                            <div
-                                                class="text-xs text-surface-600 dark:text-surface-300 truncate"
-                                            >
-                                                {{ guia.empresa }}
-                                            </div>
-                                            <div class="text-[11px] text-surface-400 truncate">
-                                                {{ guia.nombreChofer }} ·
-                                                {{ guia.facturas.length }} factura(s)
+                                                    {{ guia.empresa }}
+                                                </div>
+                                                <div class="text-[11px] text-surface-400 truncate">
+                                                    {{ guia.nombreChofer }} ·
+                                                    {{
+                                                        pendientes.length
+                                                            | i18nPlural: pluralFacturas
+                                                    }}
+                                                </div>
                                             </div>
                                         </div>
+                                        @if (abierta) {
+                                            <div
+                                                class="ml-6 mt-1 flex flex-col gap-0.5 border-l border-surface-200 dark:border-surface-700 pl-3 py-1"
+                                            >
+                                                @for (f of pendientes; track f.id) {
+                                                    <div
+                                                        class="flex items-center gap-1.5 text-[11px]"
+                                                    >
+                                                        <i
+                                                            class="pi pi-receipt text-surface-300 text-[10px]"
+                                                        ></i>
+                                                        <span class="font-mono">{{
+                                                            f.numeroFactura
+                                                        }}</span>
+                                                        <span class="text-surface-500 truncate">{{
+                                                            f.nombreCliente
+                                                        }}</span>
+                                                    </div>
+                                                }
+                                                @if (pendientes.length === 0) {
+                                                    <div class="text-[11px] text-surface-400">
+                                                        Sin facturas pendientes
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     </div>
                                 } @empty {
                                     <div class="text-center py-8 text-surface-400">
@@ -452,15 +507,63 @@
             <label class="text-sm font-medium text-surface-700 dark:text-surface-200"
                 >Fecha del Viaje:</label
             >
-            <p-datepicker
-                [(ngModel)]="fechaViaje"
-                dateFormat="dd/mm/yy"
-                placeholder="dd/mm/aaaa"
-                appendTo="body"
-                [showIcon]="true"
-                [autofocus]="false"
-            />
+            @if (editandoFecha()) {
+                <p-datepicker
+                    [(ngModel)]="fechaViaje"
+                    dateFormat="dd/mm/yy"
+                    placeholder="dd/mm/aaaa"
+                    appendTo="body"
+                    [showIcon]="true"
+                    [autofocus]="false"
+                />
+                <p-button
+                    icon="pi pi-check"
+                    text
+                    size="small"
+                    severity="success"
+                    (onClick)="editandoFecha.set(false)"
+                    pTooltip="Confirmar fecha"
+                    tooltipPosition="top"
+                />
+            } @else {
+                <span class="text-sm font-semibold text-surface-800 dark:text-surface-100">
+                    {{ fechaViaje() | date: 'dd/MM/yyyy' }}
+                </span>
+                <p-button
+                    label="Editar"
+                    icon="pi pi-pencil"
+                    text
+                    size="small"
+                    severity="secondary"
+                    (onClick)="editandoFecha.set(true)"
+                    pTooltip="Editar fecha del viaje"
+                    tooltipPosition="top"
+                />
+            }
         </div>
+
+        <!-- Guías excluidas por vehículo distinto -->
+        @if (guiasExcluidasVehiculo().length > 0) {
+            <div
+                class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/10 p-3"
+            >
+                <div
+                    class="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5"
+                >
+                    <i class="pi pi-exclamation-triangle"></i>
+                    Guías excluidas por vehículo distinto
+                </div>
+                <div class="flex flex-col gap-1">
+                    @for (e of guiasExcluidasVehiculo(); track e.chofer) {
+                        <div class="text-xs text-amber-700 dark:text-amber-400">
+                            <span class="font-medium">{{ e.chofer }}:</span>
+                            {{ e.guias.join(', ') }}
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
         @for (group of viajeGroups(); track group.idChofer) {
             <div class="border border-surface-200 dark:border-surface-700 rounded-lg p-3">
                 <div class="flex items-center gap-2 mb-2">
@@ -470,11 +573,43 @@
                 </div>
                 <div class="flex flex-col gap-1">
                     @for (g of group.guias; track g.id) {
-                        <div
-                            class="text-xs text-surface-600 dark:text-surface-300 flex items-center gap-2"
-                        >
-                            <i class="pi pi-chevron-right text-[10px] text-surface-300"></i>
-                            {{ g.numeroGuia }}
+                        @let abierta = guiaExpandida() === g.id;
+                        <div class="text-xs text-surface-600 dark:text-surface-300">
+                            <button
+                                type="button"
+                                class="w-full flex items-center gap-2 text-left cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700/50 rounded px-1.5 py-1"
+                                (click)="toggleGuiaExpandida(g.id)"
+                            >
+                                <i
+                                    class="pi text-[10px] text-surface-300 transition-transform"
+                                    [class.pi-chevron-down]="abierta"
+                                    [class.pi-chevron-right]="!abierta"
+                                ></i>
+                                <span class="font-medium">{{ g.numeroGuia }}</span>
+                                <span class="ml-auto text-[10px] text-surface-400">
+                                    {{ g.facturaIds.length | i18nPlural: pluralFacturas }}
+                                </span>
+                            </button>
+                            @if (abierta) {
+                                <div class="ml-6 mt-1 flex flex-col gap-0.5">
+                                    @for (f of g.facturasIncluidas || []; track f.numero) {
+                                        <div class="flex items-center gap-1.5 text-[11px]">
+                                            <i
+                                                class="pi pi-receipt text-surface-300 text-[10px]"
+                                            ></i>
+                                            <span class="font-mono">{{ f.numero }}</span>
+                                            <span class="text-surface-500 truncate">{{
+                                                f.cliente
+                                            }}</span>
+                                        </div>
+                                    }
+                                    @if ((g.facturasIncluidas || []).length === 0) {
+                                        <div class="text-[11px] text-surface-400">
+                                            Sin facturas por incluir
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
                     }
                 </div>

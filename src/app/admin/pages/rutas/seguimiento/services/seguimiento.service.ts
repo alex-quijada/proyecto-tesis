@@ -150,6 +150,11 @@ export class SeguimientoService implements OnDestroy {
                 { event: '*', schema: 'public', table: 'itinerario_viaje' },
                 () => this.onCambioViaje(),
             )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'historial_estados_factura' },
+                () => this.onCambioViaje(),
+            )
             .subscribe((status) => {
                 this.conectado.set(status === 'SUBSCRIBED');
                 if (status === 'SUBSCRIBED' && this.pendienteRefrescar) {

@@ -139,10 +139,13 @@ export class HistorialComponent implements OnInit {
     toggleFactura(id: string) {
         const nueva = this.facturaExpandida() === id ? null : id;
         this.facturaExpandida.set(nueva);
-        if (nueva) void this.cargarHistorialFactura(id.split(':')[1]);
+        if (nueva) {
+            const [idViaje, idFactura] = id.split(':');
+            if (idViaje && idFactura) void this.cargarHistorialFactura(idViaje, idFactura);
+        }
     }
 
-    private async cargarHistorialFactura(idFactura: string) {
+    private async cargarHistorialFactura(idViaje: string, idFactura: string) {
         this.cargandoHistorialFactura.set(true);
         this.historialFactura.set(null);
         try {
@@ -228,7 +231,9 @@ export class HistorialComponent implements OnInit {
                 if (grupo) grupo.transiciones.push(t);
             }
 
-            this.historialFactura.set(Array.from(grupos.values()));
+            // Mostrar SOLO el cronograma del viaje donde se está expandiendo.
+            const grupoActual = grupos.get(idViaje);
+            this.historialFactura.set(grupoActual ? [grupoActual] : []);
         } catch (err) {
             console.error('Error cargando historial de la factura:', err);
         } finally {
