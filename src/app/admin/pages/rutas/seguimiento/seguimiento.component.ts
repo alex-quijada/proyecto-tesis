@@ -60,6 +60,8 @@ interface ParadaDetalle {
     incidenciaRecuperable?: boolean;
     incidenciaTipo?: string;
     incidenciaDescripcion?: string;
+    /** Incidencias pendientes (resuelta != true) de la factura, si las hay. */
+    incidenciasPendientes?: { tipo?: string; descripcion?: string }[];
 }
 
 interface LineaTiempoItem {
@@ -162,6 +164,9 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     private puntosEntrega = new Map<string, google.maps.marker.AdvancedMarkerElement>();
     private polylines = new Map<string, google.maps.Polyline>();
     private ajustado = false;
+    /** Chofer al que ya se le encuadró la vista: evitar re-encuadrar en cada
+     *  actualización de posición (se perdería el zoom/pan manual del admin). */
+    private ultimoEncuadreId: string | null = null;
     private tickTimer: ReturnType<typeof setInterval> | null = null;
     private debounceHistorial: ReturnType<typeof setTimeout> | null = null;
 
@@ -471,6 +476,9 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                     incidenciaRecuperable: p.incidencia_recuperable,
                     incidenciaTipo: inc?.tipo ?? p.incidencia_tipo,
                     incidenciaDescripcion: inc?.descripcion ?? p.incidencia_descripcion,
+                    incidenciasPendientes: (p.incidencias || []).filter(
+                        (i) => i.resuelta !== true,
+                    ),
                 };
             });
     });
@@ -495,7 +503,11 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         effect(() => {
             if (!this.mapaListo()) return;
             const id = this.choferSeleccionado();
-            if (id) this.encuadrarChofer(id);
+            if (id && this.ultimoEncuadreId !== id) {
+                this.ultimoEncuadreId = id;
+                this.encuadrarChofer(id);
+            }
+            if (!id) this.ultimoEncuadreId = null;
         });
 
         // Refetch silencioso del historial del viaje cuando cambian sus datos
@@ -631,10 +643,24 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         this.ventanaEditando.set(false);
     }
 
-    /** Facturas del viaje seleccionado en estado 'incidencia'. */
-    readonly incidenciasPendientes = computed<ParadaDetalle[]>(() =>
-        this.paradasDetalle().filter((p) => p.estado === 'incidencia'),
-    );
+    /** Facturas del viaje seleccionado en estado 'incidencia' que requieren
+     *  resolución manual. Se EXCLUYEN las incidencias que se reactivan solas
+     *  al terminar el viaje (CERRADO / FUERA_HORARIO): no deben mostrarse
+     *  como "por resolver". */
+    readonly incidenciasPendientes = computed<ParadaDetalle[]>(() => {
+        const autoResolubles = new Set(['CERRADO', 'FUERA_HORARIO']);
+        return this.paradasDetalle().filter((p) => {
+            if (p.estado !== 'incidencia') return false;
+            // Si tiene incidencias multi, decidir por el tipo de la primera
+            // pendiente; si no, usar el tipo del fallback.
+            const tipos = (p.incidenciasPendientes?.length
+                ? p.incidenciasPendientes.map((i) => i.tipo)
+                : [p.incidenciaTipo]
+            ).filter((t): t is string => !!t);
+            const tiposRelevantes = tipos.filter((t) => !autoResolubles.has(t));
+            return tiposRelevantes.length > 0;
+        });
+    });
 
     async resolverIncidencia(factura: ParadaDetalle) {
         if (this.resolviendoId()) return;

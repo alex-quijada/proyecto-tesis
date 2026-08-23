@@ -28,8 +28,11 @@ const clave = (uid: string, idViaje: string) => `offline:${uid}:traza:${idViaje}
  * y la envía a `trazas_viaje` al finalizar el viaje (o al reconectar si
  * quedó pendiente). No usa Realtime: el muestreo local no cuesta la API de
  * Google, solo el envío en lote al cierre del viaje.
+ *
+ * NO es root: depende de `NavigationService` (scoped a DriverLayout), así
+ * que se provee junto a él en DriverLayout.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class TrazaService {
     private authService = inject(AuthService);
     private connectivity = inject(ConnectivityService);

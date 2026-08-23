@@ -7,6 +7,7 @@ import { DriverStoreService } from '../services/driver-store.service';
 import { NavigationService } from '../services/navigation.service';
 import { PosicionService } from '../services/posicion.service';
 import { TiemposService } from '../services/tiempos.service';
+import { TrazaService } from '../services/traza.service';
 import { DriverTopbar } from './driver-topbar';
 import { DriverBottomNav } from './driver-bottom-nav';
 
@@ -19,6 +20,7 @@ import { DriverBottomNav } from './driver-bottom-nav';
         NavigationService,
         PosicionService,
         TiemposService,
+        TrazaService,
     ],
     animations: [
         trigger('routeAnimations', [
