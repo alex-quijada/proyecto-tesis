@@ -37,8 +37,6 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 
 import { GuiaDespacho, FacturaGuia } from '../data/rutas-mock';
-import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
-import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
 import { Cliente, SucursalCliente } from '../../clientes/clientes.types';
 import { ClienteDialogComponent } from '../../clientes/components/cliente-dialog.component';
 import { Vehiculo } from '../../vehiculos/data/vehiculos-mock';

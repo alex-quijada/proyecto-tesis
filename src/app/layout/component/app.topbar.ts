@@ -1,23 +1,9 @@
 import { Component, computed, inject } from '@angular/core';
-import { MenuItem } from 'primeng/api';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '@/app/layout/service/layout.service';
-import { BreadcrumbModule } from 'primeng/breadcrumb';
-import { TieredMenuModule } from 'primeng/tieredmenu';
-import { ContextMenuModule } from 'primeng/contextmenu';
-import { MenuModule } from 'primeng/menu';
-import { ButtonModule } from 'primeng/button';
-import { MegaMenuModule } from 'primeng/megamenu';
-import { PanelMenuModule } from 'primeng/panelmenu';
-import { TabsModule } from 'primeng/tabs';
-import { MenubarModule } from 'primeng/menubar';
-import { InputTextModule } from 'primeng/inputtext';
-import { StepperModule } from 'primeng/stepper';
-import { IconField, IconFieldModule } from 'primeng/iconfield';
-import { InputIcon, InputIconModule } from 'primeng/inputicon';
 import { AuthService } from '../../auth/service/auth.service';
 
 @Component({
@@ -28,19 +14,6 @@ import { AuthService } from '../../auth/service/auth.service';
         CommonModule,
         StyleClassModule,
         AppConfigurator,
-        BreadcrumbModule,
-        TieredMenuModule,
-        ContextMenuModule,
-        MenuModule,
-        ButtonModule,
-        MegaMenuModule,
-        PanelMenuModule,
-        TabsModule,
-        MenubarModule,
-        InputTextModule,
-        StepperModule,
-        IconFieldModule,
-        InputIconModule,
     ],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
@@ -148,8 +121,6 @@ import { AuthService } from '../../auth/service/auth.service';
     ],
 })
 export class AppTopbar {
-    items!: MenuItem[];
-
     layoutService = inject(LayoutService);
     authService = inject(AuthService);
 
@@ -175,28 +146,5 @@ export class AppTopbar {
             ...state,
             darkTheme: !state.darkTheme,
         }));
-    }
-    userMenuItems: MenuItem[] = [];
-
-    ngOnInit() {
-        this.userMenuItems = [
-            {
-                label: 'Usuario',
-                items: [
-                    { label: 'Mi Perfil', icon: 'pi pi-user', routerLink: ['/app/profile'] },
-                    { label: 'Configuración', icon: 'pi pi-cog', routerLink: ['/app/settings'] },
-                    { separator: true },
-                    {
-                        label: 'Cerrar Sesión',
-                        icon: 'pi pi-sign-out',
-                        command: () => this.logout(),
-                    },
-                ],
-            },
-        ];
-    }
-
-    logout() {
-        console.log('Sesión cerrada');
     }
 }

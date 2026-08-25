@@ -1,7 +1,4 @@
 import { Routes } from '@angular/router';
-import { AppLayout } from './app/layout/component/app.layout';
-import { Landing } from './app/pages/landing/landing';
-import { Notfound } from './app/pages/notfound/notfound';
 import { roleGuard } from './app/auth/guards/role.guard';
 
 export const appRoutes: Routes = [
@@ -12,19 +9,21 @@ export const appRoutes: Routes = [
     },
     {
         path: 'app',
-        component: AppLayout,
-        canActivate: [roleGuard], // Protégé todo el Layout administrativo
+        loadComponent: () =>
+            import('./app/layout/component/app.layout').then((m) => m.AppLayout),
+        canActivate: [roleGuard], // Protege todo el Layout administrativo
         data: { roles: ['Analista', 'Coordinador', 'Administrador'] }, // Solo personal interno
         children: [
             {
                 path: '',
                 loadChildren: () => import('./app/admin/admin.routes'),
             },
-            { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
-            { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') },
         ],
     },
-    { path: 'landing', component: Landing },
+    {
+        path: 'landing',
+        loadComponent: () => import('./app/pages/landing/landing').then((m) => m.Landing),
+    },
 
     // RUTA EXCLUSIVA PARA EL CHOFER (vista móvil)
     {
@@ -35,7 +34,10 @@ export const appRoutes: Routes = [
     },
 
     { path: 'auth/login', redirectTo: '', pathMatch: 'full' },
-    { path: 'notfound', component: Notfound },
+    {
+        path: 'notfound',
+        loadComponent: () => import('./app/pages/notfound/notfound').then((m) => m.Notfound),
+    },
     { path: 'auth', loadChildren: () => import('./app/auth/auth.routes') }, // Libre para loguearse
     { path: '**', redirectTo: '' },
 ];

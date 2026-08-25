@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
 import { DatosGuia, Empresa, FacturaAsociada } from '../models/pdf-data.model';
-import * as pdfjsLib from 'pdfjs-dist';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString();
 
 @Injectable({
     providedIn: 'root',
 })
 export class PdfNormalizerService {
     async procesarArchivoPdf(file: File): Promise<DatosGuia> {
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+            'pdfjs-dist/build/pdf.worker.min.mjs',
+            import.meta.url,
+        ).toString();
+
         const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
         const paginas: string[] = [];
         const ultima = pdf.numPages > 1 ? pdf.numPages - 1 : pdf.numPages;

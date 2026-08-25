@@ -2,12 +2,16 @@ import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
-import { AppFloatingConfigurator } from '../../../layout/component/app.floatingconfigurator';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'app-error',
-    imports: [ButtonModule, RippleModule, RouterModule, AppFloatingConfigurator, ButtonModule],
+    imports: [CommonModule, ButtonModule, RippleModule, RouterModule],
     standalone: true,
-    templateUrl: `./error-page.html`,
+    templateUrl: './error-page.html',
 })
-export class ErrorPage {}
+export class ErrorPage {
+    reintentar() {
+        window.location.reload();
+    }
+}

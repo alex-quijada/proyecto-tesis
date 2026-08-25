@@ -21,8 +21,6 @@ import { GuiaDialogComponent } from './components/guia-dialog.component';
 import {
     GuiaDespacho,
     Ruta,
-    GUIAS_MOCK,
-    RUTAS_MOCK,
     ESTADOS_FACTURA,
     ESTADOS_GUIA,
 } from './data/rutas-mock';

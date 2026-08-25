@@ -15,9 +15,6 @@ import { DriverBottomNav } from './driver-bottom-nav';
     selector: 'app-driver-layout',
     standalone: true,
     imports: [CommonModule, RouterModule, DriverTopbar, DriverBottomNav],
-<<<<<<< HEAD
-    providers: [DriverStoreService, NavigationService, PosicionService, TiemposService],
-=======
     providers: [
         DriverStoreService,
         NavigationService,
@@ -25,7 +22,6 @@ import { DriverBottomNav } from './driver-bottom-nav';
         TiemposService,
         TrazaService,
     ],
->>>>>>> a475b8c11fb21d4988ba1ae1c94d3189f0b63af5
     animations: [
         trigger('routeAnimations', [
             // El mapa nativo se dibuja debajo del WebView con position: fixed;
