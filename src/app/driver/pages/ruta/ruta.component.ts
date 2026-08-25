@@ -72,18 +72,14 @@ export class RutaComponent implements OnInit {
     readonly guiasPendientes = computed(() =>
         this.paradas().filter(
             (p) =>
-                p.estado !== 'finalizado' &&
-                p.estado !== 'cancelado' &&
-                p.estado !== 'incidencia',
+                p.estado !== 'finalizado' && p.estado !== 'cancelado' && p.estado !== 'incidencia',
         ),
     );
 
     readonly guiasCompletadas = computed(() =>
         this.paradas().filter(
             (p) =>
-                p.estado === 'finalizado' ||
-                p.estado === 'cancelado' ||
-                p.estado === 'incidencia',
+                p.estado === 'finalizado' || p.estado === 'cancelado' || p.estado === 'incidencia',
         ),
     );
 

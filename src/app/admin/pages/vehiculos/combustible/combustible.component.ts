@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { TableModule } from 'primeng/table';
@@ -9,22 +9,27 @@ import { ChipModule } from 'primeng/chip';
 import { DividerModule } from 'primeng/divider';
 import { BadgeModule } from 'primeng/badge';
 import { CardModule } from 'primeng/card';
+import { SkeletonModule } from 'primeng/skeleton';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
+
+import { NotificationService } from '@/app/services/notification.service';
 
 import {
     CargaCombustible,
-    COMBUSTIBLE_MOCK,
-    VEHICULOS_TANQUE,
     NIVELES_TANQUE,
     METODOS_CALCULO,
     TIPOS_COMBUSTIBLE,
 } from './data/combustible-mock';
 import { CombustibleDialogComponent } from './components/combustible-dialog.component';
+import { CargaCombustibleService } from './service/carga-combustible.service';
+import { VehiculoService } from '../service/vehiculo.service';
 
 interface VehiculoConsolidado {
     id: string;
     placa: string;
     desc: string;
-    capacidadTanque: number;
     totalCargas: number;
     totalLitros: number;
     totalGastado: number;
@@ -44,16 +49,26 @@ interface VehiculoConsolidado {
         DividerModule,
         BadgeModule,
         CardModule,
+        SkeletonModule,
+        ConfirmDialogModule,
+        ToastModule,
         CombustibleDialogComponent,
     ],
+    providers: [ConfirmationService],
     templateUrl: './combustible.component.html',
 })
 export class CombustibleComponent {
-    registros: CargaCombustible[] = [...COMBUSTIBLE_MOCK].sort((a, b) =>
-        b.fecha.localeCompare(a.fecha),
-    );
-    dialogVisible = false;
-    editingRecord: CargaCombustible = {} as CargaCombustible;
+    private cargaService = inject(CargaCombustibleService);
+    private vehiculoService = inject(VehiculoService);
+    private notif = inject(NotificationService);
+    private confirmationService = inject(ConfirmationService);
+
+    cargando = signal(true);
+    registros = signal<CargaCombustible[]>([]);
+    vehiculos = signal<{ id: string; placa: string; desc: string }[]>([]);
+    dialogVisible = signal(false);
+    editingRecord = signal<CargaCombustible>({} as CargaCombustible);
+    eliminandoId = signal<string | null>(null);
 
     niveles = NIVELES_TANQUE;
     metodos = METODOS_CALCULO;
@@ -71,62 +86,140 @@ export class CombustibleComponent {
         return map;
     }
 
-    get consolidado(): VehiculoConsolidado[] {
-        const map = new Map<string, VehiculoConsolidado>();
-        for (const v of VEHICULOS_TANQUE) {
-            const cargas = this.registros.filter((r) => r.idVehiculo === v.id);
-            map.set(v.id, {
+    readonly consolidado = computed<VehiculoConsolidado[]>(() => {
+        const cargas = this.registros();
+        const mapa = new Map<string, VehiculoConsolidado>();
+        for (const v of this.vehiculos()) {
+            const propias = cargas.filter((r) => r.idVehiculo === v.id);
+            mapa.set(v.id, {
                 id: v.id,
                 placa: v.placa,
-                desc: v.label,
-                capacidadTanque: v.capacidadTanque,
-                totalCargas: cargas.length,
-                totalLitros: cargas.reduce((s, r) => s + r.litrosCargados, 0),
-                totalGastado: cargas.reduce((s, r) => s + r.costoTotal, 0),
-                ultimaCarga: cargas.length
-                    ? cargas.sort((a, b) => b.fecha.localeCompare(a.fecha))[0]
+                desc: v.desc,
+                totalCargas: propias.length,
+                totalLitros: propias.reduce((s, r) => s + r.litrosCargados, 0),
+                totalGastado: propias.reduce((s, r) => s + r.costoTotal, 0),
+                ultimaCarga: propias.length
+                    ? [...propias].sort((a, b) => b.fecha.localeCompare(a.fecha))[0]
                     : null,
             });
         }
-        return Array.from(map.values());
-    }
+        return Array.from(mapa.values());
+    });
 
     getNivelLabel(value: number): string {
         return this.niveles.find((n) => n.value === value)?.label ?? `${value * 100}%`;
     }
 
     get consumoTanque(): number {
-        return this.registros.reduce((s, r) => s + r.litrosCargados, 0);
+        return this.registros().reduce((s, r) => s + r.litrosCargados, 0);
     }
 
     get costoTotalGlobal(): number {
-        return this.registros.reduce((s, r) => s + r.costoTotal, 0);
+        return this.registros().reduce((s, r) => s + r.costoTotal, 0);
+    }
+
+    constructor() {
+        void this.cargarDatos();
+    }
+
+    private async cargarDatos() {
+        this.cargando.set(true);
+        try {
+            const [cargas, vehiculos] = await Promise.all([
+                this.cargaService.obtenerCargas(),
+                this.vehiculoService.obtenerVehiculos(),
+            ]);
+            this.registros.set([...cargas].sort((a, b) => b.fecha.localeCompare(a.fecha)));
+            this.vehiculos.set(
+                vehiculos.map((v) => ({
+                    id: v.id_vehiculo || v.id || '',
+                    placa: v.placa || '',
+                    desc: `${v.marca || ''} ${v.modelo || ''} (${v.anio || ''})`.trim(),
+                })),
+            );
+        } catch (err: any) {
+            console.error('Error cargando combustible:', err);
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudieron cargar las cargas de combustible.',
+            });
+        } finally {
+            this.cargando.set(false);
+        }
     }
 
     openNew() {
-        this.editingRecord = {} as CargaCombustible;
-        this.dialogVisible = true;
+        this.editingRecord.set({} as CargaCombustible);
+        this.dialogVisible.set(true);
     }
 
     openEdit(record: CargaCombustible) {
-        this.editingRecord = { ...record };
-        this.dialogVisible = true;
+        this.editingRecord.set({ ...record });
+        this.dialogVisible.set(true);
     }
 
-    onSave(carga: CargaCombustible) {
-        const idx = this.registros.findIndex((r) => r.id === carga.id);
-        if (idx >= 0) {
-            this.registros[idx] = { ...carga };
-            this.registros = [...this.registros].sort((a, b) => b.fecha.localeCompare(a.fecha));
-        } else {
-            carga.id = `fuel-${Date.now()}`;
-            this.registros.unshift(carga);
-            this.registros = [...this.registros];
+    async onSave(carga: CargaCombustible) {
+        try {
+            if (carga.id) {
+                await this.cargaService.actualizarCarga(carga);
+                this.notif.add({
+                    severity: 'success',
+                    summary: 'Actualizado',
+                    detail: 'Carga de combustible actualizada.',
+                });
+            } else {
+                const id = await this.cargaService.crearCarga(carga);
+                this.notif.add({
+                    severity: 'success',
+                    summary: 'Registrada',
+                    detail: 'Carga de combustible registrada.',
+                });
+                void id;
+            }
+            await this.cargarDatos();
+        } catch (err: any) {
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo guardar la carga.',
+            });
         }
     }
 
     deleteRecord(record: CargaCombustible) {
-        this.registros = this.registros.filter((r) => r.id !== record.id);
+        this.confirmationService.confirm({
+            message: `¿Eliminar la carga del ${record.fecha} de la unidad ${record.placaVehiculo}?`,
+            header: 'Confirmar eliminación',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Eliminar',
+            acceptIcon: 'pi pi-trash',
+            acceptButtonStyleClass: 'p-button-danger',
+            rejectLabel: 'Cancelar',
+            accept: () => void this.confirmarEliminar(record),
+        });
+    }
+
+    private async confirmarEliminar(record: CargaCombustible) {
+        if (!record.id || this.eliminandoId()) return;
+        this.eliminandoId.set(record.id);
+        try {
+            await this.cargaService.eliminarCarga(record.id);
+            this.notif.add({
+                severity: 'success',
+                summary: 'Eliminada',
+                detail: 'Carga de combustible eliminada.',
+            });
+            await this.cargarDatos();
+        } catch (err: any) {
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo eliminar la carga.',
+            });
+        } finally {
+            this.eliminandoId.set(null);
+        }
     }
 
     getSeverity(metodo: string): 'info' | 'success' | 'warn' {

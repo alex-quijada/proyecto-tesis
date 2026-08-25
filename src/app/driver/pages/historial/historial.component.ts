@@ -92,7 +92,8 @@ export class HistorialComponent implements OnInit {
                 // En el viaje actual solo se muestran facturas finalizadas o con incidencia.
                 if (this.esViajeActual(viaje)) {
                     paradas = paradas.filter(
-                        (p) => p.estado_factura === 'finalizado' || p.estado_factura === 'incidencia',
+                        (p) =>
+                            p.estado_factura === 'finalizado' || p.estado_factura === 'incidencia',
                     );
                 }
                 // Filtro por municipio.
@@ -127,12 +128,13 @@ export class HistorialComponent implements OnInit {
 
     /** Historial de estados por viaje (cronograma del desplegable). */
     readonly historialFactura = signal<
-        {
-            idViaje: string;
-            estadoViaje: string;
-            fechaViaje: string;
-            transiciones: { estado: string; observacion?: string; fecha: string }[];
-        }[] | null
+        | {
+              idViaje: string;
+              estadoViaje: string;
+              fechaViaje: string;
+              transiciones: { estado: string; observacion?: string; fecha: string }[];
+          }[]
+        | null
     >(null);
     cargandoHistorialFactura = signal(false);
 
@@ -365,4 +367,3 @@ export class HistorialComponent implements OnInit {
         }
     }
 }
-

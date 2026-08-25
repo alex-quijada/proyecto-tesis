@@ -164,7 +164,7 @@
                                 <td class="font-mono text-sm">{{ m.kilometraje | number }}</td>
                                 <td class="text-sm">
                                     {{
-                                        m.descripcion.length > 40
+                                        m.descripcion && m.descripcion.length > 40
                                             ? (m.descripcion | slice: 0 : 40) + '...'
                                             : m.descripcion
                                     }}

@@ -303,7 +303,9 @@ export class MiRutaComponent implements OnInit {
     readonly cercaDeAlmacen = computed(() => {
         const pos = this.navigation.posicionDriver();
         if (!pos) return false;
-        return haversine(pos, { lat: environment.warehouseLat, lng: environment.warehouseLng }) < 100;
+        return (
+            haversine(pos, { lat: environment.warehouseLat, lng: environment.warehouseLng }) < 100
+        );
     });
 
     /** Todas las entregas del viaje quedaron finalizadas (o con incidencia). */
@@ -312,9 +314,7 @@ export class MiRutaComponent implements OnInit {
         return (
             pts.length > 0 &&
             pts.every((p) =>
-                p.facturas.every(
-                    (f) => f.estado === 'finalizado' || f.estado === 'incidencia',
-                ),
+                p.facturas.every((f) => f.estado === 'finalizado' || f.estado === 'incidencia'),
             )
         );
     });
@@ -673,7 +673,10 @@ export class MiRutaComponent implements OnInit {
         // 1) Si había un punto de entrega abierto al salir, restaurarlo.
         if (guardado != null && guardado >= 0 && guardado < puntos.length) {
             const punto = puntos[guardado];
-            if (punto && punto.facturas.some((f) => f.estado === 'entrega' || f.estado === 'espera')) {
+            if (
+                punto &&
+                punto.facturas.some((f) => f.estado === 'entrega' || f.estado === 'espera')
+            ) {
                 this.puntoEntrega.set(guardado);
                 return;
             }
@@ -830,10 +833,10 @@ export class MiRutaComponent implements OnInit {
             // Orden VRPTW desde la posición actual: la re-entrega se integra
             // según su ventana y cercanía (no forzada primero), y las empresas
             // que cierran pronto se priorizan.
-            const { paradas: paradasNav, cerradas } = this.construirParadasOrdenadas(
-                puntos,
-                { lat: origen?.lat ?? warehouse.lat, lng: origen?.lng ?? warehouse.lng },
-            );
+            const { paradas: paradasNav, cerradas } = this.construirParadasOrdenadas(puntos, {
+                lat: origen?.lat ?? warehouse.lat,
+                lng: origen?.lng ?? warehouse.lng,
+            });
 
             if (paradasNav.length < 1) return;
 
@@ -853,10 +856,7 @@ export class MiRutaComponent implements OnInit {
                     .filter((p): p is PuntoEntrega => !!p)
                     .flatMap((p) => p.facturaIds);
                 if (idsOrdenados.length > 0) {
-                    await this.viajeService.actualizarOrdenViaje(
-                        viaje.id_viaje,
-                        idsOrdenados,
-                    );
+                    await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, idsOrdenados);
                 }
             } catch (err) {
                 console.warn('No se pudo persistir el orden de la re-entrega', err);
@@ -952,53 +952,53 @@ export class MiRutaComponent implements OnInit {
     }
 
     /**
- * Bucle de persecución del marcador. Un único intervalo que NUNCA se cancela
- * por nuevas lecturas: cuando llega una posición solo se actualiza el destino,
- * y el marcador se acerca exponencialmente a él. Así no se queda clavado
- * (el bug del tween anterior) y el movimiento se ve suave.
- */
-private animarMarcadorHasta(destino: LatLng) {
-    this.marcadorDestino = destino;
-    if (this.animMarcador) return;
+     * Bucle de persecución del marcador. Un único intervalo que NUNCA se cancela
+     * por nuevas lecturas: cuando llega una posición solo se actualiza el destino,
+     * y el marcador se acerca exponencialmente a él. Así no se queda clavado
+     * (el bug del tween anterior) y el movimiento se ve suave.
+     */
+    private animarMarcadorHasta(destino: LatLng) {
+        this.marcadorDestino = destino;
+        if (this.animMarcador) return;
 
-    this.driverPosDisplay = this.driverPosDisplay ?? destino;
-    this.animMarcador = setInterval(() => this.pasoMarcador(), this.pasoMarcadorMs());
-}
-
-private pasoMarcador() {
-    const destino = this.marcadorDestino;
-    const origen = this.driverPosDisplay;
-    if (!destino || !origen) {
-        this.detenerAnimacionMarcador();
-        return;
+        this.driverPosDisplay = this.driverPosDisplay ?? destino;
+        this.animMarcador = setInterval(() => this.pasoMarcador(), this.pasoMarcadorMs());
     }
 
-    const alpha = 1 - Math.exp(-this.pasoMarcadorMs() / this.tauMarcadorMs());
-    const pos: LatLng = {
-        lat: origen.lat + (destino.lat - origen.lat) * alpha,
-        lng: origen.lng + (destino.lng - origen.lng) * alpha,
-    };
+    private pasoMarcador() {
+        const destino = this.marcadorDestino;
+        const origen = this.driverPosDisplay;
+        if (!destino || !origen) {
+            this.detenerAnimacionMarcador();
+            return;
+        }
 
-    if (haversine(origen, destino) < 2) {
-        void this.colocarMarcadorDriver(destino);
-        this.detenerAnimacionMarcador();
-    } else {
-        void this.colocarMarcadorDriver(pos);
+        const alpha = 1 - Math.exp(-this.pasoMarcadorMs() / this.tauMarcadorMs());
+        const pos: LatLng = {
+            lat: origen.lat + (destino.lat - origen.lat) * alpha,
+            lng: origen.lng + (destino.lng - origen.lng) * alpha,
+        };
+
+        if (haversine(origen, destino) < 2) {
+            void this.colocarMarcadorDriver(destino);
+            this.detenerAnimacionMarcador();
+        } else {
+            void this.colocarMarcadorDriver(pos);
+        }
+
+        // La cámara sigue el marcador (no la posición cruda) para que el punto
+        // nunca se salga de pantalla; se limita la frecuencia de setCamera.
+        if (
+            this.navigation.navegando() &&
+            this.siguiendo() &&
+            Date.now() - this.ultimoSeguimientoCamara > 150
+        ) {
+            this.ultimoSeguimientoCamara = Date.now();
+            void this.seguirCamara(pos);
+        }
     }
 
-    // La cámara sigue el marcador (no la posición cruda) para que el punto
-    // nunca se salga de pantalla; se limita la frecuencia de setCamera.
-    if (
-        this.navigation.navegando() &&
-        this.siguiendo() &&
-        Date.now() - this.ultimoSeguimientoCamara > 150
-    ) {
-        this.ultimoSeguimientoCamara = Date.now();
-        void this.seguirCamara(pos);
-    }
-}
-
-private pasoMarcadorMs(): number {
+    private pasoMarcadorMs(): number {
         return this.esNativo ? 200 : 50;
     }
 
@@ -1006,12 +1006,12 @@ private pasoMarcadorMs(): number {
         return this.esNativo ? 120 : 80;
     }
 
-private detenerAnimacionMarcador() {
-    if (this.animMarcador) {
-        clearInterval(this.animMarcador);
-        this.animMarcador = null;
+    private detenerAnimacionMarcador() {
+        if (this.animMarcador) {
+            clearInterval(this.animMarcador);
+            this.animMarcador = null;
+        }
     }
-}
 
     /**
      * Mueve la cámara siguiendo al chofer en perspectiva isométrica tipo
@@ -1065,13 +1065,13 @@ private detenerAnimacionMarcador() {
         // Orden VRPTW: respeta las ventanas de recepción (no se pone de
         // primera una empresa que aún no abre, y se priorizan las que
         // cierran pronto). Las cerradas ahora se dejan al final.
-        const { paradas: paradasOrdenadas, cerradas } = this.construirParadasOrdenadas(
-            conPuntos,
-            { lat: warehouse.lat, lng: warehouse.lng },
-        );
-        const puntosOrdenados = paradasOrdenadas.map((pn) =>
-            conPuntos.find((p) => p.key === pn.id),
-        ).filter((p): p is PuntoEntrega => !!p);
+        const { paradas: paradasOrdenadas, cerradas } = this.construirParadasOrdenadas(conPuntos, {
+            lat: warehouse.lat,
+            lng: warehouse.lng,
+        });
+        const puntosOrdenados = paradasOrdenadas
+            .map((pn) => conPuntos.find((p) => p.key === pn.id))
+            .filter((p): p is PuntoEntrega => !!p);
 
         this.iniciando.set(true);
         try {
@@ -1388,9 +1388,8 @@ private detenerAnimacionMarcador() {
     puntoEntregadasCount(): number {
         const p = this.puntoActual();
         return p
-            ? p.facturas.filter(
-                  (f) => f.estado === 'finalizado' || f.estado === 'incidencia',
-              ).length
+            ? p.facturas.filter((f) => f.estado === 'finalizado' || f.estado === 'incidencia')
+                  .length
             : 0;
     }
 

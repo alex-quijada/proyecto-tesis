@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -7,10 +8,15 @@ import { TableModule } from 'primeng/table';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
+import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmationService } from 'primeng/api';
 import { NotificationService } from '@/app/services/notification.service';
 
-import { ViajeService, TrazaViajePunto } from '@/app/services/viaje.service';
+import { ViajeService, TrazaViajePunto, TiemposViaje } from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ViajeAdmin, IncidenciaParada } from '@/app/services/viaje.types';
 import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
@@ -50,6 +56,7 @@ interface HistorialViaje {
     standalone: true,
     imports: [
         CommonModule,
+        FormsModule,
         TagModule,
         ButtonModule,
         SkeletonModule,
@@ -57,6 +64,11 @@ interface HistorialViaje {
         ConfirmDialogModule,
         ToastModule,
         TooltipModule,
+        DatePickerModule,
+        SelectModule,
+        InputTextModule,
+        IconFieldModule,
+        InputIconModule,
         TipoIncidenciaPipe,
     ],
     providers: [ConfirmationService],
@@ -71,7 +83,16 @@ export class HistorialEntregasComponent implements OnInit {
     cargando = signal(true);
     private viajesFinalizados = signal<ViajeAdmin[]>([]);
     private incidenciasMap = new Map<string, any>();
+    private tiemposMap = new Map<string, TiemposViaje>();
     eliminandoId = signal<string | null>(null);
+
+    // ---------------- Filtros ----------------
+    textoBusqueda = signal('');
+    filtroChofer = signal<string | null>(null);
+    filtroMunicipio = signal<string | null>(null);
+    filtroEstado = signal<string | null>(null);
+    filtroFechaDesde = signal<string | null>(null);
+    filtroFechaHasta = signal<string | null>(null);
 
     historial = computed<HistorialViaje[]>(() =>
         this.viajesFinalizados()
@@ -79,11 +100,81 @@ export class HistorialEntregasComponent implements OnInit {
             .filter((h) => h.paradas.length > 0),
     );
 
+    /** Opciones únicas para los selectores, derivadas de los viajes cargados. */
+    readonly opcionesChoferes = computed(() => {
+        const set = new Set<string>();
+        for (const v of this.viajesFinalizados()) {
+            if (v.chofer) set.add(v.chofer);
+        }
+        return [...set]
+            .sort()
+            .map((nombre) => ({ label: nombre, value: nombre }));
+    });
+
+    readonly opcionesMunicipios = computed(() => {
+        const set = new Set<string>();
+        for (const v of this.viajesFinalizados()) {
+            for (const p of v.paradas || []) {
+                if (p.municipio) set.add(p.municipio);
+            }
+        }
+        return [...set]
+            .sort()
+            .map((nombre) => ({ label: nombre, value: nombre }));
+    });
+
+    readonly opcionesEstados = computed(() => {
+        const set = new Set<string>();
+        for (const v of this.viajesFinalizados()) {
+            for (const p of v.paradas || []) {
+                const label = this.estadoLabel(p.estado_factura || '');
+                if (label && label !== '—') set.add(label);
+            }
+        }
+        return [...set]
+            .sort()
+            .map((nombre) => ({ label: nombre, value: nombre }));
+    });
+
+    /** Historial filtrado por los criterios seleccionados. */
+    readonly historialFiltrado = computed(() => {
+        const texto = this.textoBusqueda().toLowerCase().trim();
+        const chofer = this.filtroChofer();
+        const municipio = this.filtroMunicipio();
+        const estado = this.filtroEstado();
+        const desde = this.filtroFechaDesde();
+        const hasta = this.filtroFechaHasta();
+
+        return this.historial().filter((h) => {
+            if (chofer && h.viaje.chofer !== chofer) return false;
+            if (desde || hasta) {
+                const fecha = h.viaje.fecha_finalizacion || h.viaje.fecha_creacion || '';
+                const iso = fecha ? new Date(fecha).toISOString().slice(0, 10) : '';
+                if (desde && iso < desde) return false;
+                if (hasta && iso > hasta) return false;
+            }
+            if (municipio || estado || texto) {
+                const match = h.paradas.some((p) => {
+                    if (municipio && p.municipio !== municipio) return false;
+                    if (estado && this.estadoLabel(p.estado) !== estado) return false;
+                    if (texto) {
+                        const campo =
+                            `${p.cliente} ${p.numeroFactura} ${p.numeroGuia} ${p.municipio} ${h.viaje.chofer} ${h.viaje.placa_vehiculo}`.toLowerCase();
+                        if (!campo.includes(texto)) return false;
+                    }
+                    return true;
+                });
+                if (!match) return false;
+            }
+            return true;
+        });
+    });
+
     constructor() {}
 
     async ngOnInit() {
         try {
-            const [viajes, incidencias] = await Promise.all([
+            const [viajes, incidencias, tiempos] = await Promise.all([
                 this.viajeService.obtenerViajes(),
                 this.authService.client
                     .from('incidencias')
@@ -91,15 +182,18 @@ export class HistorialEntregasComponent implements OnInit {
                         'id_detalle_fact, tipo_incidencia, descripcion, foto_evidencia_url, hora_reporte',
                     )
                     .order('hora_reporte', { ascending: false }),
+                this.viajeService.obtenerTiemposViajes().catch(() => [] as TiemposViaje[]),
             ]);
             for (const inc of (incidencias.data || []) as any[]) {
                 if (!this.incidenciasMap.has(inc.id_detalle_fact)) {
                     this.incidenciasMap.set(inc.id_detalle_fact, inc);
                 }
             }
-            this.viajesFinalizados.set(
-                (viajes || []).filter((v) => v.estado === 'finalizado'),
-            );
+            this.tiemposMap.clear();
+            for (const t of tiempos || []) {
+                this.tiemposMap.set(t.id_viaje, t);
+            }
+            this.viajesFinalizados.set((viajes || []).filter((v) => v.estado === 'finalizado'));
         } catch (err) {
             console.error('Error cargando historial de entregas:', err);
         } finally {
@@ -139,9 +233,32 @@ export class HistorialEntregasComponent implements OnInit {
     readonly filaExpandida = signal<Record<string, boolean>>({});
 
     toggleFila(id: string) {
-        this.filaExpandida.update((mapa) =>
-            mapa[id] ? {} : { [id]: true },
-        );
+        this.filaExpandida.update((mapa) => (mapa[id] ? {} : { [id]: true }));
+    }
+
+    onRangoFechas(rango: (Date | null)[] | null) {
+        this.filtroFechaDesde.set(rango?.[0] ? this.toISO(rango[0]) : null);
+        this.filtroFechaHasta.set(rango?.[1] ? this.toISO(rango[1]) : null);
+    }
+
+    onRangoFechasEvento(evento: unknown) {
+        const rango = Array.isArray(evento) ? (evento as (Date | null)[]) : null;
+        this.onRangoFechas(rango);
+    }
+
+    private toISO(d: Date): string {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+            d.getDate(),
+        ).padStart(2, '0')}`;
+    }
+
+    limpiarFiltros() {
+        this.textoBusqueda.set('');
+        this.filtroChofer.set(null);
+        this.filtroMunicipio.set(null);
+        this.filtroEstado.set(null);
+        this.filtroFechaDesde.set(null);
+        this.filtroFechaHasta.set(null);
     }
 
     esRecuperable(p: HistorialParada): boolean {
@@ -159,9 +276,7 @@ export class HistorialEntregasComponent implements OnInit {
             this.notif.add({
                 severity: 'success',
                 summary: objetivo ? 'Re-despachable' : 'Terminal',
-                detail: `Incidencia marcada como ${
-                    objetivo ? 'recuperable' : 'no recuperable'
-                }.`,
+                detail: `Incidencia marcada como ${objetivo ? 'recuperable' : 'no recuperable'}.`,
             });
             await this.ngOnInit();
         } catch (err: any) {
@@ -218,6 +333,34 @@ export class HistorialEntregasComponent implements OnInit {
             hour: '2-digit',
             minute: '2-digit',
         });
+    }
+
+    // ---------------- Tiempos por viaje ----------------
+
+    tiemposDeViaje(idViaje: string): TiemposViaje | undefined {
+        return this.tiemposMap.get(idViaje);
+    }
+
+    /** Formatea minutos a "Xh Ym" (o solo minutos si < 60). */
+    formatoMinutos(min?: number): string {
+        if (min == null) return '—';
+        const m = Math.round(min);
+        if (m < 60) return `${m} min`;
+        const h = Math.floor(m / 60);
+        const resto = m % 60;
+        return resto ? `${h}h ${resto}m` : `${h}h`;
+    }
+
+    readonly ESTADOS_TIEMPO: { key: keyof TiemposViaje['minutos_por_estado']; label: string }[] = [
+        { key: 'embarque', label: 'Carga' },
+        { key: 'proceso', label: 'Traslado' },
+        { key: 'espera', label: 'Espera' },
+        { key: 'entrega', label: 'Entrega' },
+        { key: 'incidencia', label: 'Incidencia' },
+    ];
+
+    tiempoEstado(t: TiemposViaje, key: keyof TiemposViaje['minutos_por_estado']): number {
+        return t?.minutos_por_estado?.[key] ?? 0;
     }
 
     /** Pide confirmación y borra el viaje (para pruebas). */
@@ -326,7 +469,10 @@ export class HistorialEntregasComponent implements OnInit {
     // ---------------- Mapa comparativo ----------------
 
     private mapas = new Map<string, google.maps.Map>();
-    private polylinesMapas = new Map<string, { planeada: google.maps.Polyline; real: google.maps.Polyline }>();
+    private polylinesMapas = new Map<
+        string,
+        { planeada: google.maps.Polyline; real: google.maps.Polyline }
+    >();
 
     initMapaAnalisis(idViaje: string, el: HTMLElement) {
         if (this.mapas.has(idViaje)) return;
@@ -403,9 +549,7 @@ export class HistorialEntregasComponent implements OnInit {
 
     private agregarMarcadoresParadas(mapa: google.maps.Map, viaje?: ViajeAdmin) {
         if (!viaje) return;
-        const paradas = [...(viaje.paradas || [])].sort(
-            (a, b) => a.orden_visita - b.orden_visita,
-        );
+        const paradas = [...(viaje.paradas || [])].sort((a, b) => a.orden_visita - b.orden_visita);
         for (const [idx, p] of paradas.entries()) {
             if (p.latitud == null || p.longitud == null) continue;
             const div = document.createElement('div');

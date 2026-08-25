@@ -3084,7 +3084,7 @@ const NOMBRE_A_ID: Record<string, string> = {
 };
 
 const NOMBRE_NORMALIZADO_A_ID: Record<string, string> = Object.fromEntries(
-    Object.entries(NOMBRE_A_ID).map(([nombre, id]) => [normalizarNombre(nombre), id])
+    Object.entries(NOMBRE_A_ID).map(([nombre, id]) => [normalizarNombre(nombre), id]),
 );
 
 export function obtenerGeometriaMunicipio(nombreMunicipio: string): MunicipioGeometry | null {

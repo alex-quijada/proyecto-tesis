@@ -106,8 +106,18 @@ export class AppMenu {
                         items: [
                             {
                                 label: 'Reporte de Eficiencia',
-                                icon: 'pi pi-fw pi-file',
+                                icon: 'pi pi-fw pi-chart-line',
                                 routerLink: ['/app/informes/eficiencia'],
+                            },
+                            {
+                                label: 'Reporte de Operaciones',
+                                icon: 'pi pi-fw pi-box',
+                                routerLink: ['/app/informes/operaciones'],
+                            },
+                            {
+                                label: 'Reporte de Incidencias',
+                                icon: 'pi pi-fw pi-exclamation-triangle',
+                                routerLink: ['/app/informes/incidencias'],
                             },
                             {
                                 label: 'Reporte de Gastos',

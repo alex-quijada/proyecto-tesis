@@ -11,6 +11,7 @@ export interface DashboardKpi {
     choferesActivos: number;
     vehiculosOperativos: number;
     montoPendienteUSD: number;
+    montoPendienteVES: number;
 }
 
 export interface FacturaPendiente {
@@ -21,6 +22,7 @@ export interface FacturaPendiente {
     lat?: number;
     lng?: number;
     totalUSD: number;
+    totalVES: number;
     estado: string;
 }
 
@@ -49,6 +51,7 @@ export interface ActividadItem {
     numeroFactura: string;
     nombreCliente: string;
     totalUSD: number;
+    totalVES: number;
     municipio: string;
     fecha: string;
 }
@@ -102,6 +105,7 @@ export class DashboardService {
                 (v) => (v.estado || '').toUpperCase() === 'OPERATIVO',
             ).length,
             montoPendienteUSD: facturasPendientes.reduce((sum, f) => sum + (f.totalUSD || 0), 0),
+            montoPendienteVES: facturasPendientes.reduce((sum, f) => sum + (f.totalVES || 0), 0),
         };
     }
 
@@ -126,6 +130,7 @@ export class DashboardService {
                             lat: f.sucursalLat,
                             lng: f.sucursalLng,
                             totalUSD: f.totalUSD,
+                            totalVES: f.totalVES,
                             estado: f.idEstado,
                         }),
                     ),
@@ -190,6 +195,7 @@ export class DashboardService {
                     numeroFactura: f.numeroFactura,
                     nombreCliente: f.nombreCliente || 'Sin cliente',
                     totalUSD: f.totalUSD,
+                    totalVES: f.totalVES,
                     municipio: g.municipio,
                     fecha: g.fechaCreacion,
                 };

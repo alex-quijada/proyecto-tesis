@@ -94,7 +94,9 @@ export const TIPOS_INCIDENCIA = [
 
                             <!-- Tipo -->
                             <div>
-                                <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1">
+                                <label
+                                    class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1"
+                                >
                                     Tipo de incidencia *
                                 </label>
                                 <p-select
@@ -109,7 +111,9 @@ export const TIPOS_INCIDENCIA = [
 
                             <!-- Descripción -->
                             <div class="mt-2">
-                                <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1">
+                                <label
+                                    class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1"
+                                >
                                     Descripción y observaciones
                                 </label>
                                 <textarea
@@ -123,7 +127,9 @@ export const TIPOS_INCIDENCIA = [
 
                             <!-- Foto -->
                             <div class="mt-2">
-                                <label class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1">
+                                <label
+                                    class="block text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wide mb-1"
+                                >
                                     Foto
                                 </label>
                                 @if (!item.foto) {
@@ -136,8 +142,14 @@ export const TIPOS_INCIDENCIA = [
                                         <span class="text-xs">Tomar foto</span>
                                     </button>
                                 } @else {
-                                    <div class="relative rounded-xl overflow-hidden border border-surface-200 dark:border-surface-700">
-                                        <img [src]="item.foto" class="w-full h-32 object-cover" alt="Foto incidencia" />
+                                    <div
+                                        class="relative rounded-xl overflow-hidden border border-surface-200 dark:border-surface-700"
+                                    >
+                                        <img
+                                            [src]="item.foto"
+                                            class="w-full h-32 object-cover"
+                                            alt="Foto incidencia"
+                                        />
                                         <button
                                             type="button"
                                             class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer"
@@ -220,9 +232,7 @@ export class IncidenciaDialogComponent {
                 quality: 70,
                 allowEditing: false,
                 resultType: CameraResultType.DataUrl,
-                source: Capacitor.isNativePlatform()
-                    ? CameraSource.Camera
-                    : CameraSource.Prompt,
+                source: Capacitor.isNativePlatform() ? CameraSource.Camera : CameraSource.Prompt,
             });
             this.items[index].foto = image.dataUrl ?? null;
         } catch (err) {

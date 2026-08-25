@@ -2,9 +2,7 @@
     <!-- Encabezado -->
     <div class="col-span-12 flex flex-wrap items-center gap-x-6 gap-y-3">
         <div class="min-w-0">
-            <div
-                class="text-2xl font-semibold text-surface-900 dark:text-surface-0 leading-tight"
-            >
+            <div class="text-2xl font-semibold text-surface-900 dark:text-surface-0 leading-tight">
                 Panel de Control
             </div>
         </div>
@@ -61,11 +59,16 @@
                             <span class="block text-muted-color font-medium mb-4">{{
                                 kpi.label
                             }}</span>
-                            <div
-                                class="text-surface-900 dark:text-surface-0 font-medium text-xl"
-                            >
+                            <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">
                                 @if (kpi.icon === 'pi pi-dollar') {
-                                    ${{ kpi.value | number: '1.2-2' }}
+                                    <div class="flex flex-wrap items-baseline gap-x-2">
+                                        <span>${{ kpi.value | number: '1.2-2' }}</span>
+                                        @if (kpi.valueVES != null) {
+                                            <span class="text-sm text-muted-color">
+                                                Bs {{ kpi.valueVES | number: '1.0-0' }}
+                                            </span>
+                                        }
+                                    </div>
                                 } @else {
                                     {{ kpi.value }}
                                 }
@@ -170,10 +173,7 @@
                 </div>
             </div>
             <div class="relative rounded-lg border border-surface" style="height: 480px">
-                <div
-                    #mapaElement
-                    class="absolute inset-0 w-full h-full rounded-lg"
-                ></div>
+                <div #mapaElement class="absolute inset-0 w-full h-full rounded-lg"></div>
                 @if (loading() || !mapaListo) {
                     <p-skeleton
                         width="100%"
@@ -349,6 +349,9 @@
                                         <div class="text-right shrink-0">
                                             <div class="text-sm font-semibold">
                                                 ${{ item.totalUSD | number: '1.2-2' }}
+                                            </div>
+                                            <div class="text-xs text-muted-color">
+                                                Bs {{ item.totalVES | number: '1.0-0' }}
                                             </div>
                                             <div class="text-xs text-muted-color">
                                                 {{ item.fecha | date: 'dd MMM' }}

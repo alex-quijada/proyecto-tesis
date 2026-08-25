@@ -167,7 +167,10 @@
                     </div>
                 </div>
 
-                <div *ngIf="selectedVehiculo" class="text-xs text-surface-400 mt-2">
+                <div
+                    *ngIf="selectedVehiculo && selectedVehiculo.capacidadTanque > 0"
+                    class="text-xs text-surface-400 mt-2"
+                >
                     Capacidad del tanque:
                     <strong>{{ selectedVehiculo.capacidadTanque }} L</strong> &nbsp;|&nbsp; Estimado
                     cargado:
@@ -231,6 +234,18 @@
                                     | currency: 'USD' : 'symbol' : '1.2-2'
                             }}
                         </div>
+                    </div>
+                    <div class="col-span-4 flex flex-col gap-2">
+                        <label for="costoTotalBss" class="font-semibold"
+                            >Total (Bs) <span class="text-red-500">*</span></label
+                        >
+                        <p-inputnumber
+                            id="costoTotalBss"
+                            formControlName="costoTotalBss"
+                            [min]="0"
+                            [suffix]="' Bs'"
+                            placeholder="0.00"
+                        />
                     </div>
                 </div>
 

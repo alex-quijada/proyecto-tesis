@@ -7,71 +7,79 @@
         <p-button label="Nueva Carga" icon="pi pi-plus" (onClick)="openNew()" />
     </div>
 
-    <!-- Resumen por vehículo -->
-    <div class="grid grid-cols-12 gap-3">
-        <div *ngFor="let v of consolidado" class="col-span-12 sm:col-span-6 xl:col-span-3">
-            <p-card>
-                <ng-template #title>
-                    <div class="flex items-center justify-between">
-                        <span class="font-semibold">{{ v.placa }}</span>
-                        <p-chip [label]="v.totalCargas + ' cargas'" styleClass="text-xs" />
-                    </div>
-                </ng-template>
-                <ng-template #subtitle>
-                    <span class="text-xs">{{ v.desc }}</span>
-                </ng-template>
-
-                <div class="flex flex-col gap-2 mt-2">
-                    <!-- Tanque visual "rallitas" -->
-                    <div class="flex flex-col gap-1">
-                        <span class="text-xs text-surface-400">Último nivel</span>
-                        <div class="flex items-end gap-1 h-10">
-                            <div
-                                *ngFor="let r of [1, 2, 3, 4, 5, 6, 7, 8]"
-                                class="w-3 rounded-t transition-all"
-                                [ngClass]="
-                                    r / 8 <= (v.ultimaCarga?.nivelTanqueDespues ?? 0)
-                                        ? 'bg-green-500'
-                                        : 'bg-surface-200 dark:bg-surface-600'
-                                "
-                                [style.height]="r * 5 + 'px'"
-                            ></div>
-                            <span class="text-xs text-surface-400 ml-1">
-                                {{
-                                    (v.ultimaCarga?.nivelTanqueDespues ?? 0) * 100
-                                        | number: '1.0-0'
-                                }}%
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-1 text-xs">
-                        <div>
-                            <span class="text-surface-400">Tanque:</span>
-                            <span class="font-semibold ml-1">{{ v.capacidadTanque }} L</span>
-                        </div>
-                        <div>
-                            <span class="text-surface-400">Total Litros:</span>
-                            <span class="font-semibold ml-1"
-                                >{{ v.totalLitros | number: '1.1-1' }} L</span
-                            >
-                        </div>
-                        <div class="col-span-2">
-                            <span class="text-surface-400">Total Gastado:</span>
-                            <span class="font-semibold ml-1 text-primary">{{
-                                v.totalGastado | currency: 'USD' : 'symbol' : '1.2-2'
-                            }}</span>
-                        </div>
-                    </div>
+    @if (cargando()) {
+        <div class="grid grid-cols-12 gap-3">
+            @for (_ of [1, 2, 3, 4]; track $index) {
+                <div class="col-span-12 sm:col-span-6 xl:col-span-3">
+                    <p-skeleton height="180px" borderRadius="12px" />
                 </div>
-            </p-card>
+            }
         </div>
-    </div>
+    } @else {
+        <!-- Resumen por vehículo -->
+        <div class="grid grid-cols-12 gap-3">
+            @for (v of consolidado(); track v.id) {
+                <div class="col-span-12 sm:col-span-6 xl:col-span-3">
+                    <p-card>
+                        <ng-template #title>
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold">{{ v.placa }}</span>
+                                <p-chip [label]="v.totalCargas + ' cargas'" styleClass="text-xs" />
+                            </div>
+                        </ng-template>
+                        <ng-template #subtitle>
+                            <span class="text-xs">{{ v.desc }}</span>
+                        </ng-template>
+
+                        <div class="flex flex-col gap-2 mt-2">
+                            <!-- Tanque visual "rallitas" -->
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs text-surface-400">Último nivel</span>
+                                <div class="flex items-end gap-1 h-10">
+                                    <div
+                                        *ngFor="let r of [1, 2, 3, 4, 5, 6, 7, 8]"
+                                        class="w-3 rounded-t transition-all"
+                                        [ngClass]="
+                                            r / 8 <= (v.ultimaCarga?.nivelTanqueDespues ?? 0)
+                                                ? 'bg-green-500'
+                                                : 'bg-surface-200 dark:bg-surface-600'
+                                        "
+                                        [style.height]="r * 5 + 'px'"
+                                    ></div>
+                                    <span class="text-xs text-surface-400 ml-1">
+                                        {{
+                                            (v.ultimaCarga?.nivelTanqueDespues ?? 0) * 100
+                                                | number: '1.0-0'
+                                        }}%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-1 text-xs">
+                                <div>
+                                    <span class="text-surface-400">Total Litros:</span>
+                                    <span class="font-semibold ml-1"
+                                        >{{ v.totalLitros | number: '1.1-1' }} L</span
+                                    >
+                                </div>
+                                <div>
+                                    <span class="text-surface-400">Total Gastado:</span>
+                                    <span class="font-semibold ml-1 text-primary">{{
+                                        v.totalGastado | currency: 'USD' : 'symbol' : '1.2-2'
+                                    }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </p-card>
+                </div>
+            }
+        </div>
+    }
 
     <!-- Tabla de registros -->
     <p-card header="Registro Detallado">
         <p-table
-            [value]="registros"
+            [value]="registros()"
             [rows]="20"
             [scrollable]="true"
             scrollHeight="flex"
@@ -83,7 +91,7 @@
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-semibold">
                         <i class="pi pi-list mr-1"></i>
-                        {{ registros.length }} registros
+                        {{ registros().length }} registros
                     </span>
                 </div>
             </ng-template>
@@ -96,7 +104,8 @@
                     <th>Método</th>
                     <th>Litros</th>
                     <th>Costo/L</th>
-                    <th>Total</th>
+                    <th>Total USD</th>
+                    <th>Total Bs</th>
                     <th>Tanque</th>
                     <th>Estación</th>
                     <th style="width: 80px"></th>
@@ -135,6 +144,9 @@
                     </td>
                     <td class="text-right font-semibold text-primary">
                         {{ r.costoTotal | currency: 'USD' : 'symbol' : '1.2-2' }}
+                    </td>
+                    <td class="text-right font-semibold">
+                        {{ r.costoTotalBss | number: '1.2-2' }} Bs
                     </td>
                     <td>
                         <div class="flex items-center gap-1">
@@ -185,7 +197,7 @@
 
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="10" class="text-center py-8 text-surface-400">
+                    <td colspan="11" class="text-center py-8 text-surface-400">
                         <i class="pi pi-inbox text-4xl block mb-2"></i>
                         No hay registros de combustible aún
                     </td>
@@ -197,6 +209,6 @@
 
 <app-combustible-dialog
     [(visible)]="dialogVisible"
-    [cargaData]="editingRecord"
+    [cargaData]="editingRecord()"
     (onSave)="onSave($event)"
 />

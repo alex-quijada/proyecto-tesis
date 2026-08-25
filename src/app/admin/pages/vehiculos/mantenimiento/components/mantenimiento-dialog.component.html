@@ -158,6 +158,19 @@
                         placeholder="0.00"
                     />
                 </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    <label for="costoBss" class="font-semibold"
+                        >Costo (Bs) <span class="text-red-500">*</span></label
+                    >
+                    <p-inputnumber
+                        id="costoBss"
+                        formControlName="costoBss"
+                        [min]="0"
+                        [suffix]="' Bs'"
+                        placeholder="0.00"
+                    />
+                </div>
             </p-fluid>
 
             <p-divider />

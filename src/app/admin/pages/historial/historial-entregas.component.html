@@ -16,21 +16,115 @@
         />
     </div>
 
+    <!-- Filtros de búsqueda -->
+    <div
+        class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900/40 p-4 mb-4"
+    >
+        <div class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1 flex-1 min-w-[12rem]">
+                <label class="text-xs font-semibold text-surface-500 uppercase">Buscar</label>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input
+                        pInputText
+                        type="text"
+                        [ngModel]="textoBusqueda()"
+                        (ngModelChange)="textoBusqueda.set($event)"
+                        placeholder="Cliente, factura, guía, chofer, placa…"
+                        class="w-full"
+                    />
+                </p-iconfield>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold text-surface-500 uppercase">Chofer</label>
+                <p-select
+                    [options]="opcionesChoferes()"
+                    [ngModel]="filtroChofer()"
+                    (ngModelChange)="filtroChofer.set($event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [style]="{ width: '11rem' }"
+                    [showClear]="true"
+                    appendTo="body"
+                />
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold text-surface-500 uppercase">Municipio</label>
+                <p-select
+                    [options]="opcionesMunicipios()"
+                    [ngModel]="filtroMunicipio()"
+                    (ngModelChange)="filtroMunicipio.set($event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [style]="{ width: '11rem' }"
+                    [showClear]="true"
+                    appendTo="body"
+                />
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold text-surface-500 uppercase">Estado</label>
+                <p-select
+                    [options]="opcionesEstados()"
+                    [ngModel]="filtroEstado()"
+                    (ngModelChange)="filtroEstado.set($event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [style]="{ width: '11rem' }"
+                    [showClear]="true"
+                    appendTo="body"
+                />
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold text-surface-500 uppercase"
+                    >Rango de fechas</label
+                >
+                <p-datepicker
+                    [style]="{ width: '14rem' }"
+                    dateFormat="dd/mm/yy"
+                    selectionMode="range"
+                    placeholder="Desde — Hasta"
+                    appendTo="body"
+                    (ngModelChange)="onRangoFechasEvento($event)"
+                />
+            </div>
+
+            <div class="flex items-center gap-2">
+                <p-button
+                    label="Limpiar"
+                    icon="pi pi-times"
+                    size="small"
+                    severity="secondary"
+                    text
+                    (onClick)="limpiarFiltros()"
+                />
+            </div>
+        </div>
+    </div>
+
     @if (cargando()) {
         <div class="flex flex-col gap-3">
             @for (_ of [1, 2, 3]; track $index) {
                 <p-skeleton height="120px" borderRadius="8px" />
             }
         </div>
-    } @else if (historial().length === 0) {
+    } @else if (historialFiltrado().length === 0) {
         <div class="text-center py-16 text-muted-color">
             <i class="pi pi-inbox text-4xl block mb-3"></i>
             <span class="text-lg font-semibold">Sin viajes finalizados</span>
-            <p class="text-sm mt-1">Aún no hay entregas registradas en el historial.</p>
+            <p class="text-sm mt-1">
+                Aún no hay entregas registradas en el historial o que coincidan con los filtros.
+            </p>
         </div>
     } @else {
         <div class="flex flex-col gap-4">
-            @for (h of historial(); track h.viaje.id_viaje) {
+            @for (h of historialFiltrado(); track h.viaje.id_viaje) {
                 <div
                     class="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden"
                 >
@@ -68,8 +162,14 @@
                             tooltipPosition="left"
                         />
                         <p-button
-                            [icon]="analisisAbierto()[h.viaje.id_viaje] ? 'pi pi-chevron-up' : 'pi pi-route'"
-                            [label]="analisisAbierto()[h.viaje.id_viaje] ? 'Ocultar' : 'Análisis de ruta'"
+                            [icon]="
+                                analisisAbierto()[h.viaje.id_viaje]
+                                    ? 'pi pi-chevron-up'
+                                    : 'pi pi-route'
+                            "
+                            [label]="
+                                analisisAbierto()[h.viaje.id_viaje] ? 'Ocultar' : 'Análisis de ruta'
+                            "
                             text
                             rounded
                             size="small"
@@ -98,46 +198,102 @@
                             } @else if (metricasAnalisis(h.viaje.id_viaje); as m) {
                                 <div class="flex flex-col gap-3">
                                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <div class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3">
-                                            <div class="text-[11px] uppercase font-semibold text-surface-400">Planificada (VRPTW)</div>
-                                            <div class="text-lg font-bold text-surface-800 dark:text-surface-100">
+                                        <div
+                                            class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3"
+                                        >
+                                            <div
+                                                class="text-[11px] uppercase font-semibold text-surface-400"
+                                            >
+                                                Planificada (VRPTW)
+                                            </div>
+                                            <div
+                                                class="text-lg font-bold text-surface-800 dark:text-surface-100"
+                                            >
                                                 {{ m.distanciaPlaneadaKm.toFixed(2) }} km
                                             </div>
                                         </div>
-                                        <div class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3">
-                                            <div class="text-[11px] uppercase font-semibold text-surface-400">Real</div>
-                                            <div class="text-lg font-bold text-surface-800 dark:text-surface-100">
+                                        <div
+                                            class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3"
+                                        >
+                                            <div
+                                                class="text-[11px] uppercase font-semibold text-surface-400"
+                                            >
+                                                Real
+                                            </div>
+                                            <div
+                                                class="text-lg font-bold text-surface-800 dark:text-surface-100"
+                                            >
                                                 {{ m.distanciaRealKm.toFixed(2) }} km
                                             </div>
                                         </div>
-                                        <div class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3">
-                                            <div class="text-[11px] uppercase font-semibold text-surface-400">Km extra</div>
-                                            <div class="text-lg font-bold" [class.text-red-500]="m.kmExtra > 0">
+                                        <div
+                                            class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3"
+                                        >
+                                            <div
+                                                class="text-[11px] uppercase font-semibold text-surface-400"
+                                            >
+                                                Km extra
+                                            </div>
+                                            <div
+                                                class="text-lg font-bold"
+                                                [class.text-red-500]="m.kmExtra > 0"
+                                            >
                                                 {{ m.kmExtra.toFixed(2) }} km
                                             </div>
                                         </div>
-                                        <div class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3">
-                                            <div class="text-[11px] uppercase font-semibold text-surface-400">% sobre ruta</div>
-                                            <div class="text-lg font-bold text-surface-800 dark:text-surface-100">
+                                        <div
+                                            class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3"
+                                        >
+                                            <div
+                                                class="text-[11px] uppercase font-semibold text-surface-400"
+                                            >
+                                                % sobre ruta
+                                            </div>
+                                            <div
+                                                class="text-lg font-bold text-surface-800 dark:text-surface-100"
+                                            >
                                                 {{ m.porcentajeSobreRuta.toFixed(1) }}%
                                             </div>
                                         </div>
-                                        <div class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3">
-                                            <div class="text-[11px] uppercase font-semibold text-surface-400">Desvío promedio</div>
-                                            <div class="text-lg font-bold text-surface-800 dark:text-surface-100">
+                                        <div
+                                            class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3"
+                                        >
+                                            <div
+                                                class="text-[11px] uppercase font-semibold text-surface-400"
+                                            >
+                                                Desvío promedio
+                                            </div>
+                                            <div
+                                                class="text-lg font-bold text-surface-800 dark:text-surface-100"
+                                            >
                                                 {{ m.desvioPromedioM.toFixed(0) }} m
                                             </div>
                                         </div>
-                                        <div class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3">
-                                            <div class="text-[11px] uppercase font-semibold text-surface-400">Desvío máximo</div>
-                                            <div class="text-lg font-bold text-surface-800 dark:text-surface-100">
+                                        <div
+                                            class="rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-3"
+                                        >
+                                            <div
+                                                class="text-[11px] uppercase font-semibold text-surface-400"
+                                            >
+                                                Desvío máximo
+                                            </div>
+                                            <div
+                                                class="text-lg font-bold text-surface-800 dark:text-surface-100"
+                                            >
                                                 {{ m.desvioMaximoM.toFixed(0) }} m
                                             </div>
                                         </div>
                                         @if (m.esSimulacion) {
                                             <div class="col-span-2 flex items-center gap-2">
-                                                <p-tag value="Simulación" severity="warn" icon="pi pi-play" styleClass="text-xs" />
-                                                <span class="text-xs text-surface-500">{{ m.puntosReal }} puntos muestreados</span>
+                                                <p-tag
+                                                    value="Simulación"
+                                                    severity="warn"
+                                                    icon="pi pi-play"
+                                                    styleClass="text-xs"
+                                                />
+                                                <span class="text-xs text-surface-500"
+                                                    >{{ m.puntosReal }} puntos muestreados</span
+                                                >
                                             </div>
                                         }
                                     </div>
@@ -146,16 +302,35 @@
                                         class="w-full h-64 rounded-lg border border-surface-200 dark:border-surface-700"
                                     ></div>
                                     <div class="flex items-center gap-4 text-xs text-surface-500">
-                                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 inline-block bg-blue-500"></span> Planificada (VRPTW)</span>
-                                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 inline-block bg-red-500"></span> Real del chofer</span>
-                                        <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block rounded-full bg-amber-500"></span> Paradas</span>
-                                        <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block rounded-full bg-violet-500"></span> Almacén</span>
+                                        <span class="flex items-center gap-1"
+                                            ><span
+                                                class="w-3 h-0.5 inline-block bg-blue-500"
+                                            ></span>
+                                            Planificada (VRPTW)</span
+                                        >
+                                        <span class="flex items-center gap-1"
+                                            ><span class="w-3 h-0.5 inline-block bg-red-500"></span>
+                                            Real del chofer</span
+                                        >
+                                        <span class="flex items-center gap-1"
+                                            ><span
+                                                class="w-3 h-3 inline-block rounded-full bg-amber-500"
+                                            ></span>
+                                            Paradas</span
+                                        >
+                                        <span class="flex items-center gap-1"
+                                            ><span
+                                                class="w-3 h-3 inline-block rounded-full bg-violet-500"
+                                            ></span>
+                                            Almacén</span
+                                        >
                                     </div>
                                 </div>
                             } @else {
                                 <div class="text-sm text-surface-500 py-1 flex items-center gap-2">
                                     <i class="pi pi-info-circle"></i>
-                                    No hay traza registrada para este viaje (o sin suficientes puntos).
+                                    No hay traza registrada para este viaje (o sin suficientes
+                                    puntos).
                                 </div>
                             }
                         </div>
@@ -210,57 +385,125 @@
                                     <td colspan="5" class="!p-0">
                                         <div class="p-3 space-y-3">
                                             <!-- Datos relevantes -->
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                            <div
+                                                class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"
+                                            >
                                                 <div class="flex items-start gap-2">
-                                                    <i class="pi pi-map-marker text-primary mt-0.5"></i>
+                                                    <i
+                                                        class="pi pi-map-marker text-primary mt-0.5"
+                                                    ></i>
                                                     <div>
-                                                        <div class="text-xs font-semibold text-surface-500 uppercase">Dirección</div>
-                                                        <div class="text-surface-700 dark:text-surface-200">{{ p.direccion || '—' }}</div>
+                                                        <div
+                                                            class="text-xs font-semibold text-surface-500 uppercase"
+                                                        >
+                                                            Dirección
+                                                        </div>
+                                                        <div
+                                                            class="text-surface-700 dark:text-surface-200"
+                                                        >
+                                                            {{ p.direccion || '—' }}
+                                                        </div>
                                                         @if (p.referencia) {
-                                                            <div class="text-xs text-surface-500 mt-0.5">{{ p.referencia }}</div>
+                                                            <div
+                                                                class="text-xs text-surface-500 mt-0.5"
+                                                            >
+                                                                {{ p.referencia }}
+                                                            </div>
                                                         }
                                                     </div>
                                                 </div>
                                                 <div class="flex items-start gap-2">
                                                     <i class="pi pi-user text-primary mt-0.5"></i>
                                                     <div>
-                                                        <div class="text-xs font-semibold text-surface-500 uppercase">Contacto</div>
-                                                        <div class="text-surface-700 dark:text-surface-200">{{ p.contacto || '—' }}</div>
+                                                        <div
+                                                            class="text-xs font-semibold text-surface-500 uppercase"
+                                                        >
+                                                            Contacto
+                                                        </div>
+                                                        <div
+                                                            class="text-surface-700 dark:text-surface-200"
+                                                        >
+                                                            {{ p.contacto || '—' }}
+                                                        </div>
                                                         @if (p.telefono) {
-                                                            <a [href]="'tel:' + p.telefono" class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5">
-                                                                <i class="pi pi-phone"></i>{{ p.telefono }}
+                                                            <a
+                                                                [href]="'tel:' + p.telefono"
+                                                                class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5"
+                                                            >
+                                                                <i class="pi pi-phone"></i
+                                                                >{{ p.telefono }}
                                                             </a>
                                                         }
                                                     </div>
                                                 </div>
                                                 @if (p.montoDolares != null) {
                                                     <div class="flex items-start gap-2">
-                                                        <i class="pi pi-dollar text-primary mt-0.5"></i>
+                                                        <i
+                                                            class="pi pi-dollar text-primary mt-0.5"
+                                                        ></i>
                                                         <div>
-                                                            <div class="text-xs font-semibold text-surface-500 uppercase">Monto</div>
-                                                            <div class="text-surface-700 dark:text-surface-200">
-                                                                {{ p.montoDolares | currency: 'USD' : 'symbol' : '1.2-2' }}
+                                                            <div
+                                                                class="text-xs font-semibold text-surface-500 uppercase"
+                                                            >
+                                                                Monto
+                                                            </div>
+                                                            <div
+                                                                class="text-surface-700 dark:text-surface-200"
+                                                            >
+                                                                {{
+                                                                    p.montoDolares
+                                                                        | currency
+                                                                            : 'USD'
+                                                                            : 'symbol'
+                                                                            : '1.2-2'
+                                                                }}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 }
                                                 @if (p.horaDesde || p.horaHasta) {
                                                     <div class="flex items-start gap-2">
-                                                        <i class="pi pi-clock text-primary mt-0.5"></i>
+                                                        <i
+                                                            class="pi pi-clock text-primary mt-0.5"
+                                                        ></i>
                                                         <div>
-                                                            <div class="text-xs font-semibold text-surface-500 uppercase">Ventana de recepción</div>
-                                                            <div class="text-surface-700 dark:text-surface-200">
-                                                                {{ (p.horaDesde || '').slice(0, 5) }} - {{ (p.horaHasta || '').slice(0, 5) }}
+                                                            <div
+                                                                class="text-xs font-semibold text-surface-500 uppercase"
+                                                            >
+                                                                Ventana de recepción
+                                                            </div>
+                                                            <div
+                                                                class="text-surface-700 dark:text-surface-200"
+                                                            >
+                                                                {{
+                                                                    (p.horaDesde || '').slice(0, 5)
+                                                                }}
+                                                                -
+                                                                {{
+                                                                    (p.horaHasta || '').slice(0, 5)
+                                                                }}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 }
                                                 @if (p.notaSucursal) {
-                                                    <div class="flex items-start gap-2 md:col-span-2">
-                                                        <i class="pi pi-info text-primary mt-0.5"></i>
+                                                    <div
+                                                        class="flex items-start gap-2 md:col-span-2"
+                                                    >
+                                                        <i
+                                                            class="pi pi-info text-primary mt-0.5"
+                                                        ></i>
                                                         <div>
-                                                            <div class="text-xs font-semibold text-surface-500 uppercase">Nota</div>
-                                                            <div class="text-surface-700 dark:text-surface-200">{{ p.notaSucursal }}</div>
+                                                            <div
+                                                                class="text-xs font-semibold text-surface-500 uppercase"
+                                                            >
+                                                                Nota
+                                                            </div>
+                                                            <div
+                                                                class="text-surface-700 dark:text-surface-200"
+                                                            >
+                                                                {{ p.notaSucursal }}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 }
@@ -268,31 +511,57 @@
 
                                             <!-- Incidencias -->
                                             @if (p.incidencias?.length || p.incidenciaTipo) {
-                                                <div class="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/40 p-3">
-                                                    <div class="flex items-center gap-2 text-red-600 dark:text-red-300 font-semibold text-sm">
+                                                <div
+                                                    class="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/40 p-3"
+                                                >
+                                                    <div
+                                                        class="flex items-center gap-2 text-red-600 dark:text-red-300 font-semibold text-sm"
+                                                    >
                                                         <i class="pi pi-exclamation-triangle"></i>
                                                         <span>Incidencia(s)</span>
                                                     </div>
                                                     @if (p.incidencias?.length) {
                                                         <div class="mt-2 flex flex-col gap-2.5">
-                                                            @for (inc of p.incidencias; track inc.id_incidencia) {
+                                                            @for (
+                                                                inc of p.incidencias;
+                                                                track inc.id_incidencia
+                                                            ) {
                                                                 <div>
-                                                                    <div class="flex flex-wrap items-center gap-1.5">
+                                                                    <div
+                                                                        class="flex flex-wrap items-center gap-1.5"
+                                                                    >
                                                                         <p-tag
-                                                                            [value]="inc.tipo | tipoIncidencia"
+                                                                            [value]="
+                                                                                inc.tipo
+                                                                                    | tipoIncidencia
+                                                                            "
                                                                             severity="danger"
                                                                             styleClass="text-xs"
                                                                         />
                                                                         <p-tag
                                                                             [value]="
-                                                                                inc.recuperable ? 'Re-despachable' : 'Terminal'
+                                                                                inc.recuperable
+                                                                                    ? 'Re-despachable'
+                                                                                    : 'Terminal'
                                                                             "
-                                                                            [severity]="inc.recuperable ? 'warn' : 'secondary'"
+                                                                            [severity]="
+                                                                                inc.recuperable
+                                                                                    ? 'warn'
+                                                                                    : 'secondary'
+                                                                            "
                                                                             styleClass="text-xs"
                                                                         />
                                                                         <p-tag
-                                                                            [value]="inc.resuelta ? 'Resuelta' : 'Pendiente'"
-                                                                            [severity]="inc.resuelta ? 'success' : 'danger'"
+                                                                            [value]="
+                                                                                inc.resuelta
+                                                                                    ? 'Resuelta'
+                                                                                    : 'Pendiente'
+                                                                            "
+                                                                            [severity]="
+                                                                                inc.resuelta
+                                                                                    ? 'success'
+                                                                                    : 'danger'
+                                                                            "
                                                                             styleClass="text-xs"
                                                                         />
                                                                     </div>
@@ -308,26 +577,40 @@
                                                                                 : 'pi pi-ban'
                                                                         "
                                                                         [severity]="
-                                                                            inc.recuperable ? 'warn' : 'secondary'
+                                                                            inc.recuperable
+                                                                                ? 'warn'
+                                                                                : 'secondary'
                                                                         "
                                                                         size="small"
                                                                         outlined
                                                                         [loading]="
-                                                                            togglingRecuperableId() === inc.id_incidencia
+                                                                            togglingRecuperableId() ===
+                                                                            inc.id_incidencia
                                                                         "
-                                                                        (onClick)="toggleRecuperable(inc)"
+                                                                        (onClick)="
+                                                                            toggleRecuperable(inc)
+                                                                        "
                                                                         pTooltip="¿Se puede volver a entregar? Decisión del analista/administrador"
                                                                         tooltipPosition="top"
                                                                         styleClass="mt-1"
                                                                     />
                                                                     @if (inc.descripcion) {
-                                                                        <div class="text-sm text-surface-700 dark:text-surface-200 mt-1">
+                                                                        <div
+                                                                            class="text-sm text-surface-700 dark:text-surface-200 mt-1"
+                                                                        >
                                                                             {{ inc.descripcion }}
                                                                         </div>
                                                                     }
                                                                     @if (inc.hora_reporte) {
-                                                                        <div class="text-xs text-surface-500 mt-0.5">
-                                                                            Reportada: {{ formatFecha(inc.hora_reporte) }}
+                                                                        <div
+                                                                            class="text-xs text-surface-500 mt-0.5"
+                                                                        >
+                                                                            Reportada:
+                                                                            {{
+                                                                                formatFecha(
+                                                                                    inc.hora_reporte
+                                                                                )
+                                                                            }}
                                                                         </div>
                                                                     }
                                                                     @if (inc.foto) {
@@ -341,28 +624,44 @@
                                                             }
                                                         </div>
                                                     } @else {
-                                                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                                        <div
+                                                            class="mt-2 flex flex-wrap items-center gap-1.5"
+                                                        >
                                                             <p-tag
-                                                                [value]="p.incidenciaTipo | tipoIncidencia"
+                                                                [value]="
+                                                                    p.incidenciaTipo
+                                                                        | tipoIncidencia
+                                                                "
                                                                 severity="danger"
                                                                 styleClass="text-xs"
                                                             />
                                                             <p-tag
                                                                 [value]="
-                                                                    esRecuperable(p) ? 'Re-despachable' : 'Terminal'
+                                                                    esRecuperable(p)
+                                                                        ? 'Re-despachable'
+                                                                        : 'Terminal'
                                                                 "
-                                                                [severity]="esRecuperable(p) ? 'warn' : 'secondary'"
+                                                                [severity]="
+                                                                    esRecuperable(p)
+                                                                        ? 'warn'
+                                                                        : 'secondary'
+                                                                "
                                                                 styleClass="text-xs"
                                                             />
                                                         </div>
                                                         @if (p.incidenciaDescripcion) {
-                                                            <div class="text-sm text-surface-700 dark:text-surface-200 mt-2">
+                                                            <div
+                                                                class="text-sm text-surface-700 dark:text-surface-200 mt-2"
+                                                            >
                                                                 {{ p.incidenciaDescripcion }}
                                                             </div>
                                                         }
                                                         @if (p.incidenciaFecha) {
-                                                            <div class="text-xs text-surface-500 mt-1">
-                                                                Reportada: {{ formatFecha(p.incidenciaFecha) }}
+                                                            <div
+                                                                class="text-xs text-surface-500 mt-1"
+                                                            >
+                                                                Reportada:
+                                                                {{ formatFecha(p.incidenciaFecha) }}
                                                             </div>
                                                         }
                                                         @if (p.incidenciaFoto) {
@@ -388,4 +687,3 @@
 </div>
 
 <p-confirmdialog />
-

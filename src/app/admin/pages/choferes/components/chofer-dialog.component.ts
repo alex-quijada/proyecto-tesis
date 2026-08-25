@@ -12,7 +12,6 @@ import { MessageModule } from 'primeng/message';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
 
-
 import { Chofer, PREFIJOS_CEDULA, GRADOS_LICENCIA } from '../data/choferes-mock';
 import { AuthService } from '../../../../auth/service/auth.service';
 

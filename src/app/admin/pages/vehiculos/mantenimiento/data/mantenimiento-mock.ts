@@ -10,6 +10,7 @@ export interface Mantenimiento {
     descripcion: string;
     responsable: string;
     costo: number;
+    costoBss?: number;
     proximoKm: number;
     proximaFecha?: string;
     estado: 'PROGRAMADO' | 'EN_PROCESO' | 'REALIZADO' | 'CANCELADO';

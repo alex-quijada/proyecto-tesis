@@ -345,8 +345,7 @@ export class GoogleMapsOptimizationService {
         dx /= norm;
         dy /= norm;
         const latM = 1 / 111320;
-        const lngM =
-            1 / (111320 * Math.max(0.1, Math.cos((cruce.punto.lat * Math.PI) / 180)));
+        const lngM = 1 / (111320 * Math.max(0.1, Math.cos((cruce.punto.lat * Math.PI) / 180)));
         const ox = -dy * offsetM * lngM;
         const oy = dx * offsetM * latM;
         return [

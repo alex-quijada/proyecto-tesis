@@ -216,9 +216,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
         return (
             entregas.length > 0 &&
             entregas.every((p) =>
-                p.facturas.every(
-                    (f) => f.estado === 'finalizado' || f.estado === 'incidencia',
-                ),
+                p.facturas.every((f) => f.estado === 'finalizado' || f.estado === 'incidencia'),
             )
         );
     });
@@ -385,7 +383,10 @@ export class NavigationComponent implements OnInit, OnDestroy {
         const next = points[i];
         const segLen = distAcum[i] - distAcum[i - 1];
         const t = segLen > 0 ? (d - distAcum[i - 1]) / segLen : 0;
-        return { lat: prev.lat + (next.lat - prev.lat) * t, lng: prev.lng + (next.lng - prev.lng) * t };
+        return {
+            lat: prev.lat + (next.lat - prev.lat) * t,
+            lng: prev.lng + (next.lng - prev.lng) * t,
+        };
     }
 
     private calcularRestante(): number {

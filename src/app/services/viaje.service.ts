@@ -89,9 +89,7 @@ export class ViajeService {
             .filter((p): p is string => !!p);
 
         if (paths.length < 1) return;
-        const { error } = await this.supabase.storage
-            .from(BUCKET)
-            .remove(paths);
+        const { error } = await this.supabase.storage.from(BUCKET).remove(paths);
         if (error) throw error;
     }
 
@@ -197,6 +195,26 @@ export class ViajeService {
         if (error) throw error;
         return (data as TrazaViajePunto[]) || [];
     }
+
+    /** Resumen de tiempos por viaje finalizado (para el Historial de Entregas). */
+    async obtenerTiemposViajes(): Promise<TiemposViaje[]> {
+        const { data, error } = await this.supabase.rpc('obtener_tiempos_viajes');
+        if (error) throw new Error(`Error al cargar tiempos de viajes: ${error.message}`);
+        return (data as TiemposViaje[]) || [];
+    }
+}
+
+export interface TiemposViaje {
+    id_viaje: string;
+    tiempo_total_min: number;
+    llegada_primera_parada_min: number;
+    minutos_por_estado: {
+        embarque?: number;
+        proceso?: number;
+        espera?: number;
+        entrega?: number;
+        incidencia?: number;
+    };
 }
 
 export interface TrazaViajePunto {

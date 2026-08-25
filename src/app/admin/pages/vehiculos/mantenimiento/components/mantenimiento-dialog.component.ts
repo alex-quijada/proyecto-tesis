@@ -1,4 +1,4 @@
-import { Component, input, output, model, effect, inject } from '@angular/core';
+import { Component, input, output, model, effect, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -18,7 +18,8 @@ import {
     TIPOS_MANTENIMIENTO,
     ESTADOS_MANTENIMIENTO,
 } from '../data/mantenimiento-mock';
-import { Vehiculo, VEHICULOS_MOCK } from '../../data/vehiculos-mock';
+import { Vehiculo } from '../../data/vehiculos-mock';
+import { VehiculoService } from '../../service/vehiculo.service';
 
 @Component({
     selector: 'app-mantenimiento-dialog',
@@ -39,8 +40,9 @@ import { Vehiculo, VEHICULOS_MOCK } from '../../data/vehiculos-mock';
     ],
     templateUrl: './mantenimiento-dialog.component.html',
 })
-export class MantenimientoDialogComponent {
+export class MantenimientoDialogComponent implements OnInit {
     private fb = inject(FormBuilder);
+    private vehiculoService = inject(VehiculoService);
 
     visible = model<boolean>(false);
     mantenimientoData = input<Mantenimiento>({} as Mantenimiento);
@@ -51,7 +53,8 @@ export class MantenimientoDialogComponent {
 
     tipos = TIPOS_MANTENIMIENTO;
     estados = ESTADOS_MANTENIMIENTO;
-    vehiculos: Vehiculo[] = VEHICULOS_MOCK;
+    vehiculos: Vehiculo[] = [];
+    cargandoVehiculos = true;
 
     form: FormGroup = this.fb.group({
         idVehiculo: ['', Validators.required],
@@ -62,6 +65,7 @@ export class MantenimientoDialogComponent {
         descripcion: ['', Validators.required],
         responsable: ['', Validators.required],
         costo: [0, [Validators.required, Validators.min(0)]],
+        costoBss: [0, [Validators.required, Validators.min(0)]],
         proximoKm: [0, [Validators.required, Validators.min(0)]],
         proximaFecha: [''],
         estado: ['PROGRAMADO', Validators.required],
@@ -83,6 +87,7 @@ export class MantenimientoDialogComponent {
                     descripcion: data.descripcion || '',
                     responsable: data.responsable || '',
                     costo: data.costo || 0,
+                    costoBss: data.costoBss || 0,
                     proximoKm: data.proximoKm || 0,
                     proximaFecha: data.proximaFecha ? new Date(data.proximaFecha) : null,
                     estado: data.estado || 'PROGRAMADO',
@@ -97,6 +102,7 @@ export class MantenimientoDialogComponent {
                     descripcion: '',
                     responsable: '',
                     costo: 0,
+                    costoBss: 0,
                     proximoKm: 0,
                     proximaFecha: null,
                     estado: 'PROGRAMADO',
@@ -108,13 +114,23 @@ export class MantenimientoDialogComponent {
     get vehiculoSelectList() {
         return this.vehiculos.map((v) => ({
             label: `${v.placa} — ${v.marca} ${v.modelo} (${v.anio})`,
-            value: v.id,
+            value: v.id_vehiculo || v.id || '',
         }));
     }
 
     get selectedVehiculo(): Vehiculo | undefined {
         const id = this.form.get('idVehiculo')?.value;
-        return this.vehiculos.find((v) => v.id === id);
+        return this.vehiculos.find((v) => (v.id_vehiculo || v.id) === id);
+    }
+
+    async ngOnInit() {
+        try {
+            this.vehiculos = await this.vehiculoService.obtenerVehiculos();
+        } catch {
+            this.vehiculos = [];
+        } finally {
+            this.cargandoVehiculos = false;
+        }
     }
 
     hideDialog() {
@@ -154,6 +170,7 @@ export class MantenimientoDialogComponent {
             descripcion: raw.descripcion,
             responsable: raw.responsable,
             costo: raw.costo,
+            costoBss: raw.costoBss || 0,
             proximoKm: raw.proximoKm,
             proximaFecha: raw.proximaFecha ? this.formatDate(raw.proximaFecha) : undefined,
             estado: raw.estado,

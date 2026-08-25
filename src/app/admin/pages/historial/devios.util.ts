@@ -12,15 +12,16 @@ export interface MetricasDesvio {
 }
 
 /** Distancia haversine entre dos coordenadas en metros. */
-export function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+export function haversineM(
+    a: { lat: number; lng: number },
+    b: { lat: number; lng: number },
+): number {
     const R = 6371000;
     const dLat = ((b.lat - a.lat) * Math.PI) / 180;
     const dLng = ((b.lng - a.lng) * Math.PI) / 180;
     const la1 = (a.lat * Math.PI) / 180;
     const la2 = (b.lat * Math.PI) / 180;
-    const h =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
 }
 
@@ -36,8 +37,10 @@ function distanciaAPuntoSegmento(
     const ax = (b.lng - a.lng) * 111320 * Math.cos((a.lat * Math.PI) / 180);
     const ay = (b.lat - a.lat) * 110540;
 
-    const dx = b.lng === a.lng && b.lat === a.lat ? 0 : x - ((x * ax + y * ay) / (ax * ax + ay * ay)) * ax;
-    const dy = b.lng === a.lng && b.lat === a.lat ? 0 : y - ((x * ax + y * ay) / (ax * ax + ay * ay)) * ay;
+    const dx =
+        b.lng === a.lng && b.lat === a.lat ? 0 : x - ((x * ax + y * ay) / (ax * ax + ay * ay)) * ax;
+    const dy =
+        b.lng === a.lng && b.lat === a.lat ? 0 : y - ((x * ax + y * ay) / (ax * ax + ay * ay)) * ay;
     return Math.sqrt(dx * dx + dy * dy);
 }
 
@@ -70,9 +73,7 @@ export function calcularMetricasDesvio(
     traza: TrazaViajePunto[],
     rutaPlaneada: { lat: number; lng: number }[],
 ): MetricasDesvio | null {
-    const puntosReal = traza.filter(
-        (t) => t.latitud != null && t.longitud != null,
-    );
+    const puntosReal = traza.filter((t) => t.latitud != null && t.longitud != null);
     if (puntosReal.length < 2 || rutaPlaneada.length < 2) return null;
 
     const distanciaRealKm = longitudPolylineKm(puntosReal);

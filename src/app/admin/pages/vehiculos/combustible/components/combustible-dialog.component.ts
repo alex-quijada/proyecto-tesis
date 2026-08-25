@@ -1,4 +1,4 @@
-import { Component, input, output, model, effect, inject } from '@angular/core';
+import { Component, input, output, model, effect, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -18,8 +18,8 @@ import {
     TIPOS_COMBUSTIBLE,
     METODOS_CALCULO,
     NIVELES_TANQUE,
-    VEHICULOS_TANQUE,
 } from '../data/combustible-mock';
+import { VehiculoService } from '../../service/vehiculo.service';
 
 @Component({
     selector: 'app-combustible-dialog',
@@ -40,8 +40,9 @@ import {
     ],
     templateUrl: './combustible-dialog.component.html',
 })
-export class CombustibleDialogComponent {
+export class CombustibleDialogComponent implements OnInit {
     private fb = inject(FormBuilder);
+    private vehiculoService = inject(VehiculoService);
 
     visible = model<boolean>(false);
     cargaData = input<CargaCombustible>({} as CargaCombustible);
@@ -53,7 +54,8 @@ export class CombustibleDialogComponent {
     tiposCombustible = TIPOS_COMBUSTIBLE;
     metodos = METODOS_CALCULO;
     nivelesTanque = NIVELES_TANQUE;
-    vehiculos = VEHICULOS_TANQUE;
+    vehiculos: { id: string; placa: string; label: string; capacidadTanque: number }[] = [];
+    cargandoVehiculos = true;
 
     form: FormGroup = this.fb.group({
         idVehiculo: ['', Validators.required],
@@ -66,6 +68,7 @@ export class CombustibleDialogComponent {
         litrosCargados: [0, [Validators.required, Validators.min(0.1)]],
         costoPorLitro: [0, [Validators.required, Validators.min(0)]],
         costoTotal: [{ value: 0, disabled: true }],
+        costoTotalBss: [0, [Validators.required, Validators.min(0)]],
         estacionServicio: [''],
         observaciones: [''],
     });
@@ -80,6 +83,22 @@ export class CombustibleDialogComponent {
     get selectedVehiculo() {
         const id = this.form.get('idVehiculo')?.value;
         return this.vehiculos.find((v) => v.id === id);
+    }
+
+    async ngOnInit() {
+        try {
+            const reales = await this.vehiculoService.obtenerVehiculos();
+            this.vehiculos = reales.map((v) => ({
+                id: v.id_vehiculo || v.id || '',
+                placa: v.placa || '',
+                label: `${v.marca || ''} ${v.modelo || ''} (${v.anio || ''})`.trim(),
+                capacidadTanque: 0,
+            }));
+        } catch {
+            this.vehiculos = [];
+        } finally {
+            this.cargandoVehiculos = false;
+        }
     }
 
     get nivelAntesValue(): number {
@@ -131,6 +150,7 @@ export class CombustibleDialogComponent {
                     nivelTanqueDespues: data.nivelTanqueDespues ?? 1,
                     litrosCargados: data.litrosCargados || 0,
                     costoPorLitro: data.costoPorLitro || 0,
+                    costoTotalBss: data.costoTotalBss || 0,
                     estacionServicio: data.estacionServicio || '',
                     observaciones: data.observaciones || '',
                 });
@@ -146,6 +166,7 @@ export class CombustibleDialogComponent {
                     nivelTanqueDespues: 1,
                     litrosCargados: 0,
                     costoPorLitro: 0,
+                    costoTotalBss: 0,
                     estacionServicio: '',
                     observaciones: '',
                 });
@@ -192,6 +213,7 @@ export class CombustibleDialogComponent {
             litrosCargados: raw.litrosCargados,
             costoPorLitro: raw.costoPorLitro,
             costoTotal: raw.litrosCargados * raw.costoPorLitro,
+            costoTotalBss: raw.costoTotalBss || 0,
             estacionServicio: raw.estacionServicio || undefined,
             observaciones: raw.observaciones || undefined,
         };

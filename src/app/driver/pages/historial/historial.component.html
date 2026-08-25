@@ -325,34 +325,22 @@
                                                         item of grupoCronograma.transiciones;
                                                         track item.fecha
                                                     ) {
-                                                        <div
-                                                            class="flex items-center gap-2"
-                                                        >
+                                                        <div class="flex items-center gap-2">
                                                             <div
                                                                 class="w-2 h-2 rounded-full shrink-0"
                                                                 [style.background]="
-                                                                    cronogramaColor(
-                                                                        item.estado
-                                                                    )
+                                                                    cronogramaColor(item.estado)
                                                                 "
                                                             ></div>
                                                             <span
                                                                 class="text-xs font-medium text-surface-700 dark:text-surface-200"
                                                             >
-                                                                {{
-                                                                    estadoLabel(
-                                                                        item.estado
-                                                                    )
-                                                                }}
+                                                                {{ estadoLabel(item.estado) }}
                                                             </span>
                                                             <span
                                                                 class="text-[10px] text-surface-400 ml-auto shrink-0"
                                                             >
-                                                                {{
-                                                                    formatFecha(
-                                                                        item.fecha
-                                                                    )
-                                                                }}
+                                                                {{ formatFecha(item.fecha) }}
                                                             </span>
                                                         </div>
                                                         @if (item.observacion) {

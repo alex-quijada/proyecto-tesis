@@ -31,6 +31,7 @@ import {
 interface KpiCard {
     label: string;
     value: number;
+    valueVES?: number;
     icon: string;
     subtitle: string;
     ruta: string;
@@ -67,9 +68,17 @@ export class Dashboard implements OnInit, OnDestroy {
     loading = signal(true);
     kpis = signal<KpiCard[]>([]);
     viajesActivos = signal<ViajeActivo[]>([]);
-    facturasPendientes = signal<{ lat: number; lng: number; titulo: string; detalle: string }[]>(
-        [],
-    );
+    facturasPendientes = signal<
+        {
+            lat: number;
+            lng: number;
+            titulo: string;
+            numeroFactura: string;
+            direccion: string;
+            totalUSD: number;
+            totalVES: number;
+        }[]
+    >([]);
     posiciones = signal<Record<string, PosicionChoferLite>>({});
     entregasRecientes = signal<ActividadItem[]>([]);
     incidencias = signal<ActividadItem[]>([]);
@@ -125,7 +134,10 @@ export class Dashboard implements OnInit, OnDestroy {
                     lat: f.lat!,
                     lng: f.lng!,
                     titulo: f.nombreCliente,
-                    detalle: `Factura ${f.numeroFactura} — $${f.totalUSD.toFixed(2)}`,
+                    numeroFactura: f.numeroFactura,
+                    direccion: f.direccion,
+                    totalUSD: f.totalUSD,
+                    totalVES: f.totalVES,
                 })),
             );
 
@@ -154,8 +166,9 @@ export class Dashboard implements OnInit, OnDestroy {
                     ruta: '/app/vehiculos',
                 },
                 {
-                    label: 'Monto Pendiente (USD)',
+                    label: 'Monto Pendiente',
                     value: kpis.montoPendienteUSD,
+                    valueVES: kpis.montoPendienteVES,
                     icon: 'pi pi-dollar',
                     subtitle: 'Mercancía sin entregar',
                     ruta: '/app/rutas/optimizacion',
@@ -328,12 +341,52 @@ export class Dashboard implements OnInit, OnDestroy {
                 title: f.titulo,
             });
             const info = new google.maps.InfoWindow({
-                content: `<div class="text-sm"><strong>${f.titulo}</strong><br>${f.detalle}</div>`,
+                content: this.infoWindowHtml(f),
+                maxWidth: 260,
             });
-            marker.addListener('gmp-click', () => info.open(this.mapa, marker));
+            marker.addListener('gmp-click', () => info.open({ map: this.mapa, anchor: marker }));
             this.markers.push(marker);
             this.infoWindows.push(info);
         }
+    }
+
+    /** HTML del InfoWindow con estilos inline (los estilos de la app no se
+     *  aplican dentro del contexto aislado de Google Maps). El `margin-top`
+     *  negativo sube el contenido para cubrir el header nativo de Google
+     *  (donde está la X) y así no queda espacio en blanco a su izquierda. */
+    private infoWindowHtml(f: {
+        titulo: string;
+        numeroFactura: string;
+        totalUSD: number;
+        totalVES: number;
+    }): string {
+        return `
+            <div style="font-family:'Segoe UI',system-ui,sans-serif;margin-top:-18px;width:248px;">
+                <div style="display:flex;align-items:center;gap:7px;background:#eff6ff;border-bottom:1px solid #bfdbfe;padding:11px 12px 9px;">
+                    <span style="width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${this.indiceMarcador(f)}</span>
+                    <span style="font-size:13px;font-weight:600;color:#0f172a;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this.escapar(f.titulo)}</span>
+                </div>
+                <div style="padding:7px 12px 9px;font-size:12px;color:#475569;">
+                    <span style="color:#0f172a;font-weight:600;">Factura:</span> ${this.escapar(f.numeroFactura)}
+                    <div style="margin-top:5px;border-top:1px solid #f1f5f9;padding-top:5px;">
+                        <strong style="color:#0f172a;">$${f.totalUSD.toLocaleString('es-VE', { maximumFractionDigits: 2 })}</strong>
+                        <span style="color:#94a3b8;margin:0 3px;">|</span>
+                        <strong style="color:#0f172a;">Bs ${f.totalVES.toLocaleString('es-VE', { maximumFractionDigits: 0 })}</strong>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    private indiceMarcador(f: { numeroFactura: string }): string {
+        const idx = this.facturasPendientes().findIndex((x) => x.numeroFactura === f.numeroFactura);
+        return idx >= 0 ? String(idx + 1) : '';
+    }
+
+    private escapar(texto: string): string {
+        return String(texto || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     private initChart(porMunicipio: { label: string; cantidad: number }[]) {
@@ -362,9 +415,7 @@ export class Dashboard implements OnInit, OnDestroy {
                 {
                     label: 'Guías pendientes',
                     data: porMunicipio.map((m) => m.cantidad),
-                    backgroundColor: porMunicipio.map(
-                        (_, i) => colores[i % colores.length],
-                    ),
+                    backgroundColor: porMunicipio.map((_, i) => colores[i % colores.length]),
                     borderRadius: 6,
                     borderSkipped: false,
                     maxBarThickness: 22,

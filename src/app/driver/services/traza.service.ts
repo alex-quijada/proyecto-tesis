@@ -68,7 +68,10 @@ export class TrazaService {
             es_simulacion: this.navigationService.simulando(),
             creada_en: new Date().toISOString(),
         };
-        const caché = await this.offlineStorage.leer<PuntoTraza[]>(this.uid, clave(this.uid, idViaje));
+        const caché = await this.offlineStorage.leer<PuntoTraza[]>(
+            this.uid,
+            clave(this.uid, idViaje),
+        );
         const puntos = caché?.data ?? [];
         puntos.push(punto);
         await this.offlineStorage.guardar(this.uid, clave(this.uid, idViaje), puntos);
@@ -78,7 +81,10 @@ export class TrazaService {
      *  Si falla (sin red), conserva el buffer para reintentar al reconectar. */
     async enviarTraza(idViaje: string): Promise<boolean> {
         if (!this.uid) return false;
-        const caché = await this.offlineStorage.leer<PuntoTraza[]>(this.uid, clave(this.uid, idViaje));
+        const caché = await this.offlineStorage.leer<PuntoTraza[]>(
+            this.uid,
+            clave(this.uid, idViaje),
+        );
         const puntos = caché?.data ?? [];
         if (puntos.length < 1) return true;
         if (!this.connectivity.isOnline()) return false;

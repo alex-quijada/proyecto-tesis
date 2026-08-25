@@ -23,7 +23,6 @@ import { ConfirmationService } from 'primeng/api';
 import { NotificationService } from '@/app/services/notification.service';
 import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
 
-
 import { environment } from '@/environments/environment';
 import { ViajeAdmin } from '@/app/services/viaje.types';
 import { ViajeService } from '@/app/services/viaje.service';
@@ -667,10 +666,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         this.togglingRecuperableId.set(factura.incidenciaId);
         const objetivo = factura.incidenciaRecuperable === true ? false : true;
         try {
-            await this.viajeService.setIncidenciaRecuperable(
-                factura.incidenciaId,
-                objetivo,
-            );
+            await this.viajeService.setIncidenciaRecuperable(factura.incidenciaId, objetivo);
             this.notif.add({
                 severity: 'success',
                 summary: objetivo ? 'Re-despachable' : 'Terminal',

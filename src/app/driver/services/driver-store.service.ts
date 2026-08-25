@@ -200,14 +200,10 @@ export class DriverStoreService implements OnDestroy {
         return this.guiasPendientesAgrupadas().filter((g) => idsGuiaViaje.has(g.id));
     });
 
-    readonly pendingGuiasViajeCount = computed(
-        () => this.guiasPendientesDelViaje().length,
-    );
+    readonly pendingGuiasViajeCount = computed(() => this.guiasPendientesDelViaje().length);
 
     /** Viaje activo del chofer (programado o en proceso). */
-    readonly activeViaje = computed<ViajeChofer | null>(
-        () => this.viajesChofer()[0] || null,
-    );
+    readonly activeViaje = computed<ViajeChofer | null>(() => this.viajesChofer()[0] || null);
 
     /**
      * Facturas del viaje EN PROCESO que quedaron en 'incidencia' con al menos
@@ -284,7 +280,9 @@ export class DriverStoreService implements OnDestroy {
                 ...(info || this.driverInfo()!),
                 vehiculos: this.mapearVehiculos(guias, vehiculos),
             }));
-            this.guiasAsignadas.set(await this.enriquecerConIncidencias(this.mapearEntregas(guias)));
+            this.guiasAsignadas.set(
+                await this.enriquecerConIncidencias(this.mapearEntregas(guias)),
+            );
             this.datosOffline.set(false);
             this.ultimaActualizacion.set(new Date());
             await this.offlineStorage.guardar(this.uid, 'guias', this.guiasAsignadas());

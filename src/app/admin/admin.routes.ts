@@ -67,4 +67,8 @@ export default [
                 (m) => m.HistorialEntregasComponent,
             ),
     },
+    {
+        path: 'informes',
+        loadChildren: () => import('./pages/informes/informes.routes'),
+    },
 ] as Routes;

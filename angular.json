@@ -22,6 +22,12 @@
                         "browser": "src/main.ts",
                         "tsConfig": "tsconfig.app.json",
                         "inlineStyleLanguage": "scss",
+                        "allowedCommonJsDependencies": [
+                            "pdfmake",
+                            "pdfmake/build/pdfmake",
+                            "pdfmake/build/vfs_fonts",
+                            "xlsx"
+                        ],
                         "assets": [
                             {
                                 "glob": "**/*",

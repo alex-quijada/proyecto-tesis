@@ -12,6 +12,7 @@ export interface CargaCombustible {
     litrosCargados: number;
     costoPorLitro: number;
     costoTotal: number;
+    costoTotalBss?: number;
     estacionServicio?: string;
     observaciones?: string;
 }

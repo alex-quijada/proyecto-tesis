@@ -124,7 +124,9 @@ export function ordenarPorVentana<T extends ParadaRuteable>(
             const esperaApertura = apertura != null && llegada < apertura ? apertura - llegada : 0;
 
             // Tiempo de viaje (km si es estimación) para desempatar.
-            const costoViaje = opciones.tiempoEntre ? viaje : haversine(ultimo, { lat: p.latitud, lng: p.longitud }) / 1000;
+            const costoViaje = opciones.tiempoEntre
+                ? viaje
+                : haversine(ultimo, { lat: p.latitud, lng: p.longitud }) / 1000;
 
             const score = urgenciaCierre * 1.0 + esperaApertura * 1.5 + costoViaje;
             if (score < mejorScore) {

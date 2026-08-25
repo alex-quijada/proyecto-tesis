@@ -1,4 +1,4 @@
-import { Component, input, model, effect } from '@angular/core';
+import { Component, input, model, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { DialogModule } from 'primeng/dialog';
@@ -10,7 +10,7 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { DividerModule } from 'primeng/divider';
 
 import { Vehiculo } from '../data/vehiculos-mock';
-import { MANTENIMIENTOS_MOCK } from '../mantenimiento/data/mantenimiento-mock';
+import { MantenimientoService } from '../mantenimiento/service/mantenimiento.service';
 import { TipoVehiculoIconoPipe } from '../pipes/tipo-vehiculo-icono.pipe';
 
 @Component({
@@ -30,6 +30,8 @@ import { TipoVehiculoIconoPipe } from '../pipes/tipo-vehiculo-icono.pipe';
     templateUrl: './vehiculo-detalle-dialog.component.html',
 })
 export class VehiculoDetalleDialogComponent {
+    private mantenimientoService = inject(MantenimientoService);
+
     visible = model<boolean>(false);
     vehiculo = input<Vehiculo>({});
 
@@ -98,23 +100,27 @@ export class VehiculoDetalleDialogComponent {
     }
 
     constructor() {
-        effect(() => {
+        effect(async () => {
             const v = this.vehiculo();
-            if (v?.id) {
-                this.mantenimientos = MANTENIMIENTOS_MOCK.filter((m) => m.idVehiculo === v.id).map(
-                    (m) => ({
-                        ...m,
-                        tipoLabel: m.tipo === 'PREVENTIVO' ? 'Preventivo' : 'Correctivo',
-                        estadoLabel:
-                            m.estado === 'EN_PROCESO'
-                                ? 'En Proceso'
-                                : m.estado.charAt(0) + m.estado.slice(1).toLowerCase(),
-                    }),
-                );
-            } else {
+            this.activeTab = '0';
+            const idVehiculo = v?.id_vehiculo || v?.id;
+            if (!idVehiculo) {
+                this.mantenimientos = [];
+                return;
+            }
+            try {
+                const lista = await this.mantenimientoService.obtenerMantenimientos(idVehiculo);
+                this.mantenimientos = lista.map((m) => ({
+                    ...m,
+                    tipoLabel: m.tipo === 'PREVENTIVO' ? 'Preventivo' : 'Correctivo',
+                    estadoLabel:
+                        m.estado === 'EN_PROCESO'
+                            ? 'En Proceso'
+                            : m.estado.charAt(0) + m.estado.slice(1).toLowerCase(),
+                }));
+            } catch {
                 this.mantenimientos = [];
             }
-            this.activeTab = '0';
         });
     }
 

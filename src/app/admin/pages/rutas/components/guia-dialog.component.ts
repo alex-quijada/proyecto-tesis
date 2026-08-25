@@ -36,7 +36,6 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 
-
 import { GuiaDespacho, FacturaGuia } from '../data/rutas-mock';
 import { CHOFERES_MOCK } from '../../choferes/data/choferes-mock';
 import { VEHICULOS_MOCK } from '../../vehiculos/data/vehiculos-mock';
