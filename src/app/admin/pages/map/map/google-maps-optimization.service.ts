@@ -289,41 +289,60 @@ export class GoogleMapsOptimizationService {
         });
     }
 
+    /** Extrae lat/lng numéricos de cualquier formato de punto de Google Maps o literal. */
+    private getLatLng(point: unknown): { lat: number; lng: number } | null {
+        if (!point) return null;
+        const p = point as Record<string, unknown>;
+        if (typeof p['lat'] === 'function' && typeof p['lng'] === 'function') {
+            return {
+                lat: (p['lat'] as () => number)(),
+                lng: (p['lng'] as () => number)(),
+            };
+        }
+        if (typeof p['lat'] === 'number' && typeof p['lng'] === 'number') {
+            return { lat: p['lat'], lng: p['lng'] };
+        }
+        return null;
+    }
+
+    /** ¿El origen de la petición está en o cerca del almacén (salida de viaje)? */
+    private origenCercaDeAlmacen(origin: google.maps.DirectionsRequest['origin']): boolean {
+        const coords = this.getLatLng(origin);
+        if (!coords) return false;
+        return haversine(coords, VIA_ALMACEN) < RADIO_CERCANIA_ALMACEN_M;
+    }
+
     /** Devuelve el tramo bloqueado más cercano por el que pasa la ruta. */
     private hallarCruce(route: google.maps.DirectionsRoute): CruceBloqueo | null {
         let mejor: CruceBloqueo | null = null;
-        const puntos: { lat: number; lng: number }[] = [];
-        // Geometría completa de la ruta (overview_path): más fiable que
-        // step.path, donde la calle bloqueada puede quedar entre steps.
-        if (route.overview_path) {
-            route.overview_path.forEach((p) => puntos.push({ lat: p.lat(), lng: p.lng() }));
-        }
-        route.legs.forEach((leg) => {
+
+        (route.legs || []).forEach((leg, legIdx) => {
+            const puntos: { lat: number; lng: number }[] = [];
             (leg.steps || []).forEach((step) => {
                 (step.path || []).forEach((p) => puntos.push({ lat: p.lat(), lng: p.lng() }));
             });
-        });
 
-        for (const p of puntos) {
-            for (const tramo of TRAMOS_BLOQUEADOS) {
-                for (let s = 0; s < tramo.segmento.length - 1; s++) {
-                    const proy = this.proyectarASegmento(
-                        p,
-                        tramo.segmento[s],
-                        tramo.segmento[s + 1],
-                    );
-                    if (proy.dist < tramo.radioM && (!mejor || proy.dist < mejor.dist)) {
-                        mejor = {
-                            tramo,
-                            punto: proy.punto,
-                            vecino: tramo.segmento[s + 1],
-                            legIndex: 0,
-                            dist: proy.dist,
-                        };
+            for (const p of puntos) {
+                for (const tramo of TRAMOS_BLOQUEADOS) {
+                    for (let s = 0; s < tramo.segmento.length - 1; s++) {
+                        const proy = this.proyectarASegmento(
+                            p,
+                            tramo.segmento[s],
+                            tramo.segmento[s + 1],
+                        );
+                        if (proy.dist < tramo.radioM && (!mejor || proy.dist < mejor.dist)) {
+                            mejor = {
+                                tramo,
+                                punto: proy.punto,
+                                vecino: tramo.segmento[s + 1],
+                                legIndex: legIdx,
+                                dist: proy.dist,
+                            };
+                        }
                     }
                 }
             }
-        }
+        });
         return mejor;
     }
 
@@ -369,59 +388,50 @@ export class GoogleMapsOptimizationService {
     }
 
     /**
-     * Calcula la ruta evitando los puntos bloqueados: si la ruta normal pasa
-     * cerca de uno, inserta un waypoint "via" (no parada) en el leg que cruza,
-     * probando distancias de desvío crecientes a ambos lados. Si ninguna evita
-     * el cruce, devuelve la original.
+     * Calcula la ruta evitando los puntos bloqueados: si sale del almacén,
+     * inserta VIA_ALMACEN (stopover: false) para incorporarse a la avenida
+     * pavimentada sin alterar la lista de entregas.
      */
     private async pedirRuta(
         request: google.maps.DirectionsRequest,
     ): Promise<google.maps.DirectionsResult | null> {
-        const res = await this.llamar(request);
-        if (!res) return null;
-        const cruce = this.hallarCruce(res.routes[0]);
+        const esSalidaAlmacen = this.origenCercaDeAlmacen(request.origin);
 
-        // Salidas del almacén: forzar el paso por el punto fijo (más
-        // determinista que los offsets). Solo si el origen está cerca del
-        // almacén, para no afectar re-entregas desde otra posición.
-        if (cruce && this.origenCercaDeAlmacen(request.origin)) {
-            const conVia = await this.llamar({
-                ...request,
-                waypoints: [
-                    { location: new google.maps.LatLng(VIA_ALMACEN.lat, VIA_ALMACEN.lng), stopover: false },
-                    ...(request.waypoints || []),
-                ],
-            });
-            if (conVia && !this.hallarCruce(conVia.routes[0])) return conVia;
+        let req = request;
+        if (esSalidaAlmacen) {
+            const waypoints = [
+                {
+                    location: new google.maps.LatLng(VIA_ALMACEN.lat, VIA_ALMACEN.lng),
+                    stopover: false,
+                },
+                ...(request.waypoints || []),
+            ];
+            req = { ...request, waypoints };
         }
 
+        const res = await this.llamar(req);
+        if (!res) {
+            if (esSalidaAlmacen) return this.llamar(request);
+            return null;
+        }
+
+        const cruce = this.hallarCruce(res.routes[0]);
         if (!cruce) return res;
 
-        const pos = Math.min(cruce.legIndex, request.waypoints?.length ?? 0);
+        const pos = Math.min(cruce.legIndex, req.waypoints?.length ?? 0);
 
         for (const offsetM of OFFSETS_DESVIO_M) {
             for (const w of this.candidatosDesvio(cruce, offsetM)) {
-                const waypoints = [...(request.waypoints || [])];
+                const waypoints = [...(req.waypoints || [])];
                 waypoints.splice(pos, 0, {
                     location: new google.maps.LatLng(w.lat, w.lng),
                     stopover: false,
                 });
-                const res2 = await this.llamar({ ...request, waypoints });
+                const res2 = await this.llamar({ ...req, waypoints });
                 if (!res2) continue;
                 if (!this.hallarCruce(res2.routes[0])) return res2;
             }
         }
         return res;
-    }
-
-    /** ¿El origen de la petición está cerca del punto fijo del almacén? */
-    private origenCercaDeAlmacen(
-        origin: google.maps.DirectionsRequest['origin'],
-    ): boolean {
-        if (!origin) return false;
-        // Solo LatLngLiteral (los callers siempre los usan).
-        if (typeof origin === 'string' || !('lat' in origin)) return false;
-        const o = origin as google.maps.LatLngLiteral;
-        return haversine({ lat: o.lat, lng: o.lng }, VIA_ALMACEN) < RADIO_CERCANIA_ALMACEN_M;
     }
 }
