@@ -68,6 +68,14 @@ const TRAMOS_BLOQUEADOS: TramoBloqueado[] = [
  *  de menor a mayor. Si Google ignora el desvío corto, se prueba el siguiente. */
 const OFFSETS_DESVIO_M = [60, 100, 150, 200];
 
+/** Punto por el que la ruta SIEMPRE debe pasar al salir del almacén (evita
+ *  la calle de tierra que Google marca como transitable). Un waypoint "via"
+ *  obliga a Google a pasar por ahí, de forma determinista. */
+const VIA_ALMACEN = { lat: 10.954412, lng: -63.872763 };
+/** Distancia (m) al punto fijo dentro de la cual se considera que la ruta
+ *  sale del almacén y se fuerza el paso por VIA_ALMACEN. */
+const RADIO_CERCANIA_ALMACEN_M = 300;
+
 @Injectable({ providedIn: 'root' })
 export class GoogleMapsOptimizationService {
     /**
@@ -284,32 +292,38 @@ export class GoogleMapsOptimizationService {
     /** Devuelve el tramo bloqueado más cercano por el que pasa la ruta. */
     private hallarCruce(route: google.maps.DirectionsRoute): CruceBloqueo | null {
         let mejor: CruceBloqueo | null = null;
-        route.legs.forEach((leg, legIndex) => {
+        const puntos: { lat: number; lng: number }[] = [];
+        // Geometría completa de la ruta (overview_path): más fiable que
+        // step.path, donde la calle bloqueada puede quedar entre steps.
+        if (route.overview_path) {
+            route.overview_path.forEach((p) => puntos.push({ lat: p.lat(), lng: p.lng() }));
+        }
+        route.legs.forEach((leg) => {
             (leg.steps || []).forEach((step) => {
-                const path = step.path || [];
-                for (let i = 0; i < path.length; i++) {
-                    const p = { lat: path[i].lat(), lng: path[i].lng() };
-                    for (const tramo of TRAMOS_BLOQUEADOS) {
-                        for (let s = 0; s < tramo.segmento.length - 1; s++) {
-                            const proy = this.proyectarASegmento(
-                                p,
-                                tramo.segmento[s],
-                                tramo.segmento[s + 1],
-                            );
-                            if (proy.dist < tramo.radioM && (!mejor || proy.dist < mejor.dist)) {
-                                mejor = {
-                                    tramo,
-                                    punto: proy.punto,
-                                    vecino: tramo.segmento[s + 1],
-                                    legIndex,
-                                    dist: proy.dist,
-                                };
-                            }
-                        }
-                    }
-                }
+                (step.path || []).forEach((p) => puntos.push({ lat: p.lat(), lng: p.lng() }));
             });
         });
+
+        for (const p of puntos) {
+            for (const tramo of TRAMOS_BLOQUEADOS) {
+                for (let s = 0; s < tramo.segmento.length - 1; s++) {
+                    const proy = this.proyectarASegmento(
+                        p,
+                        tramo.segmento[s],
+                        tramo.segmento[s + 1],
+                    );
+                    if (proy.dist < tramo.radioM && (!mejor || proy.dist < mejor.dist)) {
+                        mejor = {
+                            tramo,
+                            punto: proy.punto,
+                            vecino: tramo.segmento[s + 1],
+                            legIndex: 0,
+                            dist: proy.dist,
+                        };
+                    }
+                }
+            }
+        }
         return mejor;
     }
 
@@ -366,6 +380,21 @@ export class GoogleMapsOptimizationService {
         const res = await this.llamar(request);
         if (!res) return null;
         const cruce = this.hallarCruce(res.routes[0]);
+
+        // Salidas del almacén: forzar el paso por el punto fijo (más
+        // determinista que los offsets). Solo si el origen está cerca del
+        // almacén, para no afectar re-entregas desde otra posición.
+        if (cruce && this.origenCercaDeAlmacen(request.origin)) {
+            const conVia = await this.llamar({
+                ...request,
+                waypoints: [
+                    { location: new google.maps.LatLng(VIA_ALMACEN.lat, VIA_ALMACEN.lng), stopover: false },
+                    ...(request.waypoints || []),
+                ],
+            });
+            if (conVia && !this.hallarCruce(conVia.routes[0])) return conVia;
+        }
+
         if (!cruce) return res;
 
         const pos = Math.min(cruce.legIndex, request.waypoints?.length ?? 0);
@@ -383,5 +412,16 @@ export class GoogleMapsOptimizationService {
             }
         }
         return res;
+    }
+
+    /** ¿El origen de la petición está cerca del punto fijo del almacén? */
+    private origenCercaDeAlmacen(
+        origin: google.maps.DirectionsRequest['origin'],
+    ): boolean {
+        if (!origin) return false;
+        // Solo LatLngLiteral (los callers siempre los usan).
+        if (typeof origin === 'string' || !('lat' in origin)) return false;
+        const o = origin as google.maps.LatLngLiteral;
+        return haversine({ lat: o.lat, lng: o.lng }, VIA_ALMACEN) < RADIO_CERCANIA_ALMACEN_M;
     }
 }
