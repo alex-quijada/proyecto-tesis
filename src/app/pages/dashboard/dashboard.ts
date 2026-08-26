@@ -305,11 +305,16 @@ export class Dashboard implements OnInit, OnDestroy {
             zoom: 10,
             mapId: 'map',
         });
+        this.mapa.addListener('click', () => this.cerrarInfoWindows());
         google.maps.event.addListenerOnce(this.mapa, 'idle', () => {
             this.mapaListo = true;
             this.agregarMarcadorAlmacen();
             if (this.facturasPendientes().length) this.dibujarFacturasPendientes();
         });
+    }
+
+    private cerrarInfoWindows() {
+        this.infoWindows.forEach((iw) => iw.close());
     }
 
     private agregarMarcadorAlmacen() {
@@ -323,57 +328,103 @@ export class Dashboard implements OnInit, OnDestroy {
             title: 'Almacén central',
         });
         const info = new google.maps.InfoWindow({ content: '<strong>Almacén central</strong>' });
-        marker.addListener('gmp-click', () => info.open(this.mapa, marker));
+        marker.addListener('gmp-click', () => {
+            this.cerrarInfoWindows();
+            info.open(this.mapa, marker);
+        });
         this.markers.push(marker);
         this.infoWindows.push(info);
     }
 
     private dibujarFacturasPendientes() {
         const facturas = this.facturasPendientes();
-        for (let i = 0; i < facturas.length; i++) {
-            const f = facturas[i];
+        const grupos = new Map<
+            string,
+            { lat: number; lng: number; facturas: (typeof facturas)[number][] }
+        >();
+        facturas.forEach((f) => {
+            const key = `${f.lat.toFixed(6)}|${f.lng.toFixed(6)}`;
+            const grupo = grupos.get(key);
+            if (grupo) {
+                grupo.facturas.push(f);
+            } else {
+                grupos.set(key, { lat: f.lat, lng: f.lng, facturas: [f] });
+            }
+        });
+
+        let recorridas = 0;
+        grupos.forEach((grupo) => {
+            const numero = recorridas + 1;
+            recorridas += grupo.facturas.length;
+
+            const badge =
+                grupo.facturas.length > 1
+                    ? `<div style="position:absolute;bottom:-5px;right:-5px;background:#ef4444;color:#fff;border-radius:9999px;font-size:10px;font-weight:700;padding:1px 5px;border:2px solid #fff;line-height:1.4;">+${
+                          grupo.facturas.length - 1
+                      }</div>`
+                    : '';
             const div = document.createElement('div');
-            div.innerHTML = `<div style="width:24px;height:24px;background:#3b82f6;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff;">${i + 1}</div>`;
+            div.innerHTML = `<div style="position:relative;width:24px;height:24px;"><div style="width:24px;height:24px;background:#3b82f6;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff;">${numero}</div>${badge}</div>`;
+
             const marker = new google.maps.marker.AdvancedMarkerElement({
-                position: { lat: f.lat, lng: f.lng },
+                position: { lat: grupo.lat, lng: grupo.lng },
                 map: this.mapa,
                 content: div.firstElementChild as HTMLElement,
-                title: f.titulo,
+                title:
+                    grupo.facturas.length > 1
+                        ? `${grupo.facturas.length} facturas`
+                        : grupo.facturas[0].titulo,
             });
             const info = new google.maps.InfoWindow({
-                content: this.infoWindowHtml(f),
-                maxWidth: 260,
+                content: this.infoWindowHtml(grupo.facturas),
+                maxWidth: 320,
             });
-            marker.addListener('gmp-click', () => info.open({ map: this.mapa, anchor: marker }));
+            marker.addListener('gmp-click', () => {
+                this.cerrarInfoWindows();
+                info.open({ map: this.mapa, anchor: marker });
+            });
             this.markers.push(marker);
             this.infoWindows.push(info);
-        }
+        });
     }
 
     /** HTML del InfoWindow con estilos inline (los estilos de la app no se
-     *  aplican dentro del contexto aislado de Google Maps). El `margin-top`
-     *  negativo sube el contenido para cubrir el header nativo de Google
-     *  (donde está la X) y así no queda espacio en blanco a su izquierda. */
-    private infoWindowHtml(f: {
-        titulo: string;
-        numeroFactura: string;
-        totalUSD: number;
-        totalVES: number;
-    }): string {
-        return `
-            <div style="font-family:'Segoe UI',system-ui,sans-serif;margin-top:-18px;width:248px;">
-                <div style="display:flex;align-items:center;gap:7px;background:#eff6ff;border-bottom:1px solid #bfdbfe;padding:11px 12px 9px;">
-                    <span style="width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${this.indiceMarcador(f)}</span>
-                    <span style="font-size:13px;font-weight:600;color:#0f172a;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this.escapar(f.titulo)}</span>
-                </div>
-                <div style="padding:7px 12px 9px;font-size:12px;color:#475569;">
-                    <span style="color:#0f172a;font-weight:600;">Factura:</span> ${this.escapar(f.numeroFactura)}
-                    <div style="margin-top:5px;border-top:1px solid #f1f5f9;padding-top:5px;">
-                        <strong style="color:#0f172a;">$${f.totalUSD.toLocaleString('es-VE', { maximumFractionDigits: 2 })}</strong>
-                        <span style="color:#94a3b8;margin:0 3px;">|</span>
-                        <strong style="color:#0f172a;">Bs ${f.totalVES.toLocaleString('es-VE', { maximumFractionDigits: 0 })}</strong>
+     *  aplican dentro del contexto aislado de Google Maps). La burbuja nativa
+     *  queda sin padding ni recorte por overflow (ver styles.scss) para que la
+     *  cabecera azul quede a ras y el nombre/factura no se corten. Cuando un
+     *  punto tiene varias facturas se muestran todas apiladas. */
+    private infoWindowHtml(
+        facturas: {
+            titulo: string;
+            numeroFactura: string;
+            totalUSD: number;
+            totalVES: number;
+        }[],
+    ): string {
+        const bloques = facturas
+            .map(
+                (f, i) => `
+                    <div style="display:flex;align-items:center;gap:7px;background:#eff6ff;${
+                        i > 0 ? 'border-top:1px solid #e2e8f0;' : ''
+                    }border-bottom:1px solid #bfdbfe;padding:11px 12px 9px;">
+                        <span style="width:20px;height:20px;border-radius:50%;background:#3b82f6;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${this.indiceMarcador(f)}</span>
+                        <span style="font-size:13px;font-weight:600;color:#0f172a;line-height:1.25;word-break:break-word;">${this.escapar(f.titulo)}</span>
                     </div>
-                </div>
+                    <div style="padding:8px 12px 10px;font-size:12px;color:#475569;line-height:1.5;">
+                        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+                            <span style="color:#0f172a;font-weight:600;">Factura:</span>
+                            <span>${this.escapar(f.numeroFactura)}</span>
+                            <strong style="color:#0f172a;">$${f.totalUSD.toLocaleString('es-VE', { maximumFractionDigits: 2 })}</strong>
+                            <span style="color:#94a3b8;">|</span>
+                            <strong style="color:#0f172a;">Bs ${f.totalVES.toLocaleString('es-VE', { maximumFractionDigits: 0 })}</strong>
+                        </div>
+                    </div>`,
+            )
+            .join('');
+
+        return `
+            <div style="font-family:'Segoe UI',system-ui,sans-serif;width:280px;max-height:340px;overflow-y:auto;">
+                ${bloques}
             </div>`;
     }
 
