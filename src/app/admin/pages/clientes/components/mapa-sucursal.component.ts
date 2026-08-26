@@ -171,15 +171,10 @@ export class MapaSucursalComponent implements OnDestroy {
     onUbicacionSeleccionada(event: { lat: number; lng: number; direccion: string }) {
         const group = this.sucursalGroup();
         if (!group) return;
-        const patch: Record<string, unknown> = {
+        group.patchValue({
             latitud: event.lat,
             longitud: event.lng,
-        };
-        const direccionActual = group.get('direccion')?.value;
-        if (!direccionActual?.trim()) {
-            patch['direccion'] = event.direccion;
-        }
-        group.patchValue(patch);
+        });
         this.setMarker(event.lat, event.lng);
         this.validarUbicacion(event.lat, event.lng);
     }
