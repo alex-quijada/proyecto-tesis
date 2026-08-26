@@ -26,12 +26,11 @@ export interface IncidenciaDatos {
 }
 
 export const TIPOS_INCIDENCIA = [
-    { label: 'Cliente fuera de tiempo', value: 'Cliente fuera de tiempo' },
-    { label: 'Cliente cerrado', value: 'Cliente cerrado' },
-    { label: 'Producto faltante', value: 'Producto faltante' },
-    { label: 'Producto sobrante', value: 'Producto sobrante' },
-    { label: 'Producto no solicitado', value: 'Producto no solicitado' },
-    { label: 'Producto dañado', value: 'Producto dañado' },
+    { label: 'Cliente cerrado', value: 'CERRADO' },
+    { label: 'Producto faltante', value: 'FALTANTE' },
+    { label: 'Producto sobrante', value: 'SOBRANTE' },
+    { label: 'Producto no solicitado', value: 'NO_SOLICITADO' },
+    { label: 'Producto dañado', value: 'DANADO' },
 ];
 
 @Component({

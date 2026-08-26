@@ -213,9 +213,15 @@ export class MapaSucursalComponent implements OnDestroy {
             this.marker.addListener('dragend', () => {
                 const pos = this.marker!.position;
                 if (!pos) return;
-                const latlng = pos as google.maps.LatLng;
-                const newLat = latlng.lat();
-                const newLng = latlng.lng();
+                const p = pos as google.maps.LatLng | google.maps.LatLngLiteral;
+                const newLat =
+                    typeof (p as google.maps.LatLng).lat === 'function'
+                        ? (p as google.maps.LatLng).lat()
+                        : (p as google.maps.LatLngLiteral).lat;
+                const newLng =
+                    typeof (p as google.maps.LatLng).lng === 'function'
+                        ? (p as google.maps.LatLng).lng()
+                        : (p as google.maps.LatLngLiteral).lng;
                 group.patchValue({
                     latitud: newLat,
                     longitud: newLng,

@@ -68,6 +68,36 @@
             </div>
         }
     </div>
+
+    <!-- Hora de volver al almacén: pendientes quedan fuera de horario -->
+    @if (esHoraDeVolver()) {
+        <div
+            class="flex items-start gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40 rounded-xl px-3 py-3"
+        >
+            <div
+                class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center flex-shrink-0"
+            >
+                <i class="pi pi-warehouse text-lg"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                    Es hora de volver al almacén
+                </div>
+                <div class="text-xs text-amber-700 dark:text-amber-400">
+                    Las {{ guiasPendientes().length }} entrega(s) pendientes quedarán marcadas como
+                    fuera de horario (re-despachables).
+                </div>
+            </div>
+            <p-button
+                label="Volver"
+                icon="pi pi-warehouse"
+                size="small"
+                severity="warn"
+                (onClick)="volverAlAlmacen()"
+                styleClass="flex-shrink-0"
+            />
+        </div>
+    }
     <div class="flex gap-2 items-center justify-end -mb-2 -mt-2">
         <span class="text-[11px] text-surface-400 flex-shrink-0">{{ actualizadoHace() }}</span>
         <p-button

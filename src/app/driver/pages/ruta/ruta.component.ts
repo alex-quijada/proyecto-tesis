@@ -17,6 +17,12 @@ import {
     Waypoint,
 } from '../../../admin/pages/map/map/google-maps-optimization.service';
 import { environment } from '@/environments/environment';
+import {
+    esHoraDeVolver,
+    duracionLegMin,
+    tiempoViajeDistanciaMin,
+    distanciaHasta,
+} from '../../services/fuera-horario.util';
 
 interface ParadaDisplay {
     id: string;
@@ -84,6 +90,78 @@ export class RutaComponent implements OnInit {
     );
 
     readonly completedCount = computed(() => this.guiasCompletadas().length);
+
+    /** Paradas pendientes con coordenadas (para estimar el viaje a la siguiente). */
+    readonly pendientesConCoords = computed(() =>
+        this.guiasPendientes().filter((p) => p.latitud != null && p.longitud != null),
+    );
+
+    /** Minutos estimados de viaje hasta la siguiente parada pendiente. Usa la
+     *  duración del leg de la ruta detallada si existe; si no, desde el almacén
+     *  (no hay posición del chofer en esta página). */
+    readonly tiempoViajeSiguienteMin = computed(() => {
+        const viaje = this.activeViaje();
+        const pendientes = this.pendientesConCoords();
+        if (pendientes.length < 1) return 0;
+        const siguiente = pendientes[0];
+
+        const legs = viaje?.ruta_detallada?.legs || [];
+        if (legs.length > 0) {
+            const idxLeg = Math.max(
+                0,
+                Math.min((siguiente.ordenVisita || 0) - 1, legs.length - 1),
+            );
+            const dur = duracionLegMin(legs[idxLeg]);
+            if (dur !== null) return Math.max(1, Math.round(dur));
+        }
+
+        const desde = { lat: environment.warehouseLat, lng: environment.warehouseLng };
+        const dist = distanciaHasta(desde, {
+            lat: siguiente.latitud!,
+            lng: siguiente.longitud!,
+        });
+        return Math.max(1, Math.round(tiempoViajeDistanciaMin(dist)));
+    });
+
+    /** ¿Es hora de volver al almacén? horaActual + viaje + 12 (servicio) + 15 (gracia) > ventana_fin. */
+    readonly esHoraDeVolver = computed(() => {
+        const viaje = this.activeViaje();
+        if (!viaje || viaje.estado !== 'proceso') return false;
+        if (this.guiasPendientes().length < 1) return false;
+        return esHoraDeVolver({
+            ventanaFin: viaje.ventana_fin,
+            horaActual: this.store.now(),
+            tiempoViajeSiguienteMin: this.tiempoViajeSiguienteMin(),
+        });
+    });
+
+    /** "Hora de volver al almacén": marca pendientes como FUERA_HORARIO y
+     *  redirige al mapa para que navegue directo al almacén (allí se finaliza). */
+    async volverAlAlmacen() {
+        const viaje = this.activeViaje();
+        if (!viaje || this.reordering()) return;
+        try {
+            const res = await this.viajeService.marcarFueraHorario(viaje.id_viaje);
+            await this.store.recargarViajes();
+            this.sincronizarParadas();
+            this.store.volviendoAlAlmacen.set(true);
+            this.notif.add({
+                severity: 'warn',
+                summary: 'Volviendo al almacén',
+                detail:
+                    res.total_marcadas > 0
+                        ? `${res.total_marcadas} entrega(s) marcadas fuera de horario. Avanza al mapa para volver al almacén.`
+                        : 'Las entregas pendientes ya estaban marcadas. Avanza al mapa para volver.',
+            });
+            this.router.navigate(['/driver/mapa']);
+        } catch (err: any) {
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo marcar el viaje como fuera de horario.',
+            });
+        }
+    }
 
     constructor() {
         // Re-sincroniza las paradas cuando el store recibe el viaje o las

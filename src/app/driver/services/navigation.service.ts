@@ -39,7 +39,7 @@ export interface EstadoSimulacion {
 }
 
 const UMBRAL_PASO_M = 25;
-const UMBRAL_LLEGADA_M = 40;
+const UMBRAL_LLEGADA_M = 15;
 const UMBRAL_RE_RUTEO_M = 300;
 const DEBOUNCE_RE_RUTEO_MS = 60000;
 const SIM_INTERVALO_MS = 200;
@@ -165,6 +165,65 @@ export class NavigationService {
 
     setVelocidadSimulacion(v: number) {
         this.velocidadSimulacion.set(v);
+    }
+
+    /**
+     * Navega directo de vuelta al almacén (sin paradas intermedias). Al llegar,
+     * `cercaDeAlmacen` (mi-ruta) muestra el botón para finalizar el viaje.
+     */
+    async navegarAlAlmacen(
+        warehouse: Waypoint,
+        viajeId?: string,
+        origen?: Waypoint,
+    ): Promise<boolean> {
+        // Capturar la posición actual ANTES de detener (detener la limpia).
+        const posActual = this.posicionDriver();
+        const inicio: Waypoint =
+            origen ??
+            (posActual ? { lat: posActual.lat, lng: posActual.lng, name: 'Posición actual' } : warehouse);
+
+        this.detener();
+        this.viajeIdGuardado = viajeId ?? null;
+        this.paradas = [];
+        this.paradasNavList.set([]);
+        this.warehouse = warehouse;
+        this.totalParadas.set(0);
+        this.paradaActual.set(0);
+        this.pasoActual.set(0);
+        this.ultimaLlegadaAnunciada = -1;
+
+        if (!this.connectivity.isOnline()) {
+            this.notif.add({
+                severity: 'warn',
+                summary: 'Sin conexión',
+                detail: 'No se puede calcular la ruta de vuelta al almacén.',
+            });
+            this.navegando.set(false);
+            return false;
+        }
+
+        const ruta = await this.googleOptimization.getRutaDetallada([], inicio, warehouse);
+        if (!ruta || ruta.pasos.length < 1) {
+            this.navegando.set(false);
+            return false;
+        }
+
+        this.path.set(ruta.path);
+        this.pasos.set(ruta.pasos);
+        this.legs.set(ruta.legs || []);
+        this.navegando.set(true);
+        this.pausado.set(false);
+        this.precalcularSim();
+
+        const inicioRuta = ruta.path[0] || { lat: warehouse.lat, lng: warehouse.lng };
+        this.posicionDriver.set({ lat: inicioRuta.lat, lng: inicioRuta.lng });
+
+        if (this.simulando()) {
+            this.iniciarSimulacion();
+        } else {
+            this.iniciarGps();
+        }
+        return true;
     }
 
     toggleSimulacion() {
@@ -555,7 +614,7 @@ export class NavigationService {
         if (dist < UMBRAL_LLEGADA_M) {
             // En simulación el punto sigue el path exacto, así que se puede
             // llegar mucho más cerca del destino que en GPS real (donde el
-            // margen de 40 m compensa la imprecisión de la señal). Aquí se
+            // margen de 15 m compensa la imprecisión de la señal). Aquí se
             // acerca el marcador hasta ~3 m del punto de entrega antes de
             // detenerse, en vez de quedarse en el borde del área.
             if (this.simulando() && dist > 3) {

@@ -31,6 +31,12 @@ import {
     PosicionChofer,
     HistorialViajeRow,
 } from './services/seguimiento.service';
+import {
+    esHoraDeVolver,
+    duracionLegMin,
+    tiempoViajeDistanciaMin,
+    distanciaHasta,
+} from '@/app/driver/services/fuera-horario.util';
 
 interface ChoferMonitoreo {
     idChofer: string;
@@ -81,6 +87,8 @@ interface LineaTiempoItem {
     fecha: Date | null;
     chip?: string | null;
     estadoParada?: string | null;
+    /** Punto actual del viaje (donde está el camión ahora) → se resalta en la UI. */
+    actual?: boolean;
 }
 
 const PALETA = [
@@ -156,6 +164,54 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     readonly detalleActual = computed<ChoferMonitoreo | null>(() => {
         const id = this.detalleChoferId();
         return id ? (this.monitoreo().find((c) => c.idChofer === id) ?? null) : null;
+    });
+
+    /** ¿El viaje está en "hora de volver al almacén"? Misma fórmula que el chofer
+     *  (horaActual + viaje + 12 servicio + 15 gracia > ventana_fin) usando la
+     *  posición en vivo del chofer y la duración del leg hacia la siguiente
+     *  parada pendiente. Se marca en rojo para que el analista pueda ampliar la
+     *  ventana si quiere darle más chance al chofer. */
+    readonly fueraHorario = computed(() => {
+        const c = this.detalleActual();
+        if (!c?.idViaje) return false;
+        const viaje = this.viajes().find((v) => v.id_viaje === c.idViaje);
+        if (!viaje || viaje.estado !== 'proceso') return false;
+        const pendientes = (viaje.paradas || [])
+            .filter(
+                (p) =>
+                    p.estado_factura !== 'finalizado' && p.estado_factura !== 'incidencia',
+            )
+            .sort((a, b) => a.orden_visita - b.orden_visita);
+        if (pendientes.length < 1) return false;
+        const siguiente = pendientes[0];
+
+        let viajeMin = 0;
+        const legs = viaje.ruta_detallada?.legs || [];
+        if (legs.length > 0) {
+            const idxLeg = Math.max(0, Math.min((siguiente.orden_visita || 1) - 1, legs.length - 1));
+            const dur = duracionLegMin(legs[idxLeg]);
+            if (dur !== null) viajeMin = Math.max(1, Math.round(dur));
+        }
+        if (viajeMin === 0 && siguiente.latitud != null && siguiente.longitud != null) {
+            const desde = { lat: c.latitud, lng: c.longitud };
+            viajeMin = Math.max(
+                1,
+                Math.round(
+                    tiempoViajeDistanciaMin(
+                        distanciaHasta(desde, {
+                            lat: siguiente.latitud,
+                            lng: siguiente.longitud,
+                        }),
+                    ),
+                ),
+            );
+        }
+
+        return esHoraDeVolver({
+            ventanaFin: viaje.ventana_fin,
+            horaActual: new Date(),
+            tiempoViajeSiguienteMin: viajeMin,
+        });
     });
 
     private mapa!: google.maps.Map;
@@ -334,6 +390,9 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             }
 
             let contador = 0;
+            // Índice (en `items`) del último item generado para esta parada:
+            // si es el destino actual del camión, ese item es el "punto actual".
+            let idxUltimoItemParada = -1;
             for (let t = 0; t < transiciones.length; t++) {
                 const trans = transiciones[t];
                 const siguiente = transiciones[t + 1];
@@ -356,6 +415,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                             chip: null,
                             estadoParada: 'proceso',
                         });
+                        idxUltimoItemParada = items.length - 1;
                         break;
 
                     case 'espera':
@@ -374,6 +434,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                                 : `En espera: ${this.formatoDuracion(ahora - trans.fecha.getTime())}`,
                             estadoParada: 'espera',
                         });
+                        idxUltimoItemParada = items.length - 1;
                         break;
 
                     case 'entrega':
@@ -392,6 +453,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                                 : `Entregando: ${this.formatoDuracion(ahora - trans.fecha.getTime())}`,
                             estadoParada: 'entrega',
                         });
+                        idxUltimoItemParada = items.length - 1;
                         break;
 
                     case 'finalizado':
@@ -420,6 +482,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                             chip: null,
                             estadoParada: 'incidencia',
                         });
+                        idxUltimoItemParada = items.length - 1;
                         break;
                 }
             }
@@ -438,6 +501,18 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                     chip: null,
                     estadoParada: p.estado,
                 });
+                idxUltimoItemParada = items.length - 1;
+            }
+
+            // Punto actual: la primera parada aún activa (en camino, espera o
+            // entrega). Su último item generado se resalta en la línea de tiempo.
+            const esActiva = p.estado === 'proceso' || p.estado === 'espera' || p.estado === 'entrega';
+            if (
+                esActiva &&
+                idxUltimoItemParada >= 0 &&
+                !items.some((it) => it.actual)
+            ) {
+                items[idxUltimoItemParada].actual = true;
             }
         }
 

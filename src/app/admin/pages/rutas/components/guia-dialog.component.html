@@ -326,9 +326,9 @@
                                         <p-inputnumber
                                             formControlName="totalUSD"
                                             [min]="0"
-                                            mode="currency"
-                                            currency="USD"
-                                            locale="en-US"
+                                            mode="decimal"
+                                            [minFractionDigits]="2"
+                                            [maxFractionDigits]="2"
                                             placeholder="0.00"
                                         />
                                     </div>
@@ -339,9 +339,9 @@
                                         <p-inputnumber
                                             formControlName="totalVES"
                                             [min]="0"
-                                            mode="currency"
-                                            currency="VES"
-                                            locale="es-VE"
+                                            mode="decimal"
+                                            [minFractionDigits]="2"
+                                            [maxFractionDigits]="2"
                                             placeholder="0.00"
                                         />
                                     </div>

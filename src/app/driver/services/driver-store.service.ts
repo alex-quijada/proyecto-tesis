@@ -129,12 +129,16 @@ export class DriverStoreService implements OnDestroy {
     readonly pendientesSincronizar = signal(0);
     readonly sincronizando = signal(false);
     readonly refrescando = signal(false);
+    /** El chofer decidió volver al almacén (hora de finalizar): el mapa debe
+     *  navegar directo al almacén al abrirse. Se limpia al consumirlo. */
+    readonly volviendoAlAlmacen = signal(false);
     /** Momento de la última carga exitosa de datos (para "actualizado hace"). */
     readonly ultimaActualizacion = signal<Date | null>(null);
 
     private uid: string | null = null;
     private realtimeCanal: RealtimeChannel | null = null;
     private debounceRealtime: ReturnType<typeof setTimeout> | null = null;
+    private pollInterval: ReturnType<typeof setInterval> | null = null;
     private escuchandoReconexion = false;
 
     readonly guiasPendientes = computed(() =>
@@ -304,6 +308,7 @@ export class DriverStoreService implements OnDestroy {
 
         await this.cargarViajes();
         this.initRealtime();
+        this.iniciarPollingViajeActivo();
 
         this.cargando.set(false);
         this.escucharReconexion();
@@ -570,7 +575,21 @@ export class DriverStoreService implements OnDestroy {
         }
     }
 
+    private iniciarPollingViajeActivo() {
+        if (this.pollInterval) return;
+        this.pollInterval = setInterval(() => {
+            const viaje = this.activeViaje();
+            if (viaje && viaje.estado === 'proceso' && this.connectivity.isOnline()) {
+                void this.cargarViajes(true);
+            }
+        }, 3000);
+    }
+
     ngOnDestroy() {
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
         if (this.debounceRealtime) clearTimeout(this.debounceRealtime);
         if (this.escuchandoReconexion) {
             window.removeEventListener('online', this.alReconectar);

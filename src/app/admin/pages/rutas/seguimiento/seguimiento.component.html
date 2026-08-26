@@ -79,7 +79,12 @@
 
                     <!-- Ventana laboral: editable -->
                     <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-surface-500">
-                        <i class="pi pi-clock"></i>
+                        <i
+                            class="pi"
+                            [class.pi-clock]="!fueraHorario()"
+                            [class.pi-exclamation-triangle]="fueraHorario()"
+                            [class.text-red-500]="fueraHorario()"
+                        ></i>
                         Ventana laboral:
                         @if (ventanaEditando()) {
                             <input
@@ -112,9 +117,24 @@
                                 (onClick)="cancelarVentana()"
                             />
                         } @else {
-                            <span class="font-medium">{{
+                            <span
+                                class="font-medium"
+                                [class.text-red-600]="fueraHorario()"
+                                [class.dark:text-red-400]="fueraHorario()"
+                                [class.animate-pulse]="fueraHorario()"
+                                pTooltip="{{ fueraHorario() ? 'Hora de volver al almacén — amplía la ventana para darle más chance al chofer' : '' }}"
+                                tooltipPosition="top"
+                            >{{
                                 ventanaLabel(c) || '08:00 - 16:30'
                             }}</span>
+                            @if (fueraHorario()) {
+                                <p-tag
+                                    value="Volver al almacén"
+                                    severity="danger"
+                                    icon="pi pi-warehouse"
+                                    styleClass="text-[10px]"
+                                />
+                            }
                             <p-button
                                 icon="pi pi-pencil"
                                 size="small"
@@ -258,7 +278,7 @@
                                         ></div>
                                         <div class="flex flex-col gap-4">
                                             @for (item of lineaTiempo(); track item.id) {
-                                                <div class="relative flex gap-3">
+                                                <div class="relative flex gap-3 transition-colors">
                                                     <div
                                                         class="relative z-10 w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-surface-0 text-xs font-bold"
                                                         [style.background]="
@@ -277,7 +297,17 @@
                                                             {{ item.numero }}
                                                         }
                                                     </div>
-                                                    <div class="min-w-0 pt-0.5 flex-1">
+                                                    <div
+                                                        class="min-w-0 flex-1 rounded-lg transition-colors"
+                                                        [class.px-2]="item.actual"
+                                                        [class.py-1.5]="item.actual"
+                                                        [class.-my-1.5]="item.actual"
+                                                        [class.bg-primary-50]="item.actual"
+                                                        [class.dark:bg-primary-950]="item.actual"
+                                                        [class.ring-1]="item.actual"
+                                                        [class.ring-primary]="item.actual"
+                                                        [class.shadow-sm]="item.actual"
+                                                    >
                                                         <div
                                                             class="flex items-start justify-between gap-2"
                                                         >

@@ -82,6 +82,8 @@ export interface ViajeChofer {
     distancia_total_km?: number | null;
     duracion_total_min?: number | null;
     fecha_creacion?: string;
+    ventana_inicio?: string;
+    ventana_fin?: string;
     ruta_detallada?: RutaPersistida | null;
     paradas: ParadaViaje[];
 }

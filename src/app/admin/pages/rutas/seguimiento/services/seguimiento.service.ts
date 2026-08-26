@@ -167,7 +167,20 @@ export class SeguimientoService implements OnDestroy {
     private onPosicion(payload: PayloadPosicion): void {
         const nueva = payload.new;
         if (!nueva?.id_chofer || nueva.latitud == null || nueva.longitud == null) return;
-        this.posiciones.update((mapa) => ({ ...mapa, [nueva.id_chofer!]: nueva }));
+        // El payload Realtime solo trae las columnas de `posiciones_chofer`;
+        // `nombre_chofer`/`placa_vehiculo` vienen del JOIN del RPC y se
+        // pierden si se sobrescribe el objeto. Se conservan del valor anterior.
+        const id = nueva.id_chofer!;
+        const anterior = this.posiciones()[id];
+        this.posiciones.update((mapa) => ({
+            ...mapa,
+            [id]: {
+                ...anterior,
+                ...nueva,
+                nombre_chofer: nueva.nombre_chofer || anterior?.nombre_chofer || undefined,
+                placa_vehiculo: nueva.placa_vehiculo || anterior?.placa_vehiculo || undefined,
+            },
+        }));
         this.ultimaActualizacion.set(new Date());
     }
 

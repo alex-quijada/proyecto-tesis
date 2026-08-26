@@ -189,7 +189,8 @@ export class GoogleMapsOptimizationService {
         origin?: Waypoint,
         destination?: Waypoint,
     ): Promise<RutaDetallada | null> {
-        if (waypoints.length < 1) return null;
+        // Permite waypoints vacíos si hay destination (ruta directa al almacén).
+        if (waypoints.length < 1 && !destination) return null;
         if (typeof google === 'undefined' || !google.maps) return null;
 
         const request: google.maps.DirectionsRequest = {

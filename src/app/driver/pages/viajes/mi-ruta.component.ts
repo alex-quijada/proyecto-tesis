@@ -29,6 +29,7 @@ import { ViajeService } from '@/app/services/viaje.service';
 import { RutaPersistida } from '@/app/services/viaje.types';
 import {
     GoogleMapsOptimizationService,
+    RutaDetallada,
     Waypoint,
 } from '../../../admin/pages/map/map/google-maps-optimization.service';
 import { environment } from '@/environments/environment';
@@ -44,6 +45,12 @@ import {
 import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
 import { ordenarPorVentana } from '../../services/time-window.router';
 import { TrazaService } from '../../services/traza.service';
+import {
+    esHoraDeVolver,
+    duracionLegMin,
+    tiempoViajeDistanciaMin,
+    distanciaHasta,
+} from '../../services/fuera-horario.util';
 
 interface ParadaMapa {
     id: string;
@@ -181,7 +188,10 @@ export class MiRutaComponent implements OnInit {
         // ruta desde la posición actual, llevando la parada extra primero.
         effect(() => {
             const reentregas = this.store.reentregasPendientes();
-            if (reentregas.length < 1) return;
+            if (reentregas.length < 1) {
+                this.reentregasProcesadas.clear();
+                return;
+            }
             const viaje = this.activeViaje();
             if (!viaje || viaje.estado !== 'proceso') return;
             const nuevas = reentregas.filter((p) => !this.reentregasProcesadas.has(p.id_factura));
@@ -317,9 +327,14 @@ export class MiRutaComponent implements OnInit {
         const pos = this.navigation.posicionDriver();
         if (!pos) return false;
         return (
-            haversine(pos, { lat: environment.warehouseLat, lng: environment.warehouseLng }) < 100
+            haversine(pos, { lat: environment.warehouseLat, lng: environment.warehouseLng }) < 15
         );
     });
+
+    /** Navegando directo al almacén (viaje en regreso, sin paradas restantes). */
+    readonly volviendoAlAlmacen = computed(
+        () => this.navigation.navegando() && this.navigation.totalParadas() === 0,
+    );
 
     /** Todas las entregas del viaje quedaron finalizadas (o con incidencia). */
     readonly viajeCompletado = computed(() => {
@@ -330,6 +345,48 @@ export class MiRutaComponent implements OnInit {
                 p.facturas.every((f) => f.estado === 'finalizado' || f.estado === 'incidencia'),
             )
         );
+    });
+
+    /** Paradas pendientes (facturas no finalizadas ni con incidencia). */
+    readonly paradasPendientes = computed(() => {
+        const pts = this.puntos();
+        return pts
+            .filter((p) => p.facturas.some((f) => f.estado !== 'finalizado' && f.estado !== 'incidencia'))
+            .sort((a, b) => a.ordenVisita - b.ordenVisita);
+    });
+
+    /** Minutos estimados de viaje hasta la siguiente parada pendiente. Usa la
+     *  duración del leg de la ruta detallada si existe; si no, distancia/35km/h. */
+    readonly tiempoViajeSiguienteMin = computed(() => {
+        const viaje = this.activeViaje();
+        const pendientes = this.paradasPendientes();
+        if (pendientes.length < 1) return 0;
+        const siguiente = pendientes[0];
+
+        // Legs de la ruta detallada: el leg i va hacia la parada i+1 (orden_visita 1-based).
+        const legs = viaje?.ruta_detallada?.legs || [];
+        if (legs.length > 0) {
+            const idxLeg = Math.max(0, Math.min((siguiente.ordenVisita || 1) - 1, legs.length - 1));
+            const dur = duracionLegMin(legs[idxLeg]);
+            if (dur !== null) return Math.max(1, Math.round(dur));
+        }
+
+        const pos = this.navigation.posicionDriver();
+        if (!pos) return 0;
+        const dist = distanciaHasta(pos, { lat: siguiente.latitud, lng: siguiente.longitud });
+        return Math.max(1, Math.round(tiempoViajeDistanciaMin(dist)));
+    });
+
+    /** ¿Es hora de volver al almacén? horaActual + viaje + 12 (servicio) + 15 (gracia) > ventana_fin. */
+    readonly esHoraDeVolver = computed(() => {
+        const viaje = this.activeViaje();
+        if (!viaje || viaje.estado !== 'proceso') return false;
+        if (this.viajeCompletado()) return false;
+        return esHoraDeVolver({
+            ventanaFin: viaje.ventana_fin,
+            horaActual: this.store.now(),
+            tiempoViajeSiguienteMin: this.tiempoViajeSiguienteMin(),
+        });
     });
 
     readonly puntoActual = computed<PuntoEntrega | null>(() => {
@@ -408,6 +465,19 @@ export class MiRutaComponent implements OnInit {
         // Llegada GPS a un punto → facturas del punto a 'espera' + abrir sheet de entrega.
         this.navigation.onLlegadaParada = (idx: number, parada?: ParadaNavegacion) =>
             this.alLlegarAPunto(idx, parada);
+
+        if (this.store.volviendoAlAlmacen()) {
+            // Viene de la página ruta ("Volver al almacén"): navegar directo al
+            // almacén sin re-iniciar la ruta de entregas.
+            this.store.volviendoAlAlmacen.set(false);
+            void this.mostrarRutaEnMapa(false).then(() => {
+                const viaje = this.activeViaje();
+                if (viaje?.estado === 'proceso') {
+                    void this.volverAlAlmacen();
+                }
+            });
+            return;
+        }
 
         setTimeout(() => void this.mostrarRutaEnMapa(), 100);
     }
@@ -596,7 +666,9 @@ export class MiRutaComponent implements OnInit {
         }
     }
 
-    private async mostrarRutaEnMapa() {
+    /** @param iniciarAuto Si false, solo dibuja marcadores/polylines sin arrancar
+     *  la navegación (útil al volver al almacén: la arranca `volverAlAlmacen`). */
+    private async mostrarRutaEnMapa(iniciarAuto = true) {
         await this.initMapa();
         if (!this.mapa) return;
 
@@ -683,6 +755,11 @@ export class MiRutaComponent implements OnInit {
         const viaje = this.activeViaje();
         if (this.viajeEnProceso) {
             if (!navegando) {
+                if (!iniciarAuto) {
+                    // Modo "volver al almacén": no arrancar la ruta de entregas
+                    // (lo hace `volverAlAlmacen` navegando directo al almacén).
+                    return;
+                }
                 // La navegación se detuvo (p. ej. se reabrió la app): arrancar
                 // y restaurar la simulación guardada si existe (queda pausada).
                 await this.iniciarNavegacion();
@@ -733,7 +810,7 @@ export class MiRutaComponent implements OnInit {
         const pos = this.navigation.posicionDriver();
         if (!pos) return;
         const dist = haversine(pos, { lat: punto.latitud, lng: punto.longitud });
-        if (dist < 40) {
+        if (dist < 15) {
             const idx = this.puntos().findIndex((p) => p.key === punto.key);
             if (idx >= 0) this.puntoEntrega.set(idx);
         }
@@ -887,22 +964,77 @@ export class MiRutaComponent implements OnInit {
                   ? { lat: puntos[0].latitud, lng: puntos[0].longitud }
                   : { lat: warehouse.lat, lng: warehouse.lng };
 
-            // Orden VRPTW desde el origen: la re-entrega se integra según su
-            // ventana y cercanía (no forzada primero), y las empresas que
-            // cierran pronto se priorizan.
-            const { paradas: paradasNav, cerradas } = this.construirParadasOrdenadas(
-                puntos,
-                origenCoords,
-            );
+            // Ordenar paradas pendientes usando Google Maps TSP (red vial real:
+            // sentidos de vía, flechas, giros y tiempos reales de viaje).
+            let paradasNav: ParadaNavegacion[] = [];
+            let detallada: RutaDetallada | null = null;
+            let cerradas: PuntoEntrega[] = [];
+            const origenWaypoint: Waypoint = origen ?? {
+                lat: origenCoords.lat,
+                lng: origenCoords.lng,
+                name: 'Posición actual',
+            };
+
+            const waypoints: Waypoint[] = puntos.map((p) => ({
+                lat: p.latitud,
+                lng: p.longitud,
+                name: `${p.nombreCliente} - ${p.facturas[0]?.numeroGuia || p.facturas[0]?.numeroFactura || ''}`,
+            }));
+
+            if (this.connectivity.isOnline()) {
+                try {
+                    const optRes = await this.googleOptimization.optimize(
+                        waypoints,
+                        origenWaypoint,
+                        warehouse,
+                    );
+
+                    if (optRes && optRes.order && optRes.order.length > 0) {
+                        const ordenados = optRes.order
+                            .map((idx) => puntos[idx])
+                            .filter((p): p is PuntoEntrega => !!p);
+
+                        paradasNav = ordenados.map((p, i) => ({
+                            id: p.key,
+                            ordenVisita: i,
+                            numeroGuia: p.facturas[0]?.numeroGuia || '',
+                            numeroFactura: p.facturas[0]?.numeroFactura || '',
+                            nombreCliente: p.nombreCliente,
+                            latitud: p.latitud,
+                            longitud: p.longitud,
+                        }));
+
+                        const waypointsOrdenados = optRes.order
+                            .map((idx) => waypoints[idx])
+                            .filter((w): w is Waypoint => !!w);
+
+                        detallada = await this.googleOptimization.getRutaDetallada(
+                            waypointsOrdenados,
+                            origenWaypoint,
+                            warehouse,
+                        );
+                    }
+                } catch (optErr) {
+                    console.warn('Fallo optimización de Google Maps, usando heurística local', optErr);
+                }
+            }
+
+            // Fallback heurístico si está offline o no se pudo optimizar con Google
+            if (paradasNav.length < 1) {
+                const { paradas: fallbackParadas, cerradas: fallbackCerradas } =
+                    this.construirParadasOrdenadas(puntos, origenCoords);
+                paradasNav = fallbackParadas;
+                cerradas = fallbackCerradas;
+            }
 
             if (paradasNav.length < 1) return;
 
             await this.navigation.iniciarNavegacion(
                 paradasNav,
                 warehouse,
-                null,
+                detallada,
                 viaje.id_viaje,
-                origen ?? { lat: origenCoords.lat, lng: origenCoords.lng, name: 'Posición actual' },
+                origenWaypoint,
             );
 
             // Persistir el orden optimizado por ventana en el itinerario del
@@ -1523,6 +1655,51 @@ export class MiRutaComponent implements OnInit {
                 severity: 'error',
                 summary: 'Error',
                 detail: err?.message || 'No se pudo finalizar el viaje.',
+            });
+        } finally {
+            this.finalizando.set(false);
+        }
+    }
+
+    /** "Hora de volver al almacén": marca las entregas pendientes como
+     *  FUERA_HORARIO (recuperables, re-despachables) y navega de vuelta al
+     *  almacén. El viaje se finaliza al llegar. */
+    async volverAlAlmacen() {
+        const viaje = this.activeViaje();
+        if (!viaje || this.finalizando()) return;
+        this.finalizando.set(true);
+        try {
+            await this.trazaService.enviarTraza(viaje.id_viaje);
+            const res = await this.viajeService.marcarFueraHorario(viaje.id_viaje);
+            await this.store.recargarViajes();
+            this.puntoEntrega.set(null);
+            this.navigation.puntoEntregaGuardado.set(null);
+            const warehouse: Waypoint = {
+                lat: environment.warehouseLat,
+                lng: environment.warehouseLng,
+                name: 'Almacén',
+            };
+            const ok = await this.navigation.navegarAlAlmacen(warehouse, viaje.id_viaje);
+            this.notif.add({
+                severity: 'warn',
+                summary: 'Volviendo al almacén',
+                detail:
+                    res.total_marcadas > 0
+                        ? `${res.total_marcadas} entrega(s) marcadas fuera de horario. Al llegar se cierra el viaje.`
+                        : 'Las entregas pendientes ya estaban marcadas. Navegando al almacén…',
+            });
+            if (!ok) {
+                this.notif.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudo calcular la ruta de vuelta al almacén.',
+                });
+            }
+        } catch (err: any) {
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo marcar el viaje como fuera de horario.',
             });
         } finally {
             this.finalizando.set(false);

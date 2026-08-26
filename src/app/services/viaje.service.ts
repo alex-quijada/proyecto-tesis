@@ -114,6 +114,18 @@ export class ViajeService {
         if (error) throw error;
     }
 
+    /** Marca las facturas pendientes de un viaje como FUERA_HORARIO
+     *  (recuperable, re-despachable) SIN cerrar el viaje. El viaje se
+     *  finaliza al llegar al almacén (finalizar_viaje). */
+    async marcarFueraHorario(idViaje: string): Promise<{ total_marcadas: number }> {
+        const { data, error } = await this.supabase.rpc('marcar_fuera_horario', {
+            p_id_viaje: idViaje,
+        });
+
+        if (error) throw error;
+        return (data as { total_marcadas: number }) || { total_marcadas: 0 };
+    }
+
     /** Edita la ventana laboral de un viaje (staff). */
     async actualizarVentanaViaje(idViaje: string, inicio: string, fin: string): Promise<void> {
         const { error } = await this.supabase.rpc('actualizar_ventana_viaje', {
