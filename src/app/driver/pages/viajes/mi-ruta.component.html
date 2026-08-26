@@ -110,7 +110,7 @@
                 ></div>
                 <div class="p-3 pb-2">
                     <!-- Progreso de parada -->
-                    @if (puntos()[navigation.paradaActual()]; as parada) {
+                    @if (paradaNavegando(); as parada) {
                         <div class="flex items-center justify-between mt-2 text-xs">
                             <span
                                 class="text-surface-500 dark:text-surface-400 truncate flex items-center gap-2"
@@ -204,8 +204,8 @@
                             @for (p of puntos(); track p.key; let i = $index) {
                                 <div
                                     class="flex items-center gap-2 mb-1.5 last:mb-0 text-xs rounded-lg px-1.5 py-1 cursor-pointer transition-colors"
-                                    [class.bg-primary-50]="i === navigation.paradaActual()"
-                                    [class.dark:bg-primary-950]="i === navigation.paradaActual()"
+                                    [class.bg-primary-50]="p.key === paradaNavegando()?.key"
+                                    [class.dark:bg-primary-950]="p.key === paradaNavegando()?.key"
                                     [class.opacity-60]="!puntoTienePendientes(i)"
                                     [class.hover:bg-surface-100]="puntoTienePendientes(i)"
                                     [class.dark:hover:bg-surface-700]="puntoTienePendientes(i)"

@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation, Position } from '@capacitor/geolocation';
 
@@ -60,6 +60,10 @@ export class NavigationService {
     readonly legs = signal<{ path: LatLng[] }[]>([]);
     readonly pasoActual = signal(0);
     readonly paradaActual = signal(0);
+    readonly paradasNavList = signal<ParadaNavegacion[]>([]);
+    readonly paradaNavegando = computed<ParadaNavegacion | null>(
+        () => this.paradasNavList()[this.paradaActual()] ?? null,
+    );
     readonly posicionDriver = signal<LatLng | null>(null);
     readonly rumbo = signal(0);
     readonly simulando = signal(false);
@@ -91,7 +95,7 @@ export class NavigationService {
     private readonly esNativo = Capacitor.isNativePlatform();
 
     /** Hook invocado al detectar la llegada a una parada (antes de avanzar). */
-    onLlegadaParada: ((idx: number) => void) | null = null;
+    onLlegadaParada: ((idx: number, parada?: ParadaNavegacion) => void) | null = null;
 
     async iniciarNavegacion(
         paradas: ParadaNavegacion[],
@@ -105,6 +109,7 @@ export class NavigationService {
 
         this.viajeIdGuardado = viajeId ?? null;
         this.paradas = [...paradas].sort((a, b) => a.ordenVisita - b.ordenVisita);
+        this.paradasNavList.set(this.paradas);
         this.warehouse = warehouse;
         this.totalParadas.set(this.paradas.length);
         this.paradaActual.set(0);
@@ -570,7 +575,7 @@ export class NavigationService {
             // paradaActual, así que sin este latch el toast se repetía cada tick).
             if (idx === this.ultimaLlegadaAnunciada) return;
             this.ultimaLlegadaAnunciada = idx;
-            this.onLlegadaParada?.(idx);
+            this.onLlegadaParada?.(idx, parada);
             // En simulación: detenerse en la parada hasta completar la entrega.
             this.pausarParaEntrega();
             if (idx < paradas.length - 1) {

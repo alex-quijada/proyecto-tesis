@@ -293,6 +293,19 @@ export class MiRutaComponent implements OnInit {
         return Array.from(mapa.values()).sort((a, b) => a.ordenVisita - b.ordenVisita);
     });
 
+    /** La parada de entrega activa a la que se está navegando actualmente. */
+    readonly paradaNavegando = computed<PuntoEntrega | null>(() => {
+        const paradaNav = this.navigation.paradaNavegando();
+        if (paradaNav) {
+            const punto = this.puntos().find(
+                (p) => p.key === paradaNav.id || p.facturaIds.includes(paradaNav.id),
+            );
+            if (punto) return punto;
+        }
+        const idx = this.navigation.paradaActual();
+        return this.puntos()[idx] ?? null;
+    });
+
     /** Los 3 pasos siguientes al que se muestra en grande (maniobra actual). */
     readonly pasosSiguientes = computed(() => {
         const pasoActual = this.navigation.pasoActual();
@@ -393,15 +406,32 @@ export class MiRutaComponent implements OnInit {
         this.cargando.set(false);
 
         // Llegada GPS a un punto → facturas del punto a 'espera' + abrir sheet de entrega.
-        this.navigation.onLlegadaParada = (idx: number) => this.alLlegarAPunto(idx);
+        this.navigation.onLlegadaParada = (idx: number, parada?: ParadaNavegacion) =>
+            this.alLlegarAPunto(idx, parada);
 
         setTimeout(() => void this.mostrarRutaEnMapa(), 100);
     }
 
-    private async alLlegarAPunto(idx: number) {
-        const punto = this.puntos()[idx];
+    private async alLlegarAPunto(idx: number, paradaNav?: ParadaNavegacion) {
+        const puntos = this.puntos();
+        let targetIndex = -1;
+
+        if (paradaNav) {
+            targetIndex = puntos.findIndex(
+                (p) => p.key === paradaNav.id || p.facturaIds.includes(paradaNav.id),
+            );
+        }
+
+        if (targetIndex < 0 && idx >= 0 && idx < puntos.length) {
+            targetIndex = idx;
+        }
+
+        if (targetIndex < 0) return;
+
+        const punto = puntos[targetIndex];
         if (!punto) return;
-        this.puntoEntrega.set(idx);
+
+        this.puntoEntrega.set(targetIndex);
         try {
             await this.store.marcarParadaEnEspera(punto.facturaIds);
         } catch {
@@ -629,15 +659,23 @@ export class MiRutaComponent implements OnInit {
         const pos = this.navigation.posicionDriver();
         if (pos) await this.moverMarcadorChofer(pos);
 
-        const rutaPersistida = this.activeViaje()?.ruta_detallada;
-        if (rutaPersistida && rutaPersistida.legs && rutaPersistida.legs.length > 0) {
-            await this.dibujarRutaPorTramos(rutaPersistida.legs);
-        } else if (rutaPersistida && rutaPersistida.path.length > 1) {
-            await this.dibujarPolyline(rutaPersistida.path);
-        }
-
         const navegando = this.navigation.navegando();
         const path = this.navigation.path();
+
+        // La ruta persistida (almacén → paradas) es la que se guardó al cerrar
+        // el viaje; tras una re-entrega la ruta real ya no empieza en el
+        // almacén. Solo dibujarla como vista previa cuando la navegación está
+        // inactiva (viaje programado / reapertura); con navegación en curso la
+        // dibujan los legs reales (effect de navigation), no la ruta vieja.
+        if (!navegando) {
+            const rutaPersistida = this.activeViaje()?.ruta_detallada;
+            if (rutaPersistida && rutaPersistida.legs && rutaPersistida.legs.length > 0) {
+                await this.dibujarRutaPorTramos(rutaPersistida.legs);
+            } else if (rutaPersistida && rutaPersistida.path.length > 1) {
+                await this.dibujarPolyline(rutaPersistida.path);
+            }
+        }
+
         if (navegando && path.length > 0) {
             await this.dibujarPolyline(path);
         }
@@ -690,17 +728,14 @@ export class MiRutaComponent implements OnInit {
     private abrirEntregaSiEnRango() {
         const viaje = this.activeViaje();
         if (!viaje) return;
-        const paradaNav = this.navigation.paradaActual();
-        const puntos = this.puntos();
-        if (paradaNav >= puntos.length) return;
-        const idx = paradaNav;
-        const punto = puntos[idx];
+        const punto = this.paradaNavegando();
         if (!punto) return;
         const pos = this.navigation.posicionDriver();
         if (!pos) return;
         const dist = haversine(pos, { lat: punto.latitud, lng: punto.longitud });
         if (dist < 40) {
-            this.puntoEntrega.set(idx);
+            const idx = this.puntos().findIndex((p) => p.key === punto.key);
+            if (idx >= 0) this.puntoEntrega.set(idx);
         }
     }
 
@@ -823,20 +858,42 @@ export class MiRutaComponent implements OnInit {
 
             // Origen = posición actual del chofer (desde donde está ahora).
             const pos = this.navigation.posicionDriver();
-            const origen: Waypoint | undefined = pos
+            let origen: Waypoint | undefined = pos
                 ? { lat: pos.lat, lng: pos.lng, name: 'Posición actual' }
                 : undefined;
+
+            // Sin posición en vivo (p. ej. al reentrar al mapa y la navegación
+            // aún no arrancó): recuperar la última conocida de la simulación
+            // guardada. Si tampoco existe, partir de la primera parada
+            // pendiente. NUNCA del almacén: eso regeneraría la ruta desde
+            // cero y devolvería el marcador al inicio del viaje.
+            if (!origen) {
+                const guardado = this.navigation.estadoSimulacionGuardado();
+                if (guardado?.posicion) {
+                    origen = {
+                        lat: guardado.posicion.lat,
+                        lng: guardado.posicion.lng,
+                        name: 'Posición guardada',
+                    };
+                }
+            }
 
             // Sin conexión: no se puede recalcular con Directions; se mantiene.
             if (!this.connectivity.isOnline() && !origen) return;
 
-            // Orden VRPTW desde la posición actual: la re-entrega se integra
-            // según su ventana y cercanía (no forzada primero), y las empresas
-            // que cierran pronto se priorizan.
-            const { paradas: paradasNav, cerradas } = this.construirParadasOrdenadas(puntos, {
-                lat: origen?.lat ?? warehouse.lat,
-                lng: origen?.lng ?? warehouse.lng,
-            });
+            const origenCoords: { lat: number; lng: number } = origen
+                ? { lat: origen.lat, lng: origen.lng }
+                : puntos.length > 0
+                  ? { lat: puntos[0].latitud, lng: puntos[0].longitud }
+                  : { lat: warehouse.lat, lng: warehouse.lng };
+
+            // Orden VRPTW desde el origen: la re-entrega se integra según su
+            // ventana y cercanía (no forzada primero), y las empresas que
+            // cierran pronto se priorizan.
+            const { paradas: paradasNav, cerradas } = this.construirParadasOrdenadas(
+                puntos,
+                origenCoords,
+            );
 
             if (paradasNav.length < 1) return;
 
@@ -845,18 +902,28 @@ export class MiRutaComponent implements OnInit {
                 warehouse,
                 null,
                 viaje.id_viaje,
-                origen,
+                origen ?? { lat: origenCoords.lat, lng: origenCoords.lng, name: 'Posición actual' },
             );
 
             // Persistir el orden optimizado por ventana en el itinerario del
             // viaje para que sobreviva a cierres/re-aperturas.
+            // Se mantienen las facturas ya finalizadas al inicio y se concatenan
+            // las pendientes en su nuevo orden óptimo para no corromper orden_visita en BD.
             try {
-                const idsOrdenados = paradasNav
+                const idsFinalizados = this.puntos()
+                    .filter((p) => p.facturas.every((f) => f.estado === 'finalizado'))
+                    .sort((a, b) => a.ordenVisita - b.ordenVisita)
+                    .flatMap((p) => p.facturaIds);
+
+                const idsPendientesOrdenados = paradasNav
                     .map((pn) => this.puntos().find((p) => p.key === pn.id))
                     .filter((p): p is PuntoEntrega => !!p)
                     .flatMap((p) => p.facturaIds);
-                if (idsOrdenados.length > 0) {
-                    await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, idsOrdenados);
+
+                const idsTodosOrdenados = [...idsFinalizados, ...idsPendientesOrdenados];
+
+                if (idsTodosOrdenados.length > 0) {
+                    await this.viajeService.actualizarOrdenViaje(viaje.id_viaje, idsTodosOrdenados);
                 }
             } catch (err) {
                 console.warn('No se pudo persistir el orden de la re-entrega', err);

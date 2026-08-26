@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -245,6 +245,8 @@ export class HistorialComponent implements OnInit {
 
     incidenciaGuia = signal<ViajeAdmin['paradas'][number] | null>(null);
 
+    @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
+
     constructor() {}
 
     async ngOnInit() {
@@ -339,6 +341,10 @@ export class HistorialComponent implements OnInit {
 
     abrirIncidencia(p: ViajeAdmin['paradas'][number]) {
         this.incidenciaGuia.set(p);
+        if (this.incidenciaDialog) {
+            this.incidenciaDialog.guia = this.incidenciaGuiaData;
+            this.incidenciaDialog.open();
+        }
     }
 
     get incidenciaGuiaData(): IncidenciaGuia | null {
