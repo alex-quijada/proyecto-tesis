@@ -72,8 +72,23 @@ interface FilaOperacion {
 
             @if (cargando()) {
                 <div class="flex flex-col gap-3">
-                    @for (_ of [1, 2, 3]; track $index) {
-                        <p-skeleton height="60px" borderRadius="8px" />
+                    <p-skeleton height="2rem" borderRadius="0.5rem" />
+                    @for (_ of [1, 2, 3, 4, 5]; track $index) {
+                        <div
+                            class="flex gap-4 p-4 border border-surface-200 dark:border-surface-700 rounded-lg"
+                        >
+                            <p-skeleton width="6rem" height="1.5rem" />
+                            <p-skeleton width="6rem" height="1.5rem" />
+                            <p-skeleton width="10rem" height="1.5rem" />
+                            <p-skeleton width="7rem" height="1.5rem" />
+                            <p-skeleton width="9rem" height="1.5rem" />
+                            <p-skeleton width="6rem" height="1.5rem" />
+                            <p-skeleton width="8rem" height="1.5rem" />
+                            <p-skeleton width="6rem" height="1.5rem" />
+                            <p-skeleton width="7rem" height="1.5rem" />
+                            <p-skeleton width="5rem" height="1.5rem" />
+                            <p-skeleton width="6rem" height="1.5rem" />
+                        </div>
                     }
                 </div>
             } @else if (filasFiltradas().length === 0) {

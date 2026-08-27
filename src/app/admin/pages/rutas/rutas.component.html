@@ -33,20 +33,39 @@
         </ng-template>
     </p-toolbar>
 
-    <p-table
-        #dt
-        [value]="guiasFiltradas"
-        dataKey="id"
-        [rows]="10"
-        [paginator]="true"
-        [rowsPerPageOptions]="[5, 10, 20, 50]"
-        [tableStyle]="{ 'min-width': '90rem' }"
-        [loading]="loading()"
-        styleClass="p-datatable-sm"
-        [rowHover]="true"
-        (onRowExpand)="onRowExpand($event)"
-        (onRowCollapse)="onRowCollapse($event)"
-    >
+    @if (loading()) {
+        <div class="flex flex-col gap-3">
+            @for (_ of [1, 2, 3, 4, 5]; track $index) {
+                <div
+                    class="flex gap-4 p-4 border border-surface-200 dark:border-surface-700 rounded-lg"
+                >
+                    <p-skeleton width="1.5rem" height="1.5rem" />
+                    <p-skeleton width="8rem" height="1.5rem" />
+                    <p-skeleton width="10rem" height="1.5rem" />
+                    <p-skeleton width="10rem" height="1.5rem" />
+                    <p-skeleton width="8rem" height="1.5rem" />
+                    <p-skeleton width="7rem" height="1.5rem" />
+                    <p-skeleton width="5rem" height="1.5rem" />
+                    <p-skeleton width="6rem" height="1.5rem" />
+                    <p-skeleton width="6rem" height="1.5rem" />
+                    <p-skeleton width="5rem" height="1.5rem" />
+                </div>
+            }
+        </div>
+    } @else {
+        <p-table
+            #dt
+            [value]="guiasFiltradas"
+            dataKey="id"
+            [rows]="10"
+            [paginator]="true"
+            [rowsPerPageOptions]="[5, 10, 20, 50]"
+            [tableStyle]="{ 'min-width': '90rem' }"
+            styleClass="p-datatable-sm"
+            [rowHover]="true"
+            (onRowExpand)="onRowExpand($event)"
+            (onRowCollapse)="onRowCollapse($event)"
+        >
         <ng-template #caption>
             <div class="flex flex-wrap gap-2 items-center justify-between">
                 <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
@@ -180,104 +199,6 @@
             </tr>
         </ng-template>
 
-        <!-- Skeletons mientras cargan las guías -->
-        <ng-template #loadingbody>
-            <tr>
-                <td class="text-center!" style="width: 3rem">
-                    <p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" />
-                </td>
-                <td class="text-center!"><p-skeleton width="7rem" height="1rem" /></td>
-                <td><p-skeleton width="10rem" height="1rem" /></td>
-                <td><p-skeleton width="9rem" height="1rem" /></td>
-                <td><p-skeleton width="8rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton width="6rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1.25rem" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1rem" /></td>
-                <td class="text-center!">
-                    <div class="flex items-center justify-center gap-2">
-                        <p-skeleton shape="circle" size="1.75rem" />
-                        <p-skeleton shape="circle" size="1.75rem" />
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td class="text-center!" style="width: 3rem">
-                    <p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" />
-                </td>
-                <td class="text-center!"><p-skeleton width="7rem" height="1rem" /></td>
-                <td><p-skeleton width="10rem" height="1rem" /></td>
-                <td><p-skeleton width="9rem" height="1rem" /></td>
-                <td><p-skeleton width="8rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton width="6rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1.25rem" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1rem" /></td>
-                <td class="text-center!">
-                    <div class="flex items-center justify-center gap-2">
-                        <p-skeleton shape="circle" size="1.75rem" />
-                        <p-skeleton shape="circle" size="1.75rem" />
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td class="text-center!" style="width: 3rem">
-                    <p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" />
-                </td>
-                <td class="text-center!"><p-skeleton width="7rem" height="1rem" /></td>
-                <td><p-skeleton width="10rem" height="1rem" /></td>
-                <td><p-skeleton width="9rem" height="1rem" /></td>
-                <td><p-skeleton width="8rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton width="6rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1.25rem" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1rem" /></td>
-                <td class="text-center!">
-                    <div class="flex items-center justify-center gap-2">
-                        <p-skeleton shape="circle" size="1.75rem" />
-                        <p-skeleton shape="circle" size="1.75rem" />
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td class="text-center!" style="width: 3rem">
-                    <p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" />
-                </td>
-                <td class="text-center!"><p-skeleton width="7rem" height="1rem" /></td>
-                <td><p-skeleton width="10rem" height="1rem" /></td>
-                <td><p-skeleton width="9rem" height="1rem" /></td>
-                <td><p-skeleton width="8rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton width="6rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1.25rem" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1rem" /></td>
-                <td class="text-center!">
-                    <div class="flex items-center justify-center gap-2">
-                        <p-skeleton shape="circle" size="1.75rem" />
-                        <p-skeleton shape="circle" size="1.75rem" />
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td class="text-center!" style="width: 3rem">
-                    <p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" />
-                </td>
-                <td class="text-center!"><p-skeleton width="7rem" height="1rem" /></td>
-                <td><p-skeleton width="10rem" height="1rem" /></td>
-                <td><p-skeleton width="9rem" height="1rem" /></td>
-                <td><p-skeleton width="8rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton width="6rem" height="1rem" /></td>
-                <td class="text-center!"><p-skeleton shape="circle" size="1.5rem" styleClass="mx-auto" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1.25rem" /></td>
-                <td class="text-center!"><p-skeleton width="5rem" height="1rem" /></td>
-                <td class="text-center!">
-                    <div class="flex items-center justify-center gap-2">
-                        <p-skeleton shape="circle" size="1.75rem" />
-                        <p-skeleton shape="circle" size="1.75rem" />
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
 
         <ng-template #expandedrow let-guia>
             <tr>
@@ -441,6 +362,7 @@
             </tr>
         </ng-template>
     </p-table>
+    }
 </div>
 
 <app-guia-dialog
