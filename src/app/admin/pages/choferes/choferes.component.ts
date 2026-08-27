@@ -19,6 +19,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { SkeletonModule } from 'primeng/skeleton';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -39,6 +40,7 @@ import { FormsModule } from '@angular/forms';
         TooltipModule,
         SelectModule,
         SelectButtonModule,
+        SkeletonModule,
         ChoferDialogComponent,
     ],
     providers: [ConfirmationService],
@@ -51,7 +53,7 @@ export class ChoferesComponent implements OnInit {
 
     choferes = signal<Chofer[]>([]);
     choferSelected = signal<Chofer[]>([]);
-    loading = signal(false);
+    loading = signal(true);
 
     isDialogOpen = signal<boolean>(false);
     choferParaModificar = signal<Chofer>({});

@@ -17,6 +17,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
+import { SkeletonModule } from 'primeng/skeleton';
 
 import { UsuarioDialogComponent } from './components/usuario-dialog.component';
 import { Usuario, ROLES } from './data/usuarios-mock';
@@ -41,6 +42,7 @@ import { AuthService } from '../../../auth/service/auth.service';
         ConfirmDialogModule,
         TooltipModule,
         CardModule,
+        SkeletonModule,
         UsuarioDialogComponent,
     ],
     providers: [ConfirmationService],
@@ -53,7 +55,7 @@ export class UsuariosComponent implements OnInit {
 
     usuarios = signal<Usuario[]>([]);
     usuariosSelected = signal<Usuario[]>([]);
-    loading = signal(false);
+    loading = signal(true);
     dialogVisible = false;
     editingUsuario: Usuario = {} as Usuario;
     filtroGlobal = '';

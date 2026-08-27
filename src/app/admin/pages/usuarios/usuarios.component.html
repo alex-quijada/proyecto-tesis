@@ -49,24 +49,41 @@
         </ng-template>
     </p-toolbar>
 
-    <p-table
-        #dt
-        [value]="usuariosFiltrados"
-        [(selection)]="usuariosSelected"
-        dataKey="id"
-        [rows]="10"
-        [paginator]="true"
-        [rowsPerPageOptions]="[5, 10, 20, 50]"
-        [globalFilterFields]="[
-            'nombreCompleto',
-            'email',
-            'username',
-            'documentoIdentidad.numero',
-            'rol',
-        ]"
-        [tableStyle]="{ 'min-width': '85rem' }"
-        [loading]="loading()"
-    >
+    @if (loading()) {
+        <div class="flex flex-col gap-3">
+            @for (_ of [1, 2, 3, 4, 5]; track $index) {
+                <div
+                    class="flex gap-4 p-4 border border-surface-200 dark:border-surface-700 rounded-lg"
+                >
+                    <p-skeleton width="2rem" height="1.5rem" />
+                    <p-skeleton width="14rem" height="1.5rem" />
+                    <p-skeleton width="8rem" height="1.5rem" />
+                    <p-skeleton width="14rem" height="1.5rem" />
+                    <p-skeleton width="8rem" height="1.5rem" />
+                    <p-skeleton width="10rem" height="1.5rem" />
+                    <p-skeleton width="6rem" height="1.5rem" />
+                    <p-skeleton width="6rem" height="1.5rem" />
+                </div>
+            }
+        </div>
+    } @else {
+        <p-table
+            #dt
+            [value]="usuariosFiltrados"
+            [(selection)]="usuariosSelected"
+            dataKey="id"
+            [rows]="10"
+            [paginator]="true"
+            [rowsPerPageOptions]="[5, 10, 20, 50]"
+            [globalFilterFields]="[
+                'nombreCompleto',
+                'email',
+                'username',
+                'documentoIdentidad.numero',
+                'rol',
+            ]"
+            [tableStyle]="{ 'min-width': '85rem' }"
+        >
         <ng-template #caption>
             <div class="flex flex-wrap gap-2 items-center justify-between">
                 <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
@@ -198,6 +215,7 @@
             </tr>
         </ng-template>
     </p-table>
+    }
 </div>
 
 <app-usuario-dialog

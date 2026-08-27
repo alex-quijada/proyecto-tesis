@@ -24,6 +24,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SelectModule } from 'primeng/select';
+import { SkeletonModule } from 'primeng/skeleton';
 
 @Component({
     selector: 'app-vehiculos',
@@ -41,6 +42,7 @@ import { SelectModule } from 'primeng/select';
         InputIconModule,
         ConfirmDialogModule,
         TooltipModule,
+        SkeletonModule,
         SelectButtonModule,
         SelectModule,
         VehiculoDialogComponent,
@@ -94,14 +96,14 @@ export class VehiculosComponent implements OnInit {
     isDetalleDialogOpen = signal<boolean>(false);
     vehiculoParaDetalle = signal<Vehiculo>({});
 
-    loading = false;
+    loading = signal<boolean>(true);
 
     ngOnInit() {
         this.cargarVehiculos();
     }
 
     async cargarVehiculos() {
-        this.loading = true;
+        this.loading.set(true);
         try {
             const data = await this.vehiculoService.obtenerVehiculos();
             this.vehiculos.set(data);
@@ -115,7 +117,7 @@ export class VehiculosComponent implements OnInit {
             });
             this.vehiculos.set([]);
         } finally {
-            this.loading = false;
+            this.loading.set(false);
         }
     }
 
