@@ -97,6 +97,17 @@ export class RutaService {
         return !!data;
     }
 
+    /** Cancela una guía (solo si todas sus facturas están en nuevo/embarque):
+     *  las marca como cancelada/inactiva y las saca del viaje si estaba
+     *  asignada. Devuelve cuántas facturas quedaron canceladas. */
+    async cancelarGuia(idGuia: string): Promise<{ total_facturas: number }> {
+        const { data, error } = await this.supabase.rpc('cancelar_guia', {
+            p_id_guia: idGuia,
+        });
+        if (error) throw error;
+        return (data as { total_facturas: number }) || { total_facturas: 0 };
+    }
+
     async crearGuia(guia: GuiaDespacho): Promise<GuiaDespacho> {
         const user = this.authService.getCurrentUser();
         if (!user) throw new Error('Usuario no autenticado');

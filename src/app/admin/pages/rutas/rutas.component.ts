@@ -183,6 +183,7 @@ export class RutasComponent implements OnInit {
 
         const estados = facturas.map((f) => f.idEstado);
 
+        if (estados.every((e) => e === 'cancelada')) return 'CANCELADO';
         if (estados.some((e) => e === 'incidencia')) return 'INCIDENCIAS';
         if (estados.some((e) => e === 'entrega')) return 'ENTREGANDO';
         if (estados.some((e) => e === 'proceso')) return 'EN_PROCESO';
@@ -191,6 +192,14 @@ export class RutasComponent implements OnInit {
         if (estados.every((e) => e === 'finalizado')) return 'FINALIZADO';
 
         return 'NUEVO';
+    }
+
+    /** Una guía es cancelable solo si TODAS sus facturas están en nuevo/embarque. */
+    puedeCancelar(guia: GuiaDespacho): boolean {
+        if (!guia.facturas?.length) return false;
+        return guia.facturas.every(
+            (f) => f.idEstado === 'nuevo' || f.idEstado === 'embarque',
+        );
     }
 
     getEstadoGuiaSeverity(
@@ -243,19 +252,36 @@ export class RutasComponent implements OnInit {
         }
     }
 
-    deleteGuia(guia: GuiaDespacho) {
+    cancelarGuia(guia: GuiaDespacho) {
         this.confirmationService.confirm({
-            message: `¿Eliminar la guía <strong>${guia.numeroGuia}</strong>?`,
-            header: 'Confirmar Eliminación',
-            icon: 'pi pi-exclamation-triangle',
-            accept: () => {
-                this.guias.set(this.guias().filter((g) => g.id !== guia.id));
-                this.notif.add({
-                    severity: 'success',
-                    summary: 'Eliminada',
-                    detail: `Guía ${guia.numeroGuia} eliminada.`,
-                });
-            },
+            message: `¿Cancelar la guía <strong>${guia.numeroGuia}</strong>? Sus ${
+                guia.facturas?.length || 0
+            } factura(s) quedarán canceladas y se retirarán del viaje si estaba asignada.`,
+            header: 'Cancelar Guía',
+            icon: 'pi pi-ban',
+            acceptLabel: 'Cancelar guía',
+            acceptIcon: 'pi pi-ban',
+            rejectLabel: 'No',
+            accept: () => void this.confirmarCancelacion(guia),
         });
+    }
+
+    private async confirmarCancelacion(guia: GuiaDespacho) {
+        try {
+            const res = await this.rutaService.cancelarGuia(guia.id);
+            const guias = await this.rutaService.obtenerGuias();
+            this.guias.set(guias);
+            this.notif.add({
+                severity: 'success',
+                summary: 'Guía cancelada',
+                detail: `${res.total_facturas} factura(s) canceladas y retiradas del viaje.`,
+            });
+        } catch (err: any) {
+            this.notif.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'No se pudo cancelar la guía.',
+            });
+        }
     }
 }

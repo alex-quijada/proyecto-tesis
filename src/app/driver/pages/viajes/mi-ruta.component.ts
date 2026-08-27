@@ -1672,6 +1672,7 @@ export class MiRutaComponent implements OnInit {
             await this.trazaService.enviarTraza(viaje.id_viaje);
             const res = await this.viajeService.marcarFueraHorario(viaje.id_viaje);
             await this.store.recargarViajes();
+            this.sincronizarParadas();
             this.puntoEntrega.set(null);
             this.navigation.puntoEntregaGuardado.set(null);
             const warehouse: Waypoint = {
@@ -1680,6 +1681,7 @@ export class MiRutaComponent implements OnInit {
                 name: 'Almacén',
             };
             const ok = await this.navigation.navegarAlAlmacen(warehouse, viaje.id_viaje);
+            void this.mostrarRutaEnMapa(false);
             this.notif.add({
                 severity: 'warn',
                 summary: 'Volviendo al almacén',

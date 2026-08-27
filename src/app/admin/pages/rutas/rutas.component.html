@@ -1,4 +1,4 @@
-<div class="card">
+﻿<div class="card">
     <p-confirmdialog />
 
     <div class="flex flex-col gap-1 mb-4">
@@ -66,302 +66,318 @@
             (onRowExpand)="onRowExpand($event)"
             (onRowCollapse)="onRowCollapse($event)"
         >
-        <ng-template #caption>
-            <div class="flex flex-wrap gap-2 items-center justify-between">
-                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
-                    <i class="pi pi-box mr-2"></i>
-                    {{ guiasFiltradas.length }} guías de despacho
-                </span>
-                <div class="flex items-center gap-2">
-                    <p-iconfield>
-                        <p-inputicon styleClass="pi pi-search" />
-                        <input
-                            pInputText
-                            type="text"
-                            [ngModel]="busqueda()"
-                            (ngModelChange)="busqueda.set($event)"
-                            placeholder="Buscar"
-                        />
-                    </p-iconfield>
+            <ng-template #caption>
+                <div class="flex flex-wrap gap-2 items-center justify-between">
+                    <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
+                        <i class="pi pi-box mr-2"></i>
+                        {{ guiasFiltradas.length }} guías de despacho
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <p-iconfield>
+                            <p-inputicon styleClass="pi pi-search" />
+                            <input
+                                pInputText
+                                type="text"
+                                [ngModel]="busqueda()"
+                                (ngModelChange)="busqueda.set($event)"
+                                placeholder="Buscar"
+                            />
+                        </p-iconfield>
+                    </div>
                 </div>
-            </div>
-        </ng-template>
+            </ng-template>
 
-        <ng-template #header>
-            <tr>
-                <th class="text-center!" style="width: 3rem"></th>
-                <th class="text-center!" pSortableColumn="numeroGuia" style="min-width: 10rem">
-                    N° Guía <p-sortIcon field="numeroGuia" />
-                </th>
-                <th pSortableColumn="empresa" style="min-width: 12rem">
-                    Empresa <p-sortIcon field="empresa" />
-                </th>
-                <th pSortableColumn="nombreChofer" style="min-width: 12rem">
-                    Chofer <p-sortIcon field="nombreChofer" />
-                </th>
-                <th style="min-width: 8rem">Vehículo</th>
-                <th class="text-center!" pSortableColumn="municipio" style="min-width: 8rem">
-                    Ruta <p-sortIcon field="municipio" />
-                </th>
-                <th class="text-center!" style="min-width: 6rem">Facturas</th>
-                <th class="text-center!" style="min-width: 7rem">Estado</th>
-                <th class="text-center!" pSortableColumn="fechaCreacion" style="min-width: 8rem">
-                    Fecha <p-sortIcon field="fechaCreacion" />
-                </th>
-                <th class="text-center!" style="width: 90px">Acciones</th>
-            </tr>
-        </ng-template>
+            <ng-template #header>
+                <tr>
+                    <th class="text-center!" style="width: 3rem"></th>
+                    <th class="text-center!" pSortableColumn="numeroGuia" style="min-width: 10rem">
+                        N° Guía <p-sortIcon field="numeroGuia" />
+                    </th>
+                    <th pSortableColumn="empresa" style="min-width: 12rem">
+                        Empresa <p-sortIcon field="empresa" />
+                    </th>
+                    <th pSortableColumn="nombreChofer" style="min-width: 12rem">
+                        Chofer <p-sortIcon field="nombreChofer" />
+                    </th>
+                    <th style="min-width: 8rem">Vehículo</th>
+                    <th class="text-center!" pSortableColumn="municipio" style="min-width: 8rem">
+                        Ruta <p-sortIcon field="municipio" />
+                    </th>
+                    <th class="text-center!" style="min-width: 6rem">Facturas</th>
+                    <th class="text-center!" style="min-width: 7rem">Estado</th>
+                    <th
+                        class="text-center!"
+                        pSortableColumn="fechaCreacion"
+                        style="min-width: 8rem"
+                    >
+                        Fecha <p-sortIcon field="fechaCreacion" />
+                    </th>
+                    <th class="text-center!" style="width: 90px">Acciones</th>
+                </tr>
+            </ng-template>
 
-        <ng-template #body let-guia let-expanded="expanded">
-            <tr>
-                <td class="text-center!">
-                    <p-button
-                        [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                        text
-                        size="small"
-                        (onClick)="dt.toggleRow(guia, $event)"
-                        pTooltip="Ver detalle"
-                    />
-                </td>
-                <td class="text-center!">
-                    <span class="font-semibold text-primary">{{ guia.numeroGuia }}</span>
-                </td>
-                <td>
-                    <span class="text-sm">{{ guia.empresa }}</span>
-                </td>
-                <td>
-                    <div class="flex flex-col">
-                        <span>{{ guia.nombreChofer }}</span>
-                        <span class="text-xs text-surface-400">{{ guia.cedulaChofer }}</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="flex flex-col">
-                        <span class="font-semibold">{{ guia.placaVehiculo }}</span>
-                        <span class="text-xs text-surface-400">{{ guia.camion }}</span>
-                    </div>
-                </td>
-                <td class="text-center!">{{ getMunicipioLabel(guia.municipio) }}</td>
-                <td class="text-center!">
-                    <div class="flex justify-center">
-                        @if (guia.facturas.length === 0) {
-                            <p-tag
-                                value="Sin facturas"
-                                severity="danger"
-                                styleClass="text-xs whitespace-nowrap"
-                            />
-                        } @else {
-                            <p-chip
-                                [label]="guia.facturas.length + ' factura(s)'"
-                                styleClass="text-xs whitespace-nowrap"
-                            />
-                        }
-                    </div>
-                </td>
-                <td class="text-center!">
-                    <div class="flex justify-center">
-                        <p-tag
-                            [value]="
-                                getEstadoGuia(guia) === 'EN_CARGA_MERCANCIA'
-                                    ? 'En Carga\nMercancía'
-                                    : getEstadoGuiaLabel(getEstadoGuia(guia))
-                            "
-                            [severity]="getEstadoGuiaSeverity(getEstadoGuia(guia))"
-                            styleClass="text-xs whitespace-pre-line text-center"
-                        />
-                    </div>
-                </td>
-                <td class="text-center!">
-                    <span class="text-xs">{{ guia.fechaCreacion | date: 'dd/MM/yy' }}</span>
-                </td>
-                <td class="text-center!">
-                    <div class="flex items-center justify-center gap-1">
+            <ng-template #body let-guia let-expanded="expanded">
+                <tr>
+                    <td class="text-center!">
                         <p-button
-                            icon="pi pi-pencil"
-                            severity="success"
+                            [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
                             text
                             size="small"
-                            pTooltip="Editar"
-                            tooltipPosition="top"
-                            (onClick)="editGuia(guia)"
+                            (onClick)="dt.toggleRow(guia, $event)"
+                            pTooltip="Ver detalle"
                         />
-                        <p-button
-                            icon="pi pi-trash"
-                            severity="danger"
-                            text
-                            size="small"
-                            pTooltip="Eliminar"
-                            tooltipPosition="top"
-                            (onClick)="deleteGuia(guia)"
-                        />
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
-
-
-        <ng-template #expandedrow let-guia>
-            <tr>
-                <td colspan="10">
-                    <div class="p-4">
-                        <div
-                            class="text-sm font-semibold text-surface-400 uppercase mb-4 flex items-center gap-2"
-                        >
-                            <i class="pi pi-receipt"></i>
-                            Facturas ({{ guia.facturas.length }})
+                    </td>
+                    <td class="text-center!">
+                        <span class="font-semibold text-primary">{{ guia.numeroGuia }}</span>
+                    </td>
+                    <td>
+                        <span class="text-sm">{{ guia.empresa }}</span>
+                    </td>
+                    <td>
+                        <div class="flex flex-col">
+                            <span>{{ guia.nombreChofer }}</span>
+                            <span class="text-xs text-surface-400">{{ guia.cedulaChofer }}</span>
                         </div>
+                    </td>
+                    <td>
+                        <div class="flex flex-col">
+                            <span class="font-semibold">{{ guia.placaVehiculo }}</span>
+                            <span class="text-xs text-surface-400">{{ guia.camion }}</span>
+                        </div>
+                    </td>
+                    <td class="text-center!">{{ getMunicipioLabel(guia.municipio) }}</td>
+                    <td class="text-center!">
+                        <div class="flex justify-center">
+                            @if (guia.facturas.length === 0) {
+                                <p-tag
+                                    value="Sin facturas"
+                                    severity="danger"
+                                    styleClass="text-xs whitespace-nowrap"
+                                />
+                            } @else {
+                                <p-chip
+                                    [label]="guia.facturas.length + ' factura(s)'"
+                                    styleClass="text-xs whitespace-nowrap"
+                                />
+                            }
+                        </div>
+                    </td>
+                    <td class="text-center!">
+                        <div class="flex justify-center">
+                            <p-tag
+                                [value]="
+                                    getEstadoGuia(guia) === 'EN_CARGA_MERCANCIA'
+                                        ? 'En Carga\nMercancía'
+                                        : getEstadoGuiaLabel(getEstadoGuia(guia))
+                                "
+                                [severity]="getEstadoGuiaSeverity(getEstadoGuia(guia))"
+                                styleClass="text-xs whitespace-pre-line text-center"
+                            />
+                        </div>
+                    </td>
+                    <td class="text-center!">
+                        <span class="text-xs">{{ guia.fechaCreacion | date: 'dd/MM/yy' }}</span>
+                    </td>
+                    <td class="text-center!">
+                        <div class="flex items-center justify-center gap-1">
+                            <p-button
+                                icon="pi pi-pencil"
+                                severity="success"
+                                text
+                                size="small"
+                                pTooltip="Editar"
+                                tooltipPosition="top"
+                                (onClick)="editGuia(guia)"
+                            />
+                            <p-button
+                                icon="pi pi-ban"
+                                severity="danger"
+                                text
+                                size="small"
+                                [disabled]="!puedeCancelar(guia)"
+                                pTooltip="{{
+                                    puedeCancelar(guia)
+                                        ? 'Cancelar guía'
+                                        : 'No se puede cancelar: tiene facturas en un estado avanzado'
+                                }}"
+                                tooltipPosition="left"
+                                (onClick)="cancelarGuia(guia)"
+                            />
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
 
-                        @if (guia.facturas.length === 0) {
-                            <div class="text-center py-4 text-surface-400">
-                                <i class="pi pi-inbox text-3xl block mb-2"></i>
-                                Sin facturas registradas
+            <ng-template #expandedrow let-guia>
+                <tr>
+                    <td colspan="10">
+                        <div class="p-4">
+                            <div
+                                class="text-sm font-semibold text-surface-400 uppercase mb-4 flex items-center gap-2"
+                            >
+                                <i class="pi pi-receipt"></i>
+                                Facturas ({{ guia.facturas.length }})
                             </div>
-                        }
 
-                        <div class="flex flex-col gap-4">
-                            @for (fact of guia.facturas; track fact.id; let i = $index) {
-                                <div
-                                    class="border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-0 dark:bg-surface-900 overflow-hidden"
-                                >
+                            @if (guia.facturas.length === 0) {
+                                <div class="text-center py-4 text-surface-400">
+                                    <i class="pi pi-inbox text-3xl block mb-2"></i>
+                                    Sin facturas registradas
+                                </div>
+                            }
+
+                            <div class="flex flex-col gap-4">
+                                @for (fact of guia.facturas; track fact.id; let i = $index) {
                                     <div
-                                        class="flex items-center justify-between px-4 py-2.5 bg-surface-50 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700"
+                                        class="border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-0 dark:bg-surface-900 overflow-hidden"
                                     >
-                                        <span
-                                            class="font-semibold text-sm text-primary flex items-center gap-2"
+                                        <div
+                                            class="flex items-center justify-between px-4 py-2.5 bg-surface-50 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700"
                                         >
-                                            <i class="pi pi-receipt"></i>
-                                            Factura #{{ i + 1 }} — {{ fact.numeroFactura }}
-                                        </span>
-                                        <div class="flex items-center gap-2">
-                                            <p-tag
-                                                [value]="getEstadoFacturaLabel(fact.idEstado)"
-                                                [severity]="getEstadoFacturaSeverity(fact.idEstado)"
-                                                styleClass="text-xs whitespace-nowrap"
-                                            />
-                                            <p-tag
-                                                [value]="fact.prioridad"
-                                                [severity]="
-                                                    fact.prioridad === 'Alta'
-                                                        ? 'danger'
-                                                        : fact.prioridad === 'Media'
-                                                          ? 'warn'
-                                                          : 'info'
-                                                "
-                                                styleClass="text-xs whitespace-nowrap"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div class="p-4">
-                                        <div class="grid grid-cols-12 gap-x-4 gap-y-3 text-sm">
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    Cliente
-                                                </div>
-                                                <div class="font-medium truncate">
-                                                    {{ fact.nombreCliente }}
-                                                </div>
-                                            </div>
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    RIF / Cédula
-                                                </div>
-                                                <div>{{ fact.rifCliente }}</div>
-                                            </div>
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    Teléfono
-                                                </div>
-                                                <div>{{ fact.telefono }}</div>
-                                            </div>
-
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    Total USD
-                                                </div>
-                                                <div class="font-semibold text-primary">
-                                                    {{
-                                                        fact.totalUSD
-                                                            | currency: 'USD' : 'symbol' : '1.2-2'
-                                                    }}
-                                                </div>
-                                            </div>
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    Total Bs.
-                                                </div>
-                                                <div class="font-semibold">
-                                                    {{
-                                                        fact.totalVES
-                                                            | currency: 'VES' : 'symbol' : '1.2-2'
-                                                    }}
-                                                </div>
-                                            </div>
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    Sucursal
-                                                </div>
-                                                <div
-                                                    [pTooltip]="fact.direccionSucursal"
-                                                    [tooltipDisabled]="
-                                                        !fact.direccionSucursal ||
-                                                        fact.direccionSucursal.length <= 50
+                                            <span
+                                                class="font-semibold text-sm text-primary flex items-center gap-2"
+                                            >
+                                                <i class="pi pi-receipt"></i>
+                                                Factura #{{ i + 1 }} — {{ fact.numeroFactura }}
+                                            </span>
+                                            <div class="flex items-center gap-2">
+                                                <p-tag
+                                                    [value]="getEstadoFacturaLabel(fact.idEstado)"
+                                                    [severity]="
+                                                        getEstadoFacturaSeverity(fact.idEstado)
                                                     "
-                                                >
-                                                    {{
-                                                        (fact.direccionSucursal | slice: 0 : 50) ||
-                                                            '—'
-                                                    }}{{
-                                                        fact.direccionSucursal &&
-                                                        fact.direccionSucursal.length > 50
-                                                            ? '...'
-                                                            : ''
-                                                    }}
-                                                </div>
+                                                    styleClass="text-xs whitespace-nowrap"
+                                                />
+                                                <p-tag
+                                                    [value]="fact.prioridad"
+                                                    [severity]="
+                                                        fact.prioridad === 'Alta'
+                                                            ? 'danger'
+                                                            : fact.prioridad === 'Media'
+                                                              ? 'warn'
+                                                              : 'info'
+                                                    "
+                                                    styleClass="text-xs whitespace-nowrap"
+                                                />
                                             </div>
-                                            <div class="col-span-3">
-                                                <div class="text-xs text-surface-400 mb-0.5">
-                                                    Reglas de Recepción
+                                        </div>
+                                        <div class="p-4">
+                                            <div class="grid grid-cols-12 gap-x-4 gap-y-3 text-sm">
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Cliente
+                                                    </div>
+                                                    <div class="font-medium truncate">
+                                                        {{ fact.nombreCliente }}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    {{
-                                                        fact.reglasRecepcion?.instrucciones ||
-                                                            'Estándar'
-                                                    }}
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        RIF / Cédula
+                                                    </div>
+                                                    <div>{{ fact.rifCliente }}</div>
+                                                </div>
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Teléfono
+                                                    </div>
+                                                    <div>{{ fact.telefono }}</div>
+                                                </div>
+
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Total USD
+                                                    </div>
+                                                    <div class="font-semibold text-primary">
+                                                        {{
+                                                            fact.totalUSD
+                                                                | currency
+                                                                    : 'USD'
+                                                                    : 'symbol'
+                                                                    : '1.2-2'
+                                                        }}
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Total Bs.
+                                                    </div>
+                                                    <div class="font-semibold">
+                                                        {{
+                                                            fact.totalVES
+                                                                | currency
+                                                                    : 'VES'
+                                                                    : 'symbol'
+                                                                    : '1.2-2'
+                                                        }}
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Sucursal
+                                                    </div>
+                                                    <div
+                                                        [pTooltip]="fact.direccionSucursal"
+                                                        [tooltipDisabled]="
+                                                            !fact.direccionSucursal ||
+                                                            fact.direccionSucursal.length <= 50
+                                                        "
+                                                    >
+                                                        {{
+                                                            (fact.direccionSucursal
+                                                                | slice: 0 : 50) || '—'
+                                                        }}{{
+                                                            fact.direccionSucursal &&
+                                                            fact.direccionSucursal.length > 50
+                                                                ? '...'
+                                                                : ''
+                                                        }}
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Reglas de Recepción
+                                                    </div>
+                                                    <div>
+                                                        {{
+                                                            fact.reglasRecepcion?.instrucciones ||
+                                                                'Estándar'
+                                                        }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                }
+                            </div>
+
+                            @if (guia.observaciones) {
+                                <div
+                                    class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm border border-surface-200 dark:border-surface-700"
+                                >
+                                    <span class="font-semibold flex items-center gap-1 mb-1">
+                                        <i class="pi pi-comment text-xs"></i>
+                                        Observaciones
+                                    </span>
+                                    <p class="text-surface-600 dark:text-surface-300 m-0">
+                                        {{ guia.observaciones }}
+                                    </p>
                                 </div>
                             }
                         </div>
+                    </td>
+                </tr>
+            </ng-template>
 
-                        @if (guia.observaciones) {
-                            <div
-                                class="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm border border-surface-200 dark:border-surface-700"
-                            >
-                                <span class="font-semibold flex items-center gap-1 mb-1">
-                                    <i class="pi pi-comment text-xs"></i>
-                                    Observaciones
-                                </span>
-                                <p class="text-surface-600 dark:text-surface-300 m-0">
-                                    {{ guia.observaciones }}
-                                </p>
-                            </div>
-                        }
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-            <tr>
-                <td colspan="10" class="text-center py-8 text-surface-400">
-                    <i class="pi pi-inbox text-4xl block mb-2"></i>
-                    No hay guías de despacho registradas
-                </td>
-            </tr>
-        </ng-template>
-    </p-table>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="10" class="text-center py-8 text-surface-400">
+                        <i class="pi pi-inbox text-4xl block mb-2"></i>
+                        No hay guías de despacho registradas
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     }
 </div>
 

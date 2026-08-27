@@ -116,6 +116,7 @@ export const ESTADOS_GUIA = [
     { label: 'Entregando', value: 'ENTREGANDO', severity: 'info' },
     { label: 'Finalizado', value: 'FINALIZADO', severity: 'success' },
     { label: 'Incidencias', value: 'INCIDENCIAS', severity: 'danger' },
+    { label: 'Cancelado', value: 'CANCELADO', severity: 'danger' },
 ];
 
 export const ESTADOS_FACTURA = [
@@ -126,6 +127,7 @@ export const ESTADOS_FACTURA = [
     { label: 'Entregando', value: 'entrega', severity: 'info' },
     { label: 'Incidencia', value: 'incidencia', severity: 'danger' },
     { label: 'Finalizado', value: 'finalizado', severity: 'success' },
+    { label: 'Cancelada', value: 'cancelada', severity: 'danger' },
 ];
 
 export const ESTADOS_POR_ROL: Record<string, string[]> = {

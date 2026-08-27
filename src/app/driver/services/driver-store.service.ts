@@ -212,16 +212,28 @@ export class DriverStoreService implements OnDestroy {
     /**
      * Facturas del viaje EN PROCESO que quedaron en 'incidencia' con al menos
      * una incidencia pendiente recuperable → deben re-entregarse.
+     * EXCLUYE facturas marcadas por fin de jornada / fuera de horario (FUERA_HORARIO/CERRADO).
      */
     readonly reentregasPendientes = computed<ParadaViaje[]>(() => {
         const viaje = this.activeViaje();
         if (!viaje || viaje.estado !== 'proceso') return [];
-        return (viaje.paradas || []).filter(
-            (p) =>
-                p.estado_factura === 'incidencia' &&
-                (p.incidencias?.some((i) => i.recuperable && !i.resuelta) ||
-                    p.incidencia_recuperable === true),
-        );
+        return (viaje.paradas || []).filter((p) => {
+            if (p.estado_factura !== 'incidencia') return false;
+            // No reentregar facturas marcadas por fin de jornada / fuera de horario
+            const esFinJornada = p.incidencias?.some(
+                (i) =>
+                    i.tipo === 'FUERA_HORARIO' ||
+                    i.tipo === 'CERRADO' ||
+                    i.tipo === 'Cliente fuera de tiempo' ||
+                    (i.descripcion || '').toUpperCase().includes('FUERA_HORARIO'),
+            );
+            if (esFinJornada) return false;
+
+            return (
+                p.incidencias?.some((i) => i.recuperable && !i.resuelta) ||
+                p.incidencia_recuperable === true
+            );
+        });
     });
 
     /** Reactiva las re-entregas autorizadas: vuelven a 'proceso' y recarga. */
