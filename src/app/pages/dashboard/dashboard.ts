@@ -234,30 +234,37 @@ export class Dashboard implements OnInit, OnDestroy {
         this.posiciones.set(mapa);
     }
 
-    private initRealtime(): void {
+    private async initRealtime(): Promise<void> {
         if (this.canal) return;
         const user = this.authService.getCurrentUser();
         if (!user) return;
 
-        this.crearCanal(user.id);
+        await this.crearCanal(user.id);
 
         if (!this.alReconectar) {
             this.alReconectar = () => {
                 if (this.conectado()) return;
                 const id = this.authService.getCurrentUser()?.id;
                 if (!id) return;
-                if (this.canal) void this.authService.client.removeChannel(this.canal);
-                this.canal = null;
                 this.pendienteRefrescar = true;
-                this.crearCanal(id);
+                void this.crearCanal(id);
             };
             window.addEventListener('online', this.alReconectar);
         }
     }
 
-    private crearCanal(userId: string): void {
+    private async crearCanal(userId: string): Promise<void> {
+        const topic = `dashboard-admin-${userId}`;
+        const existentes = this.authService.client
+            .getChannels()
+            .filter((c) => c.topic === topic || c.topic === `realtime:${topic}`);
+        for (const canalExistente of existentes) {
+            await this.authService.client.removeChannel(canalExistente);
+        }
+        this.canal = null;
+
         this.canal = this.authService.client
-            .channel(`dashboard-admin-${userId}`)
+            .channel(topic)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'posiciones_chofer' },

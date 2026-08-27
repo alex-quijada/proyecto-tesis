@@ -13,6 +13,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
+import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { ChipModule } from 'primeng/chip';
@@ -43,6 +44,7 @@ import { MunicipioService } from '../../services/municipio.service';
         IconFieldModule,
         SelectModule,
         TagModule,
+        SkeletonModule,
         ConfirmDialogModule,
         TooltipModule,
         ChipModule,
