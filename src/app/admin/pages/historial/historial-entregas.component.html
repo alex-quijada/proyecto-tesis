@@ -178,7 +178,141 @@
                             pTooltip="Comparar la ruta planificada (VRPTW) con la real del chofer"
                             tooltipPosition="left"
                         />
+                        <p-button
+                            [icon]="
+                                lineaTiempoAbierta()[h.viaje.id_viaje]
+                                    ? 'pi pi-chevron-up'
+                                    : 'pi pi-history'
+                            "
+                            [label]="
+                                lineaTiempoAbierta()[h.viaje.id_viaje]
+                                    ? 'Ocultar'
+                                    : 'Línea de tiempo'
+                            "
+                            text
+                            rounded
+                            size="small"
+                            severity="secondary"
+                            (onClick)="toggleLineaTiempo(h.viaje.id_viaje)"
+                            pTooltip="Recorrido del viaje de inicio a fin con duraciones"
+                            tooltipPosition="left"
+                        />
                     </div>
+
+                    <!-- Línea de tiempo del viaje (recorrido de inicio a fin) -->
+                    @if (lineaTiempoAbierta()[h.viaje.id_viaje]) {
+                        <div
+                            class="border-b border-surface-200 dark:border-surface-700 bg-surface-50/50 dark:bg-surface-900/40 px-4 py-3"
+                        >
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="pi pi-history text-primary"></i>
+                                <span
+                                    class="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400"
+                                >
+                                    Recorrido del viaje
+                                </span>
+                                <span
+                                    class="text-xs text-surface-400 ml-auto flex items-center gap-1"
+                                >
+                                    <i class="pi pi-clock"></i>
+                                    Duración total:
+                                    {{ duracionTotalViaje(h.viaje) }}
+                                </span>
+                            </div>
+
+                            @if (cargandoLineaTiempo(h.viaje.id_viaje)) {
+                                <div class="flex items-center gap-2 text-sm text-surface-500 py-2">
+                                    <i class="pi pi-spin pi-spinner"></i>
+                                    Cargando recorrido...
+                                </div>
+                            } @else if (errorLineaTiempo(h.viaje.id_viaje)) {
+                                <div class="text-sm text-red-500 py-1">
+                                    <i class="pi pi-exclamation-circle mr-1"></i>
+                                    {{ errorLineaTiempo(h.viaje.id_viaje) }}
+                                </div>
+                            } @else if (!lineaTiempo(h.viaje.id_viaje).length) {
+                                <div class="text-sm text-surface-500 py-1">
+                                    No hay historial de estados registrado para este viaje.
+                                </div>
+                            } @else {
+                                <div class="relative">
+                                    <div
+                                        class="absolute left-[0.94rem] top-2 bottom-2 w-px bg-surface-200 dark:bg-surface-700"
+                                    ></div>
+                                    <div class="flex flex-col gap-4">
+                                        @for (
+                                            item of lineaTiempo(h.viaje.id_viaje);
+                                            track item.id
+                                        ) {
+                                            <div class="relative flex gap-3">
+                                                <div
+                                                    class="relative z-10 w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-surface-0 text-xs font-bold"
+                                                    [style.background]="item.color"
+                                                >
+                                                    @if (item.icono) {
+                                                        <i [class]="item.icono" class="text-sm"></i>
+                                                    } @else {
+                                                        {{ item.numero }}
+                                                    }
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <span
+                                                            class="text-sm font-medium text-surface-700 dark:text-surface-200"
+                                                        >
+                                                            {{ item.label }}
+                                                        </span>
+                                                        @if (item.chip) {
+                                                            <span
+                                                                class="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold"
+                                                            >
+                                                                {{ item.chip }}
+                                                            </span>
+                                                        }
+                                                        <span
+                                                            class="text-[10px] text-surface-400 ml-auto shrink-0"
+                                                        >
+                                                            {{
+                                                                formatFecha(
+                                                                    item.fecha
+                                                                        ? item.fecha.toISOString()
+                                                                        : undefined
+                                                                )
+                                                            }}
+                                                        </span>
+                                                    </div>
+                                                    @if (item.tipo === 'incidencia') {
+                                                        @let incObs = incidenciaObservacion(item);
+                                                        @if (incObs.codigo || incObs.texto) {
+                                                            <div
+                                                                class="text-[10px] text-surface-600 dark:text-surface-300 mt-0.5 flex items-center gap-1.5 flex-wrap"
+                                                            >
+                                                                @if (incObs.codigo) {
+                                                                    <span
+                                                                        class="font-semibold text-red-600 dark:text-red-300"
+                                                                    >
+                                                                        {{
+                                                                            incObs.codigo
+                                                                                | tipoIncidencia
+                                                                        }}
+                                                                    </span>
+                                                                }
+                                                                @if (incObs.texto) {
+                                                                    <span class="text-surface-500">
+                                                                        {{ incObs.texto }}
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
 
                     <!-- Análisis de ruta: planificada vs real -->
                     @if (analisisAbierto()[h.viaje.id_viaje]) {
@@ -371,7 +505,12 @@
                                     ></button>
                                 </td>
                                 <td class="font-medium">{{ p.cliente }}</td>
-                                <td class="font-mono text-sm">{{ p.numeroFactura }}</td>
+                                <td class="font-mono text-sm">
+                                    {{ p.numeroFactura }}
+                                    @if (p.numeroGuia) {
+                                        <span class="text-surface-400"> · {{ p.numeroGuia }} </span>
+                                    }
+                                </td>
                                 <td class="text-surface-500">{{ p.municipio || '—' }}</td>
                                 <td>
                                     <p-tag
