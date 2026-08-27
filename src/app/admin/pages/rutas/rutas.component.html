@@ -40,13 +40,6 @@
         [rows]="10"
         [paginator]="true"
         [rowsPerPageOptions]="[5, 10, 20, 50]"
-        [globalFilterFields]="[
-            'numeroGuia',
-            'empresa',
-            'nombreChofer',
-            'municipio',
-            'placaVehiculo',
-        ]"
         [tableStyle]="{ 'min-width': '90rem' }"
         [loading]="loading()"
         styleClass="p-datatable-sm"
@@ -66,8 +59,9 @@
                         <input
                             pInputText
                             type="text"
-                            (input)="dt.filterGlobal($any($event.target).value, 'contains')"
-                            placeholder="Buscar guía..."
+                            [ngModel]="busqueda()"
+                            (ngModelChange)="busqueda.set($event)"
+                            placeholder="Buscar"
                         />
                     </p-iconfield>
                 </div>

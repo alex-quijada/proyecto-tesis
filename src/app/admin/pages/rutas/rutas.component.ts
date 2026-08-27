@@ -68,6 +68,7 @@ export class RutasComponent implements OnInit {
     userRole: string = 'ADMIN';
 
     filtroMunicipio: string | null = null;
+    busqueda = signal('');
 
     get municipioFiltros() {
         return [
@@ -129,6 +130,20 @@ export class RutasComponent implements OnInit {
         let list = this.guias();
         if (this.filtroMunicipio) {
             list = list.filter((g) => g.municipio === this.filtroMunicipio);
+        }
+        const texto = this.busqueda().trim().toLowerCase();
+        if (texto) {
+            list = list.filter((g) => {
+                const facturasMatch = (g.facturas || []).some(
+                    (f) =>
+                        (f.numeroFactura || '').toLowerCase().includes(texto) ||
+                        (f.nombreCliente || '').toLowerCase().includes(texto) ||
+                        (f.rifCliente || '').toLowerCase().includes(texto),
+                );
+                if (facturasMatch) return true;
+                return [g.numeroGuia, g.empresa, g.nombreChofer, g.municipio, g.placaVehiculo]
+                    .some((v) => (v || '').toLowerCase().includes(texto));
+            });
         }
         return list;
     }
