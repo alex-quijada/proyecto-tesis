@@ -343,7 +343,39 @@
                                                                 {{ formatFecha(item.fecha) }}
                                                             </span>
                                                         </div>
-                                                        @if (item.observacion) {
+                                                        @if (
+                                                            item.estado === 'incidencia' &&
+                                                            p.incidencias?.length
+                                                        ) {
+                                                            <div
+                                                                class="-mt-1 ml-4 flex flex-col gap-1"
+                                                            >
+                                                                @for (
+                                                                    inc of p.incidencias;
+                                                                    track inc.id_incidencia
+                                                                ) {
+                                                                    <div
+                                                                        class="flex items-center gap-1.5 flex-wrap"
+                                                                    >
+                                                                        <i
+                                                                            class="pi pi-exclamation-triangle text-red-500 text-[10px]"
+                                                                        ></i>
+                                                                        <span
+                                                                            class="text-[10px] font-semibold text-red-600 dark:text-red-300"
+                                                                        >
+                                                                            {{ inc.tipo | tipoIncidencia }}
+                                                                        </span>
+                                                                        @if (inc.descripcion) {
+                                                                            <span
+                                                                                class="text-[10px] text-surface-500"
+                                                                            >
+                                                                                {{ inc.descripcion }}
+                                                                            </span>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                        } @else if (item.observacion) {
                                                             <div
                                                                 class="text-[10px] text-surface-500 -mt-1 ml-4"
                                                             >
