@@ -173,7 +173,7 @@
                 </div>
             </div>
             <div class="relative rounded-lg border border-surface" style="height: 480px">
-                <div #mapaElement class="absolute inset-0 w-full h-full rounded-lg"></div>
+                <div #mapaElement id="mapa-dashboard" class="absolute inset-0 w-full h-full rounded-lg"></div>
                 @if (loading() || !mapaListo) {
                     <p-skeleton
                         width="100%"

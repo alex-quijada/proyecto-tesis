@@ -3,7 +3,25 @@
 @use '@/assets/layout/layout.scss';
 
 /* El mapa nativo de Android se renderiza debajo del WebView: el fondo debe ser
-   transparente en la página del mapa del chofer (/driver/mapa). */
+   transparente en la pǭgina del mapa del chofer (/driver/mapa). */
 html.mapa-nativo body {
     background-color: transparent !important;
+}
+
+/* El Panel de Control no muestra la X de cerrar del InfoWindow: la ventana se
+   cierra al hacer clic en otro punto del mapa. */
+#mapa-dashboard button.gm-ui-hover-effect {
+    display: none !important;
+}
+
+/* La burbuja del InfoWindow del Panel de Control: sin padding nativo (para que
+   la cabecera azul quede a ras) y sin recorte por overflow (evita que el
+   nombre/factura se corten o se salgan del recuadro). */
+#mapa-dashboard .gm-style-iw-c {
+    padding: 0 !important;
+}
+#mapa-dashboard .gm-style-iw-c,
+#mapa-dashboard .gm-style-iw-d,
+#mapa-dashboard .gm-style-iw-dwr {
+    overflow: visible !important;
 }
