@@ -1,13 +1,13 @@
-import * as XLSX from 'xlsx';
 import { DatosExport } from './reporte.types';
 
 const EXCEL_COL_WIDTH = 16;
 
 /**
- * Exporta datos a un archivo .xlsx real (SheetJS).
+ * Exporta datos a un archivo .xlsx real (SheetJS cargado dinámicamente bajo demanda).
  * Las filas se serializan usando el `label` de cada columna como encabezado.
  */
-export function exportarExcel(datos: DatosExport): void {
+export async function exportarExcel(datos: DatosExport): Promise<void> {
+    const XLSX = await import('xlsx');
     const { titulo, subtitulo, columnas, filas, nombreArchivo } = datos;
 
     const data = filas.map((fila) => {

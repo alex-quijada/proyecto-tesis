@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { Chofer } from '@/app/admin/pages/choferes/data/choferes-mock';
+import { comprimirDataUrl } from '@/app/services/image-compressor.util';
 
 export interface ChoferFactura {
     id_factura: string;
@@ -179,7 +180,8 @@ export class ChoferService {
 
     private async subirFotoIncidencia(idFactura: string, base64DataUrl: string): Promise<string> {
         const uid = this.authService.getCurrentUser()?.id || 'anon';
-        const base64 = base64DataUrl.split(',')[1] || base64DataUrl;
+        const comprimida = await comprimirDataUrl(base64DataUrl, 1280, 1280, 0.72);
+        const base64 = comprimida.split(',')[1] || comprimida;
         const blob = this.base64ToBlob(base64);
         const path = `${uid}/${idFactura}-${Date.now()}.jpg`;
         const { error } = await this.supabase.storage

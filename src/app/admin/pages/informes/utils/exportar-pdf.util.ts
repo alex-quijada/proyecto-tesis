@@ -1,15 +1,17 @@
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { DatosExport } from './reporte.types';
 
-pdfMake.addVirtualFileSystem(pdfFonts);
-
 /**
- * Exporta datos a un archivo .pdf (pdfmake) con una tabla simple.
+ * Exporta datos a un archivo .pdf (pdfmake cargado dinámicamente bajo demanda) con una tabla simple.
  * No depende de tipos oficiales (pdfmake 0.3.x no trae .d.ts): se usa la
  * declaración local en `src/types/pdfmake.d.ts`.
  */
-export function exportarPdf(datos: DatosExport): void {
+export async function exportarPdf(datos: DatosExport): Promise<void> {
+    const [{ default: pdfMake }, { default: pdfFonts }] = await Promise.all([
+        import('pdfmake/build/pdfmake'),
+        import('pdfmake/build/vfs_fonts'),
+    ]);
+
+    pdfMake.addVirtualFileSystem(pdfFonts);
     const { titulo, subtitulo, columnas, filas, nombreArchivo, pageOrientation, columnWidths } =
         datos;
     const landscape = pageOrientation === 'landscape';

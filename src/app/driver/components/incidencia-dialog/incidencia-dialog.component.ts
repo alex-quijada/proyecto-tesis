@@ -33,6 +33,8 @@ export const TIPOS_INCIDENCIA = [
     { label: 'Producto dañado', value: 'DANADO' },
 ];
 
+import { comprimirDataUrl } from '@/app/services/image-compressor.util';
+
 @Component({
     selector: 'app-incidencia-dialog',
     standalone: true,
@@ -229,11 +231,19 @@ export class IncidenciaDialogComponent {
         try {
             const image = await Camera.getPhoto({
                 quality: 70,
+                width: 1280,
+                height: 1280,
+                correctOrientation: true,
                 allowEditing: false,
                 resultType: CameraResultType.DataUrl,
                 source: Capacitor.isNativePlatform() ? CameraSource.Camera : CameraSource.Prompt,
             });
-            this.items[index].foto = image.dataUrl ?? null;
+            if (image.dataUrl) {
+                const comprimida = await comprimirDataUrl(image.dataUrl, 1280, 1280, 0.72);
+                this.items[index].foto = comprimida;
+            } else {
+                this.items[index].foto = null;
+            }
         } catch (err) {
             console.warn('Foto cancelada/error:', err);
         } finally {
