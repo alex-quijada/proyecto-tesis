@@ -16,7 +16,12 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmationService } from 'primeng/api';
 import { NotificationService } from '@/app/services/notification.service';
 
-import { ViajeService, TrazaViajePunto, TiemposViaje } from '@/app/services/viaje.service';
+import {
+    ViajeService,
+    TrazaViajePunto,
+    TiemposViaje,
+    HistorialViajeRow,
+} from '@/app/services/viaje.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ViajeAdmin, IncidenciaParada } from '@/app/services/viaje.types';
 import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
@@ -49,6 +54,18 @@ interface HistorialParada {
 interface HistorialViaje {
     viaje: ViajeAdmin;
     paradas: HistorialParada[];
+}
+
+interface LineaTiempoItem {
+    id: string;
+    tipo: 'almacen' | 'salida' | 'proceso' | 'llegada' | 'entrega' | 'completado' | 'incidencia';
+    label: string;
+    numero?: number;
+    icono?: string;
+    color: string;
+    fecha: Date | null;
+    chip?: string | null;
+    observacion?: string | null;
 }
 
 @Component({
@@ -86,6 +103,12 @@ export class HistorialEntregasComponent implements OnInit {
     private tiemposMap = new Map<string, TiemposViaje>();
     eliminandoId = signal<string | null>(null);
 
+    // ---------------- Línea de tiempo del viaje ----------------
+    readonly lineaTiempoAbierta = signal<Record<string, boolean>>({});
+    private historialViajeData = signal<Record<string, HistorialViajeRow[]>>({});
+    private historialViajeCargando = signal<Record<string, boolean>>({});
+    private historialViajeError = signal<Record<string, string>>({});
+
     // ---------------- Filtros ----------------
     textoBusqueda = signal('');
     filtroChofer = signal<string | null>(null);
@@ -106,9 +129,7 @@ export class HistorialEntregasComponent implements OnInit {
         for (const v of this.viajesFinalizados()) {
             if (v.chofer) set.add(v.chofer);
         }
-        return [...set]
-            .sort()
-            .map((nombre) => ({ label: nombre, value: nombre }));
+        return [...set].sort().map((nombre) => ({ label: nombre, value: nombre }));
     });
 
     readonly opcionesMunicipios = computed(() => {
@@ -118,9 +139,7 @@ export class HistorialEntregasComponent implements OnInit {
                 if (p.municipio) set.add(p.municipio);
             }
         }
-        return [...set]
-            .sort()
-            .map((nombre) => ({ label: nombre, value: nombre }));
+        return [...set].sort().map((nombre) => ({ label: nombre, value: nombre }));
     });
 
     readonly opcionesEstados = computed(() => {
@@ -131,9 +150,7 @@ export class HistorialEntregasComponent implements OnInit {
                 if (label && label !== '—') set.add(label);
             }
         }
-        return [...set]
-            .sort()
-            .map((nombre) => ({ label: nombre, value: nombre }));
+        return [...set].sort().map((nombre) => ({ label: nombre, value: nombre }));
     });
 
     /** Historial filtrado por los criterios seleccionados. */
@@ -361,6 +378,244 @@ export class HistorialEntregasComponent implements OnInit {
 
     tiempoEstado(t: TiemposViaje, key: keyof TiemposViaje['minutos_por_estado']): number {
         return t?.minutos_por_estado?.[key] ?? 0;
+    }
+
+    // ---------------- Línea de tiempo del viaje (recorrido de inicio a fin) ----------------
+
+    toggleLineaTiempo(idViaje: string) {
+        const abierto = !this.lineaTiempoAbierta()[idViaje];
+        this.lineaTiempoAbierta.update((mapa) => ({ ...mapa, [idViaje]: abierto }));
+        if (abierto) {
+            void this.cargarHistorialViaje(idViaje);
+        } else {
+            this.historialViajeData.update((m) => {
+                const n = { ...m };
+                delete n[idViaje];
+                return n;
+            });
+            this.historialViajeError.update((m) => {
+                const n = { ...m };
+                delete n[idViaje];
+                return n;
+            });
+        }
+    }
+
+    cargandoLineaTiempo(idViaje: string): boolean {
+        return this.historialViajeCargando()[idViaje] ?? false;
+    }
+
+    errorLineaTiempo(idViaje: string): string {
+        return this.historialViajeError()[idViaje] ?? '';
+    }
+
+    lineaTiempo(idViaje: string): LineaTiempoItem[] {
+        const rows = this.historialViajeData()[idViaje] ?? [];
+        const viaje = this.viajesFinalizados().find((v) => v.id_viaje === idViaje);
+        return this.construirLineaTiempo(rows, viaje);
+    }
+
+    private async cargarHistorialViaje(idViaje: string) {
+        if (this.historialViajeData()[idViaje]) return;
+        this.historialViajeCargando.update((m) => ({ ...m, [idViaje]: true }));
+        this.historialViajeError.update((m) => ({ ...m, [idViaje]: '' }));
+        try {
+            const rows = await this.viajeService.obtenerHistorialViaje(idViaje);
+            this.historialViajeData.update((m) => ({ ...m, [idViaje]: rows }));
+        } catch (err: any) {
+            this.historialViajeError.update((m) => ({
+                ...m,
+                [idViaje]: err?.message || 'No se pudo cargar el historial del viaje.',
+            }));
+        } finally {
+            this.historialViajeCargando.update((m) => ({ ...m, [idViaje]: false }));
+        }
+    }
+
+    /** Construye los hitos del recorrido del viaje (almacén → salida → paradas
+     *  → fin) a partir del historial de estados de sus facturas. Para historial
+     *  (viajes finalizados) todas las duraciones salen de timestamps reales. */
+    private construirLineaTiempo(rows: HistorialViajeRow[], viaje?: ViajeAdmin): LineaTiempoItem[] {
+        if (!rows.length) return [];
+        const items: LineaTiempoItem[] = [];
+
+        // Transiciones por factura, en orden cronológico (incluye re-entregas).
+        const porFactura = new Map<
+            string,
+            { estado: string; fecha: Date; observacion?: string | null }[]
+        >();
+        for (const r of rows) {
+            let lista = porFactura.get(r.id_factura);
+            if (!lista) {
+                lista = [];
+                porFactura.set(r.id_factura, lista);
+            }
+            lista.push({
+                estado: r.estado,
+                fecha: new Date(r.fecha_cambio),
+                observacion: r.observacion,
+            });
+        }
+        for (const lista of porFactura.values()) {
+            lista.sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+        }
+
+        const primeraGlobal = (estado: string): Date | null => {
+            let mejor: Date | null = null;
+            for (const lista of porFactura.values()) {
+                const t = lista.find((x) => x.estado === estado);
+                if (t && (!mejor || t.fecha.getTime() < mejor.getTime())) mejor = t.fecha;
+            }
+            return mejor;
+        };
+
+        const embarque = primeraGlobal('embarque');
+        const proceso = primeraGlobal('proceso');
+
+        items.push({
+            id: 'almacen',
+            tipo: 'almacen',
+            label: 'Almacén — carga de mercancía',
+            icono: 'pi pi-box',
+            color: '#8b5cf6',
+            fecha: embarque,
+            chip:
+                embarque && proceso
+                    ? `Espera de carga: ${this.formatoDuracion(proceso.getTime() - embarque.getTime())}`
+                    : null,
+        });
+        items.push({
+            id: 'salida',
+            tipo: 'salida',
+            label: 'Salida del almacén — viaje iniciado',
+            icono: 'pi pi-truck',
+            color: '#3b82f6',
+            fecha: proceso,
+            chip: null,
+        });
+
+        // Paradas en orden de visita (de las filas del historial).
+        const paradas = Array.from(new Map(rows.map((r) => [r.id_factura, r])).values()).sort(
+            (a, b) => a.orden_visita - b.orden_visita,
+        );
+
+        for (const [idx, p] of paradas.entries()) {
+            const numero = idx + 1;
+            const transiciones = porFactura.get(p.id_factura) ?? [];
+            if (!transiciones.length) continue;
+            let contador = 0;
+            for (let t = 0; t < transiciones.length; t++) {
+                const trans = transiciones[t];
+                const siguiente = transiciones[t + 1];
+                switch (trans.estado) {
+                    case 'proceso':
+                        items.push({
+                            id: `proceso-${p.id_factura}-${contador++}`,
+                            tipo: 'proceso',
+                            label: `En camino a ${p.nombre_cliente || '—'}`,
+                            numero,
+                            color: '#3b82f6',
+                            fecha: trans.fecha,
+                            chip: null,
+                        });
+                        break;
+                    case 'espera':
+                        items.push({
+                            id: `llegada-${p.id_factura}-${contador++}`,
+                            tipo: 'llegada',
+                            label: `Llegada a ${p.nombre_cliente || '—'}`,
+                            numero,
+                            color: '#f59e0b',
+                            fecha: trans.fecha,
+                            chip: siguiente
+                                ? `Espera: ${this.formatoDuracion(
+                                      siguiente.fecha.getTime() - trans.fecha.getTime(),
+                                  )}`
+                                : null,
+                        });
+                        break;
+                    case 'entrega':
+                        items.push({
+                            id: `entrega-${p.id_factura}-${contador++}`,
+                            tipo: 'entrega',
+                            label: `Entregando ${p.numero_factura} · ${p.nombre_cliente || '—'}`,
+                            numero,
+                            color: '#06b6d4',
+                            fecha: trans.fecha,
+                            chip: siguiente
+                                ? `Entrega: ${this.formatoDuracion(
+                                      siguiente.fecha.getTime() - trans.fecha.getTime(),
+                                  )}`
+                                : null,
+                        });
+                        break;
+                    case 'finalizado':
+                        items.push({
+                            id: `finalizado-${p.id_factura}-${contador++}`,
+                            tipo: 'completado',
+                            label: `Entregado ${p.numero_factura} · ${p.nombre_cliente || '—'}`,
+                            numero,
+                            color: '#10b981',
+                            fecha: trans.fecha,
+                            chip: null,
+                        });
+                        break;
+                    case 'incidencia':
+                        items.push({
+                            id: `incidencia-${p.id_factura}-${contador++}`,
+                            tipo: 'incidencia',
+                            label: `Incidencia — ${p.numero_factura} · ${p.nombre_cliente || '—'}`,
+                            numero,
+                            color: '#ef4444',
+                            fecha: trans.fecha,
+                            chip: null,
+                            observacion: trans.observacion,
+                        });
+                        break;
+                }
+            }
+        }
+
+        items.push({
+            id: 'completado',
+            tipo: 'completado',
+            label: 'Viaje completado',
+            icono: 'pi pi-flag-fill',
+            color: '#10b981',
+            fecha: viaje?.fecha_finalizacion
+                ? new Date(viaje.fecha_finalizacion)
+                : primeraGlobal('finalizado'),
+            chip: null,
+        });
+
+        return items;
+    }
+
+    /** Formatea milisegundos a "Xh Ym" (o solo minutos si < 60). */
+    formatoDuracion(ms: number): string {
+        if (ms < 60_000) return 'menos de 1 min';
+        const min = Math.floor(ms / 60_000);
+        if (min < 60) return `${min} min`;
+        const h = Math.floor(min / 60);
+        return `${h}h ${min % 60} min`;
+    }
+
+    duracionTotalViaje(v: ViajeAdmin): string {
+        if (!v.fecha_creacion || !v.fecha_finalizacion) return '—';
+        return this.formatoDuracion(
+            new Date(v.fecha_finalizacion).getTime() - new Date(v.fecha_creacion).getTime(),
+        );
+    }
+
+    /** Separa el prefijo "[CÓDIGO]" de la observación de incidencia para poder
+     *  mostrar el tipo con el pipe `tipoIncidencia` y el comentario aparte. */
+    incidenciaObservacion(item: LineaTiempoItem): { codigo: string | null; texto: string } {
+        const obs = item.observacion || '';
+        const match = obs.match(/^\[([^\]]+)\]\s*(.*)$/s);
+        if (match) {
+            return { codigo: match[1] || null, texto: match[2] || '' };
+        }
+        return { codigo: null, texto: obs };
     }
 
     /** Pide confirmación y borra el viaje (para pruebas). */

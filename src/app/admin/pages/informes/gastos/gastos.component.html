@@ -1,0 +1,179 @@
+<div class="card">
+    <app-cabecera-reporte
+        titulo="Reporte de Gastos"
+        subtitulo="Combustible y mantenimiento por vehículo"
+        [sinDatos]="sinDatos()"
+        [recargando]="cargando()"
+        [exportandoExcel]="exportandoExcel()"
+        [exportandoPdf]="exportandoPdf()"
+        (recargar)="cargarReporte()"
+        (exportarExcel)="exportarExcel()"
+        (exportarPdf)="exportarPdf()"
+    />
+
+    <app-filtros-reporte
+        [vehiculos]="vehiculos()"
+        [(filtros)]="filtros"
+        (aplicar)="cargarReporte()"
+    />
+
+    @if (cargando()) {
+        <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                @for (_ of [1, 2, 3, 4]; track $index) {
+                    <p-skeleton height="90px" borderRadius="12px" />
+                }
+            </div>
+            <p-skeleton height="220px" borderRadius="12px" />
+        </div>
+    } @else if (datos()) {
+        @let d = datos()!;
+        <div class="flex flex-col gap-4">
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                @for (k of kpis(); track k.label) {
+                    <div
+                        class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900/40 p-4"
+                    >
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] uppercase font-semibold text-surface-400">
+                                {{ k.label }}
+                            </span>
+                            <i [class]="k.icon" class="text-sm" [ngClass]="k.color"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-surface-800 dark:text-surface-100 mt-1">
+                            {{ k.value }}
+                        </div>
+                        <div class="text-xs text-surface-500 mt-0.5">{{ k.detalle }}</div>
+                        @if (k.detalleExtra) {
+                            <div class="text-xs text-surface-500 mt-0.5">
+                                {{ k.detalleExtra }}
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div
+                    class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900/40 p-4"
+                >
+                    <h2 class="font-semibold text-surface-800 dark:text-surface-100 mb-3">
+                        Combustible vs Mantenimiento
+                    </h2>
+                    @if (distribucionData()) {
+                        <p-chart
+                            type="doughnut"
+                            [data]="distribucionData()"
+                            [options]="doughnutOptions"
+                            height="220px"
+                        />
+                    } @else {
+                        <div class="text-sm text-surface-500 py-6 text-center">
+                            Sin gastos en el rango.
+                        </div>
+                    }
+                </div>
+
+                <div
+                    class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900/40 p-4"
+                >
+                    <h2 class="font-semibold text-surface-800 dark:text-surface-100 mb-3">
+                        Costo por vehículo
+                    </h2>
+                    @if (vehiculoData()) {
+                        <p-chart
+                            type="bar"
+                            [data]="vehiculoData()"
+                            [options]="barOptions"
+                            height="220px"
+                        />
+                    } @else {
+                        <div class="text-sm text-surface-500 py-6 text-center">
+                            Sin gastos en el rango.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Tabla por vehículo -->
+            <div
+                class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900/40 p-4"
+            >
+                <h2 class="font-semibold text-surface-800 dark:text-surface-100 mb-3">
+                    Detalle por vehículo
+                </h2>
+                <p-table
+                    [value]="d.por_vehiculo"
+                    dataKey="id_vehiculo"
+                    [rows]="10"
+                    [paginator]="d.por_vehiculo.length > 10"
+                    [tableStyle]="{ 'min-width': '56rem' }"
+                >
+                    <ng-template #header>
+                        <tr>
+                            <th>Unidad</th>
+                            <th style="width: 7rem">Cargas</th>
+                            <th style="width: 7rem">Litros</th>
+                            <th style="width: 9rem">Combustible</th>
+                            <th style="width: 9rem">Combust. Bs</th>
+                            <th style="width: 8rem">Mantenim.</th>
+                            <th style="width: 9rem">Mant. Bs</th>
+                            <th style="width: 8rem">Km</th>
+                            <th style="width: 9rem">Total</th>
+                            <th style="width: 9rem">Total Bs</th>
+                            <th style="width: 8rem">Costo/km</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-v>
+                        <tr>
+                            <td>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold">{{ v.placa }}</span>
+                                    <span class="text-xs text-surface-500">{{
+                                        v.vehiculo_desc
+                                    }}</span>
+                                </div>
+                            </td>
+                            <td>{{ v.cargas }}</td>
+                            <td class="font-mono text-sm">
+                                {{ v.litros_combustible.toFixed(1) }} L
+                            </td>
+                            <td class="font-mono">
+                                {{ v.costo_combustible | currency: 'USD' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="font-mono">{{ v.costo_combustible_bss.toFixed(2) }} Bs</td>
+                            <td class="font-mono">
+                                {{ v.costo_mantenimiento | currency: 'USD' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="font-mono">{{ v.costo_mantenimiento_bss.toFixed(2) }} Bs</td>
+                            <td class="font-mono text-sm">{{ v.km_recorridos.toFixed(1) }} km</td>
+                            <td class="font-mono font-semibold">
+                                {{ v.costo_total | currency: 'USD' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="font-mono font-semibold">
+                                {{ v.costo_total_bss.toFixed(2) }} Bs
+                            </td>
+                            <td class="font-mono text-sm">
+                                {{ v.costo_por_km.toFixed(4) }}
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                        <tr>
+                            <td colspan="11" class="text-center py-6 text-surface-400">
+                                Sin gastos registrados en el rango.
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+        </div>
+    } @else {
+        <div class="text-center py-16 text-muted-color">
+            <i class="pi pi-money-bill text-4xl block mb-3"></i>
+            <span class="text-lg font-semibold">Sin datos para el rango seleccionado</span>
+        </div>
+    }
+</div>

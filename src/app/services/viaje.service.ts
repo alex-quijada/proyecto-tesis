@@ -214,6 +214,26 @@ export class ViajeService {
         if (error) throw new Error(`Error al cargar tiempos de viajes: ${error.message}`);
         return (data as TiemposViaje[]) || [];
     }
+
+    /** Historial de estados de todas las facturas de un viaje (línea de tiempo).
+     *  Solo personal interno (Administrador/Analista/Coordinador). */
+    async obtenerHistorialViaje(idViaje: string): Promise<HistorialViajeRow[]> {
+        const { data, error } = await this.supabase.rpc('obtener_historial_viaje', {
+            p_id_viaje: idViaje,
+        });
+        if (error) throw new Error(`Error al cargar el historial del viaje: ${error.message}`);
+        return (data as HistorialViajeRow[]) || [];
+    }
+}
+
+export interface HistorialViajeRow {
+    id_factura: string;
+    numero_factura: string;
+    nombre_cliente: string;
+    orden_visita: number;
+    estado: string;
+    observacion: string | null;
+    fecha_cambio: string;
 }
 
 export interface TiemposViaje {
