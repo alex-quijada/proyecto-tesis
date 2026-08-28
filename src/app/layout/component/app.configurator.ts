@@ -39,12 +39,12 @@ declare type SurfacesType = {
     template: `
         <div class="flex flex-col gap-4">
             <div>
-                <span class="text-sm text-muted-color font-semibold">Primary</span>
+                <span class="text-sm text-muted-color font-semibold">Color Principal</span>
                 <div class="pt-2 flex gap-2 flex-wrap justify-start">
                     @for (primaryColor of primaryColors(); track primaryColor.name) {
                         <button
                             type="button"
-                            [title]="primaryColor.name"
+                            [title]="primaryColorLabels[primaryColor.name || ''] || primaryColor.name"
                             (click)="updateColors($event, 'primary', primaryColor)"
                             [ngClass]="{
                                 'outline outline-primary':
@@ -54,20 +54,20 @@ declare type SurfacesType = {
                             [style]="{
                                 'background-color':
                                     primaryColor?.name === 'noir'
-                                        ? 'var(--text-color)'
-                                        : primaryColor?.palette?.['500'],
+                                         ? 'var(--text-color)'
+                                         : primaryColor?.palette?.['500'],
                             }"
                         ></button>
                     }
                 </div>
             </div>
             <div>
-                <span class="text-sm text-muted-color font-semibold">Surface</span>
+                <span class="text-sm text-muted-color font-semibold">Color de Superficie</span>
                 <div class="pt-2 flex gap-2 flex-wrap justify-start">
                     @for (surface of surfaces; track surface.name) {
                         <button
                             type="button"
-                            [title]="surface.name"
+                            [title]="surfaceColorLabels[surface.name || ''] || surface.name"
                             (click)="updateColors($event, 'surface', surface)"
                             class="cursor-pointer w-5 h-5 rounded-full flex shrink-0 items-center justify-center p-0 outline-offset-1"
                             [ngClass]="{
@@ -84,18 +84,9 @@ declare type SurfacesType = {
                     }
                 </div>
             </div>
-            <div class="flex flex-col gap-2">
-                <span class="text-sm text-muted-color font-semibold">Presets</span>
-                <p-selectbutton
-                    [options]="presets"
-                    [ngModel]="selectedPreset()"
-                    (ngModelChange)="onPresetChange($event)"
-                    [allowEmpty]="false"
-                    size="small"
-                />
-            </div>
+
             <div *ngIf="showMenuModeButton()" class="flex flex-col gap-2">
-                <span class="text-sm text-muted-color font-semibold">Menu Mode</span>
+                <span class="text-sm text-muted-color font-semibold">Modo del Menú</span>
                 <p-selectbutton
                     [ngModel]="menuMode()"
                     (ngModelChange)="onMenuModeChange($event)"
@@ -126,9 +117,40 @@ export class AppConfigurator {
     showMenuModeButton = signal(!this.router.url.includes('auth'));
 
     menuModeOptions = [
-        { label: 'Static', value: 'static' },
-        { label: 'Overlay', value: 'overlay' },
+        { label: 'Estático', value: 'static' },
+        { label: 'Superpuesto', value: 'overlay' },
     ];
+
+    readonly primaryColorLabels: Record<string, string> = {
+        emerald: 'Esmeralda',
+        green: 'Verde',
+        lime: 'Lima',
+        orange: 'Naranja',
+        amber: 'Ámbar',
+        yellow: 'Amarillo',
+        teal: 'Verde azulado (Teal)',
+        cyan: 'Cian',
+        sky: 'Celeste',
+        blue: 'Azul',
+        indigo: 'Índigo',
+        violet: 'Violeta',
+        purple: 'Púrpura',
+        fuchsia: 'Fucsia',
+        pink: 'Rosa',
+        rose: 'Rojo carmín (Rose)',
+        noir: 'Negro / Neutro (Noir)',
+    };
+
+    readonly surfaceColorLabels: Record<string, string> = {
+        slate: 'Pizarra (Slate)',
+        gray: 'Gris (Gray)',
+        zinc: 'Cinc (Zinc)',
+        neutral: 'Neutro (Neutral)',
+        stone: 'Piedra (Stone)',
+        soho: 'Soho',
+        viva: 'Viva',
+        ocean: 'Océano (Ocean)',
+    };
 
     ngOnInit() {
         if (isPlatformBrowser(this.platformId)) {

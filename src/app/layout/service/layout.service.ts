@@ -8,6 +8,36 @@ export interface LayoutConfig {
     menuMode: string;
 }
 
+const DEFAULT_CONFIG: LayoutConfig = {
+    preset: 'Aura',
+    primary: 'emerald',
+    surface: null,
+    darkTheme: false,
+    menuMode: 'static',
+};
+
+const STORAGE_KEY = 'brandia_layout_config';
+
+function loadInitialConfig(): LayoutConfig {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return DEFAULT_CONFIG;
+    }
+    try {
+        const saved =
+            localStorage.getItem(STORAGE_KEY) || localStorage.getItem('sakai_layout_config');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            return {
+                ...DEFAULT_CONFIG,
+                ...parsed,
+            };
+        }
+    } catch {
+        /* noop */
+    }
+    return DEFAULT_CONFIG;
+}
+
 interface LayoutState {
     staticMenuDesktopInactive: boolean;
     overlayMenuActive: boolean;
@@ -21,13 +51,9 @@ interface LayoutState {
     providedIn: 'root',
 })
 export class LayoutService {
-    layoutConfig = signal<LayoutConfig>({
-        preset: 'Aura',
-        primary: 'emerald',
-        surface: null,
-        darkTheme: false,
-        menuMode: 'static',
-    });
+    private readonly initialConfig = loadInitialConfig();
+
+    layoutConfig = signal<LayoutConfig>(this.initialConfig);
 
     layoutState = signal<LayoutState>({
         staticMenuDesktopInactive: false,
@@ -57,8 +83,21 @@ export class LayoutService {
     private initialized = false;
 
     constructor() {
+        if (typeof document !== 'undefined') {
+            this.toggleDarkMode(this.initialConfig);
+        }
+
         effect(() => {
             const config = this.layoutConfig();
+
+            // Persistir configuración en localStorage
+            if (typeof window !== 'undefined' && window.localStorage) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+                } catch {
+                    /* noop */
+                }
+            }
 
             if (!this.initialized || !config) {
                 this.initialized = true;
