@@ -25,7 +25,7 @@ import {
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ViajeAdmin, IncidenciaParada } from '@/app/services/viaje.types';
 import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
-import { MetricasDesvio, calcularMetricasDesvio } from './devios.util';
+import { MetricasDesvio, calcularMetricasDesvio, depurarTraza } from './devios.util';
 import { environment } from '@/environments/environment';
 
 interface HistorialParada {
@@ -433,7 +433,7 @@ export class HistorialEntregasComponent implements OnInit {
     }
 
     /** Construye los hitos del recorrido del viaje (almacén → salida → paradas
-     *  → fin) a partir del historial de estados de sus facturas. Para historial
+     *  → retorno/fin) a partir del historial de estados de sus facturas. Para historial
      *  (viajes finalizados) todas las duraciones salen de timestamps reales. */
     private construirLineaTiempo(rows: HistorialViajeRow[], viaje?: ViajeAdmin): LineaTiempoItem[] {
         if (!rows.length) return [];
@@ -499,7 +499,61 @@ export class HistorialEntregasComponent implements OnInit {
             (a, b) => a.orden_visita - b.orden_visita,
         );
 
+        // Detectar si una factura fue cancelada/cortada por fin de horario sin haber sido visitada
+        const esNoVisitadaPorHorario = (
+            transiciones: { estado: string; fecha: Date; observacion?: string | null }[],
+        ): boolean => {
+            const tieneEsperaOEntrega = transiciones.some(
+                (t) => t.estado === 'espera' || t.estado === 'entrega',
+            );
+            if (tieneEsperaOEntrega) return false;
+            const ultima = transiciones[transiciones.length - 1];
+            if (ultima && ultima.estado === 'incidencia') {
+                const obs = (ultima.observacion || '').toUpperCase();
+                return (
+                    obs.includes('FUERA_HORARIO') ||
+                    obs.includes('FUERA DE TIEMPO') ||
+                    obs.includes('HORARIO')
+                );
+            }
+            return false;
+        };
+
+        // Identificar paradas no visitadas por horario y fecha de retorno al almacén
+        const paradasNoVisitadas: {
+            p: HistorialViajeRow;
+            numero: number;
+            fecha: Date;
+            obs?: string | null;
+        }[] = [];
+        let fechaRetornoAlmacen: Date | null = null;
+
         for (const [idx, p] of paradas.entries()) {
+            const numero = idx + 1;
+            const transiciones = porFactura.get(p.id_factura) ?? [];
+            if (esNoVisitadaPorHorario(transiciones)) {
+                const ultima = transiciones[transiciones.length - 1];
+                paradasNoVisitadas.push({
+                    p,
+                    numero,
+                    fecha: ultima.fecha,
+                    obs: ultima.observacion,
+                });
+                if (
+                    !fechaRetornoAlmacen ||
+                    ultima.fecha.getTime() < fechaRetornoAlmacen.getTime()
+                ) {
+                    fechaRetornoAlmacen = ultima.fecha;
+                }
+            }
+        }
+
+        const idsNoVisitadas = new Set(paradasNoVisitadas.map((x) => x.p.id_factura));
+
+        // 1. Renderizar paradas visitadas o con incidencias normales en ruta
+        for (const [idx, p] of paradas.entries()) {
+            if (idsNoVisitadas.has(p.id_factura)) continue;
+
             const numero = idx + 1;
             const transiciones = porFactura.get(p.id_factura) ?? [];
             if (!transiciones.length) continue;
@@ -576,15 +630,47 @@ export class HistorialEntregasComponent implements OnInit {
             }
         }
 
+        // 2. Si hubo corte por horario, agregar el hito de retorno y las paradas no visitadas
+        if (fechaRetornoAlmacen && paradasNoVisitadas.length > 0) {
+            items.push({
+                id: 'retorno-almacen',
+                tipo: 'salida',
+                label: 'Fin de horario de entrega — Retorno al almacén iniciado',
+                icono: 'pi pi-replay',
+                color: '#f59e0b',
+                fecha: fechaRetornoAlmacen,
+                chip: `${paradasNoVisitadas.length} parada(s) no visitadas`,
+            });
+
+            for (const itemNoVis of paradasNoVisitadas) {
+                items.push({
+                    id: `no-visitada-${itemNoVis.p.id_factura}`,
+                    tipo: 'incidencia',
+                    label: `No visitado — ${itemNoVis.p.numero_factura} · ${itemNoVis.p.nombre_cliente || '—'}`,
+                    numero: itemNoVis.numero,
+                    icono: 'pi pi-ban',
+                    color: '#f59e0b',
+                    fecha: itemNoVis.fecha,
+                    chip: 'Pendiente reprogramar',
+                    observacion: itemNoVis.obs,
+                });
+            }
+        }
+
+        // 3. Hito final de cierre
+        const fechaFin = viaje?.fecha_finalizacion
+            ? new Date(viaje.fecha_finalizacion)
+            : (primeraGlobal('finalizado') ?? fechaRetornoAlmacen);
+
         items.push({
             id: 'completado',
             tipo: 'completado',
-            label: 'Viaje completado',
+            label: fechaRetornoAlmacen
+                ? 'Llegada al almacén — Viaje finalizado'
+                : 'Viaje completado',
             icono: 'pi pi-flag-fill',
             color: '#10b981',
-            fecha: viaje?.fecha_finalizacion
-                ? new Date(viaje.fecha_finalizacion)
-                : primeraGlobal('finalizado'),
+            fecha: fechaFin,
             chip: null,
         });
 
@@ -668,57 +754,75 @@ export class HistorialEntregasComponent implements OnInit {
 
     /** Viajes con el acordeón de análisis abierto. */
     readonly analisisAbierto = signal<Record<string, boolean>>({});
+    readonly trazasData = signal<Record<string, TrazaViajePunto[]>>({});
+    readonly metricasData = signal<Record<string, MetricasDesvio | null>>({});
+    readonly analisisCargando = signal<Record<string, boolean>>({});
+    readonly analisisError = signal<Record<string, string>>({});
 
     toggleAnalisis(idViaje: string) {
         const abierto = !this.analisisAbierto()[idViaje];
         this.analisisAbierto.update((mapa) => ({ ...mapa, [idViaje]: abierto }));
-        if (abierto) void this.cargarAnalisis(idViaje);
-        else this.limpiarMapaAnalisis(idViaje);
+        if (abierto) {
+            void this.cargarAnalisis(idViaje);
+        } else {
+            this.limpiarMapaAnalisis(idViaje);
+        }
     }
 
-    private trazas = new Map<string, TrazaViajePunto[]>();
-    private metricas = new Map<string, MetricasDesvio | null>();
-    private analisisCargando = new Map<string, boolean>();
-    private analisisError = new Map<string, string>();
-
     cargandoAnalisis(idViaje: string): boolean {
-        return this.analisisCargando.get(idViaje) ?? false;
+        return this.analisisCargando()[idViaje] ?? false;
     }
 
     errorAnalisis(idViaje: string): string {
-        return this.analisisError.get(idViaje) ?? '';
+        return this.analisisError()[idViaje] ?? '';
     }
 
     metricasAnalisis(idViaje: string): MetricasDesvio | null {
-        return this.metricas.get(idViaje) ?? null;
+        return this.metricasData()[idViaje] ?? null;
     }
 
     trazaAnalisis(idViaje: string): TrazaViajePunto[] {
-        return this.trazas.get(idViaje) ?? [];
+        return this.trazasData()[idViaje] ?? [];
     }
 
     private async cargarAnalisis(idViaje: string) {
-        if (this.trazas.has(idViaje)) return;
-        this.analisisCargando.set(idViaje, true);
-        this.analisisError.set(idViaje, '');
+        if (this.trazasData()[idViaje]) {
+            setTimeout(() => this.initMapaPorId(idViaje), 100);
+            return;
+        }
+        this.analisisCargando.update((m) => ({ ...m, [idViaje]: true }));
+        this.analisisError.update((m) => ({ ...m, [idViaje]: '' }));
         try {
             const traza = await this.viajeService.obtenerTrazaViaje(idViaje);
-            this.trazas.set(idViaje, traza);
+            this.trazasData.update((m) => ({ ...m, [idViaje]: traza }));
             const viaje = this.viajesFinalizados().find((v) => v.id_viaje === idViaje);
             const planeada = viaje?.ruta_detallada?.path ?? [];
-            this.metricas.set(idViaje, calcularMetricasDesvio(traza, planeada));
+            const distPlaneadaM = viaje?.ruta_detallada?.distancia;
+            const m = calcularMetricasDesvio(traza, planeada, distPlaneadaM);
+            this.metricasData.update((mapa) => ({ ...mapa, [idViaje]: m }));
             // Inicializar el mapa comparativo una vez que el div esté en el DOM.
             setTimeout(() => this.initMapaPorId(idViaje), 150);
         } catch (err: any) {
-            this.analisisError.set(idViaje, err?.message || 'No se pudo cargar la traza.');
+            this.analisisError.update((m) => ({
+                ...m,
+                [idViaje]: err?.message || 'No se pudo cargar la traza.',
+            }));
         } finally {
-            this.analisisCargando.set(idViaje, false);
+            this.analisisCargando.update((m) => ({ ...m, [idViaje]: false }));
         }
     }
 
     private initMapaPorId(idViaje: string) {
         const el = document.getElementById(`mapa-analisis-${idViaje}`);
-        if (el) this.initMapaAnalisis(idViaje, el);
+        if (el) {
+            this.initMapaAnalisis(idViaje, el);
+        } else {
+            // Reintentar si el DOM aún no terminó de renderizarse
+            setTimeout(() => {
+                const el2 = document.getElementById(`mapa-analisis-${idViaje}`);
+                if (el2) this.initMapaAnalisis(idViaje, el2);
+            }, 200);
+        }
     }
 
     // ---------------- Mapa comparativo ----------------
@@ -730,31 +834,49 @@ export class HistorialEntregasComponent implements OnInit {
     >();
 
     initMapaAnalisis(idViaje: string, el: HTMLElement) {
-        if (this.mapas.has(idViaje)) return;
         if (!el) return;
+        if (this.mapas.has(idViaje)) {
+            const mapaExistente = this.mapas.get(idViaje);
+            if (mapaExistente) {
+                google.maps.event.trigger(mapaExistente, 'resize');
+                return;
+            }
+        }
         if (el.clientHeight === 0) {
-            // Aún no renderizado: reintentar en el siguiente frame.
+            // Aún no renderizado con altura: reintentar en el siguiente frame
             setTimeout(() => {
                 const actual = document.getElementById(`mapa-analisis-${idViaje}`);
                 if (actual) this.initMapaAnalisis(idViaje, actual);
             }, 200);
             return;
         }
+        if (typeof google === 'undefined' || !google.maps) {
+            setTimeout(() => {
+                const actual = document.getElementById(`mapa-analisis-${idViaje}`);
+                if (actual) this.initMapaAnalisis(idViaje, actual);
+            }, 300);
+            return;
+        }
+
         const mapa = new google.maps.Map(el, {
             center: { lat: environment.warehouseLat, lng: environment.warehouseLng },
-            zoom: 11,
+            zoom: 12,
             mapId: 'seguimiento',
-            disableDefaultUI: true,
+            disableDefaultUI: false,
+            zoomControl: true,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true,
         });
         this.mapas.set(idViaje, mapa);
-        google.maps.event.addListenerOnce(mapa, 'idle', () => {
-            const traza = this.trazas.get(idViaje) ?? [];
+
+        const renderizar = () => {
+            const traza = this.trazasData()[idViaje] ?? [];
             const viaje = this.viajesFinalizados().find((v) => v.id_viaje === idViaje);
             const planeada = viaje?.ruta_detallada?.path ?? [];
 
-            const realPath = traza
-                .filter((t) => t.latitud != null && t.longitud != null)
-                .map((t) => ({ lat: t.latitud, lng: t.longitud }));
+            const puntosRealDepurados = depurarTraza(traza);
+            const realPath = puntosRealDepurados.map((t) => ({ lat: t.latitud, lng: t.longitud }));
             const planeadaPath = planeada.map((p) => ({ lat: p.lat, lng: p.lng }));
 
             const polylineReal = new google.maps.Polyline({
@@ -763,13 +885,15 @@ export class HistorialEntregasComponent implements OnInit {
                 strokeWeight: 4,
                 strokeOpacity: 0.9,
                 map: mapa,
+                zIndex: 4,
             });
             const polylinePlaneada = new google.maps.Polyline({
                 path: planeadaPath,
                 strokeColor: '#3b82f6',
-                strokeWeight: 3,
-                strokeOpacity: 0.9,
+                strokeWeight: 4,
+                strokeOpacity: 0.8,
                 map: mapa,
+                zIndex: 3,
             });
             this.polylinesMapas.set(idViaje, {
                 planeada: polylinePlaneada,
@@ -785,21 +909,43 @@ export class HistorialEntregasComponent implements OnInit {
             for (const p of planeadaPath) bounds.extend(p);
             for (const p of realPath) bounds.extend(p);
             bounds.extend({ lat: environment.warehouseLat, lng: environment.warehouseLng });
-            if (!bounds.isEmpty()) mapa.fitBounds(bounds, 60);
-        });
+            if (!bounds.isEmpty()) {
+                mapa.fitBounds(bounds, 50);
+            }
+        };
+
+        google.maps.event.addListenerOnce(mapa, 'idle', renderizar);
+        setTimeout(renderizar, 100);
     }
 
     private agregarMarcadorAlmacen(mapa: google.maps.Map) {
-        const div = document.createElement('div');
-        div.innerHTML =
-            '<div style="width:26px;height:26px;background:#8b5cf6;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
-        new google.maps.marker.AdvancedMarkerElement({
-            position: { lat: environment.warehouseLat, lng: environment.warehouseLng },
-            map: mapa,
-            content: div.firstElementChild as HTMLElement,
-            title: 'Almacén central',
-            zIndex: 1,
-        });
+        const pos = { lat: environment.warehouseLat, lng: environment.warehouseLng };
+        if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+            const div = document.createElement('div');
+            div.innerHTML =
+                '<div style="width:26px;height:26px;background:#8b5cf6;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>';
+            new google.maps.marker.AdvancedMarkerElement({
+                position: pos,
+                map: mapa,
+                content: div.firstElementChild as HTMLElement,
+                title: 'Almacén central',
+                zIndex: 10,
+            });
+        } else {
+            new google.maps.Marker({
+                position: pos,
+                map: mapa,
+                title: 'Almacén central',
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 8,
+                    fillColor: '#8b5cf6',
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: '#ffffff',
+                },
+            });
+        }
     }
 
     private agregarMarcadoresParadas(mapa: google.maps.Map, viaje?: ViajeAdmin) {
@@ -807,15 +953,36 @@ export class HistorialEntregasComponent implements OnInit {
         const paradas = [...(viaje.paradas || [])].sort((a, b) => a.orden_visita - b.orden_visita);
         for (const [idx, p] of paradas.entries()) {
             if (p.latitud == null || p.longitud == null) continue;
-            const div = document.createElement('div');
-            div.innerHTML = `<div style="width:24px;height:24px;background:#f59e0b;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${idx + 1}</div>`;
-            new google.maps.marker.AdvancedMarkerElement({
-                position: { lat: p.latitud, lng: p.longitud },
-                map: mapa,
-                content: div.firstElementChild as HTMLElement,
-                title: `${idx + 1} · ${p.nombre_cliente || ''}`,
-                zIndex: 2,
-            });
+            const pos = { lat: p.latitud, lng: p.longitud };
+            const num = idx + 1;
+            const title = `${num} · ${p.nombre_cliente || ''}`;
+
+            if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+                const div = document.createElement('div');
+                div.innerHTML = `<div style="width:24px;height:24px;background:#f59e0b;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;box-shadow:0 2px 5px rgba(0,0,0,0.3);">${num}</div>`;
+                new google.maps.marker.AdvancedMarkerElement({
+                    position: pos,
+                    map: mapa,
+                    content: div.firstElementChild as HTMLElement,
+                    title: title,
+                    zIndex: 20 + idx,
+                });
+            } else {
+                new google.maps.Marker({
+                    position: pos,
+                    map: mapa,
+                    title: title,
+                    label: { text: String(num), color: '#ffffff', fontSize: '11px', fontWeight: 'bold' },
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: '#f59e0b',
+                        fillOpacity: 1,
+                        strokeWeight: 2,
+                        strokeColor: '#ffffff',
+                    },
+                });
+            }
         }
     }
 

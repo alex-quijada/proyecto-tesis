@@ -72,7 +72,7 @@ export class PosicionService {
         if (!viajeActivo) return;
 
         const intervalo = this.navigationService.simulando()
-            ? 0 // en simulación muestrear cada tick (no hay coste de API)
+            ? 1_000 // en simulación muestrear a 1s (traza suave sin saturar de micro-puntos)
             : TrazaService.INTERVALO_GPS_MS;
         const ahora = Date.now();
         if (intervalo > 0 && ahora - this.ultimaMuestraTraza < intervalo) return;

@@ -45,6 +45,69 @@ function distanciaAPuntoSegmento(
 }
 
 /**
+ * Limpia y depura la traza del chofer:
+ * 1) Elimina puntos nulos o con coordenadas (0, 0).
+ * 2) Ordena cronológicamente por timestamp.
+ * 3) Filtra micro-ruido de GPS estacionado (< 3 m).
+ * 4) Descarta saltos irreales de teletransporte (ej. reseteos de posición / salto al almacén).
+ */
+export function depurarTraza(
+    puntos: TrazaViajePunto[],
+    maxVelocidadKmh = 140,
+): TrazaViajePunto[] {
+    const validos = (puntos || []).filter(
+        (p) =>
+            p.latitud != null &&
+            p.longitud != null &&
+            !isNaN(p.latitud) &&
+            !isNaN(p.longitud) &&
+            p.latitud !== 0 &&
+            p.longitud !== 0,
+    );
+
+    if (validos.length < 2) return validos;
+
+    // Ordenar cronológicamente
+    validos.sort((a, b) => {
+        const tA = a.creada_en ? new Date(a.creada_en).getTime() : 0;
+        const tB = b.creada_en ? new Date(b.creada_en).getTime() : 0;
+        return tA - tB;
+    });
+
+    const limpios: TrazaViajePunto[] = [validos[0]];
+
+    for (let i = 1; i < validos.length; i++) {
+        const actual = validos[i];
+        const anterior = limpios[limpios.length - 1];
+
+        const distM = haversineM(
+            { lat: anterior.latitud, lng: anterior.longitud },
+            { lat: actual.latitud, lng: actual.longitud },
+        );
+
+        // Descartar micro-ruido de chofer detenido
+        if (distM < 3) continue;
+
+        // Descartar teletransportes irreales (ej. saltos de inicialización > 300m a velocidades astronómicas)
+        if (anterior.creada_en && actual.creada_en) {
+            const dtSegundos =
+                (new Date(actual.creada_en).getTime() - new Date(anterior.creada_en).getTime()) /
+                1000;
+            if (dtSegundos > 0) {
+                const velKmh = (distM / dtSegundos) * 3.6;
+                if (velKmh > maxVelocidadKmh && distM > 300) {
+                    continue;
+                }
+            }
+        }
+
+        limpios.push(actual);
+    }
+
+    return limpios.length >= 2 ? limpios : validos;
+}
+
+/**
  * Longitud total de una polyline de puntos (con latitud/longitud o lat/lng)
  * en km (haversine acumulada).
  */
@@ -67,17 +130,22 @@ function toLatLng(p: { lat: number; lng: number } | TrazaViajePunto): { lat: num
 
 /**
  * Calcula las métricas de desvío entre la ruta planificada (VRPTW,
- * `ruta_detallada.path`) y la traza real del chofer.
+ * `ruta_detallada.path`) y la traza real depurada del chofer.
  */
 export function calcularMetricasDesvio(
     traza: TrazaViajePunto[],
     rutaPlaneada: { lat: number; lng: number }[],
+    distanciaPlaneadaMetros?: number | null,
 ): MetricasDesvio | null {
-    const puntosReal = traza.filter((t) => t.latitud != null && t.longitud != null);
+    const puntosReal = depurarTraza(traza);
     if (puntosReal.length < 2 || rutaPlaneada.length < 2) return null;
 
     const distanciaRealKm = longitudPolylineKm(puntosReal);
-    const distanciaPlaneadaKm = longitudPolylineKm(rutaPlaneada);
+    const distanciaPlaneadaKm =
+        distanciaPlaneadaMetros != null && distanciaPlaneadaMetros > 0
+            ? distanciaPlaneadaMetros / 1000
+            : longitudPolylineKm(rutaPlaneada);
+
     const kmExtra = Math.max(0, distanciaRealKm - distanciaPlaneadaKm);
     const porcentajeSobreRuta =
         distanciaPlaneadaKm > 0 ? (distanciaRealKm / distanciaPlaneadaKm) * 100 : 0;
@@ -107,3 +175,4 @@ export function calcularMetricasDesvio(
         esSimulacion: puntosReal.some((t) => t.es_simulacion),
     };
 }
+

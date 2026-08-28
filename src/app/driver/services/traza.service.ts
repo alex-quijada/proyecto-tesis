@@ -63,6 +63,18 @@ export class TrazaService {
         rumbo?: number | null,
     ): Promise<void> {
         if (!this.uid) return;
+        const caché = await this.offlineStorage.leer<PuntoTraza[]>(
+            this.uid,
+            clave(this.uid, idViaje),
+        );
+        const puntos = caché?.data ?? [];
+        const ultimo = puntos[puntos.length - 1];
+        if (ultimo) {
+            const dLat = (lat - ultimo.latitud) * 111320;
+            const dLng = (lng - ultimo.longitud) * 111320 * Math.cos((lat * Math.PI) / 180);
+            if (dLat * dLat + dLng * dLng < 9) return; // Menos de 3 metros, ignorar ruido estático
+        }
+
         const punto: PuntoTraza = {
             latitud: lat,
             longitud: lng,
@@ -71,11 +83,6 @@ export class TrazaService {
             es_simulacion: this.navigationService.simulando(),
             creada_en: new Date().toISOString(),
         };
-        const caché = await this.offlineStorage.leer<PuntoTraza[]>(
-            this.uid,
-            clave(this.uid, idViaje),
-        );
-        const puntos = caché?.data ?? [];
         puntos.push(punto);
         await this.offlineStorage.guardar(this.uid, clave(this.uid, idViaje), puntos);
     }
