@@ -33,6 +33,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { TooltipModule } from 'primeng/tooltip';
+import { TagModule } from 'primeng/tag';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 
@@ -83,6 +84,7 @@ interface VehiculoOption {
         InputTextModule,
         InputNumberModule,
         SelectModule,
+        TagModule,
         FluidModule,
         MessageModule,
         TextareaModule,
@@ -859,8 +861,26 @@ export class GuiaDialogComponent implements OnInit {
             if (r.instrucciones) partes.push(`Nota: ${r.instrucciones}`);
             return partes.join(' | ') || 'Sin reglas específicas';
         } catch {
-            return reglasJson;
+            return 'No especificadas';
         }
+    }
+
+    seleccionarTexto(event: any) {
+        const input = (event?.target as HTMLInputElement) || (event?.currentTarget as HTMLInputElement);
+        if (input && typeof input.select === 'function') {
+            setTimeout(() => input.select(), 0);
+        }
+    }
+
+    getPrioridadSeverity(
+        prioridad: string | null | undefined,
+    ): 'danger' | 'warn' | 'info' | 'secondary' {
+        if (!prioridad) return 'secondary';
+        const p = prioridad.toLowerCase();
+        if (p.includes('alta')) return 'danger';
+        if (p.includes('media')) return 'warn';
+        if (p.includes('baja') || p.includes('normal')) return 'info';
+        return 'secondary';
     }
 
     hideDialog() {

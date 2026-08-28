@@ -1,4 +1,4 @@
-﻿<div class="card">
+<div class="card">
     <p-confirmdialog />
 
     <div class="flex flex-col gap-1 mb-4">
@@ -263,7 +263,7 @@
                                         </div>
                                         <div class="p-4">
                                             <div class="grid grid-cols-12 gap-x-4 gap-y-3 text-sm">
-                                                <div class="col-span-3">
+                                                <div class="col-span-4">
                                                     <div class="text-xs text-surface-400 mb-0.5">
                                                         Cliente
                                                     </div>
@@ -277,42 +277,22 @@
                                                     </div>
                                                     <div>{{ fact.rifCliente }}</div>
                                                 </div>
-                                                <div class="col-span-3">
+                                                <div class="col-span-2">
                                                     <div class="text-xs text-surface-400 mb-0.5">
                                                         Teléfono
                                                     </div>
                                                     <div>{{ fact.telefono }}</div>
                                                 </div>
-
                                                 <div class="col-span-3">
                                                     <div class="text-xs text-surface-400 mb-0.5">
                                                         Total USD
                                                     </div>
                                                     <div class="font-semibold text-primary">
-                                                        {{
-                                                            fact.totalUSD
-                                                                | currency
-                                                                    : 'USD'
-                                                                    : 'symbol'
-                                                                    : '1.2-2'
-                                                        }}
+                                                        ${{ (fact.totalUSD || 0) | number: '1.2-2' }}
                                                     </div>
                                                 </div>
-                                                <div class="col-span-3">
-                                                    <div class="text-xs text-surface-400 mb-0.5">
-                                                        Total Bs.
-                                                    </div>
-                                                    <div class="font-semibold">
-                                                        {{
-                                                            fact.totalVES
-                                                                | currency
-                                                                    : 'VES'
-                                                                    : 'symbol'
-                                                                    : '1.2-2'
-                                                        }}
-                                                    </div>
-                                                </div>
-                                                <div class="col-span-3">
+
+                                                <div class="col-span-4">
                                                     <div class="text-xs text-surface-400 mb-0.5">
                                                         Sucursal
                                                     </div>
@@ -334,7 +314,7 @@
                                                         }}
                                                     </div>
                                                 </div>
-                                                <div class="col-span-3">
+                                                <div class="col-span-5">
                                                     <div class="text-xs text-surface-400 mb-0.5">
                                                         Reglas de Recepción
                                                     </div>
@@ -343,6 +323,14 @@
                                                             fact.reglasRecepcion?.instrucciones ||
                                                                 'Estándar'
                                                         }}
+                                                    </div>
+                                                </div>
+                                                <div class="col-span-3">
+                                                    <div class="text-xs text-surface-400 mb-0.5">
+                                                        Total Bs.
+                                                    </div>
+                                                    <div class="font-semibold text-surface-800 dark:text-surface-100">
+                                                        Bs. {{ (fact.totalVES || 0) | number: '1.2-2' }}
                                                     </div>
                                                 </div>
                                             </div>

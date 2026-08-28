@@ -275,45 +275,61 @@
                                             <small class="text-red-500">Requerido</small>
                                         }
                                     </div>
-                                    <div class="col-span-3 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Prioridad</label>
-                                        <input
-                                            pInputText
-                                            formControlName="prioridad"
-                                            readonly
-                                            class="bg-surface-100 dark:bg-surface-800"
-                                        />
+                                    <div class="col-span-3 flex flex-col">
+                                        <label class="text-xs font-semibold text-surface-500"
+                                            >Prioridad</label
+                                        >
+                                        <div class="h-[42px] flex items-center">
+                                            <p-tag
+                                                [value]="
+                                                    factura.get('prioridad')?.value || 'Sin asignar'
+                                                "
+                                                [severity]="
+                                                    getPrioridadSeverity(
+                                                        factura.get('prioridad')?.value
+                                                    )
+                                                "
+                                                styleClass="text-xs font-semibold px-3 py-1"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="grid grid-cols-12 gap-3 mt-2">
                                     <div class="col-span-4 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">RIF / Cédula</label>
+                                        <label class="text-xs font-semibold text-surface-500"
+                                            >RIF / Cédula</label
+                                        >
                                         <input
                                             pInputText
                                             formControlName="rifCliente"
                                             readonly
-                                            class="bg-surface-100 dark:bg-surface-800"
+                                            tabindex="-1"
+                                            class="cursor-not-allowed select-none bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 border-surface-200 dark:border-surface-700"
                                         />
                                     </div>
                                     <div class="col-span-4 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold"
+                                        <label class="text-xs font-semibold text-surface-500"
                                             >Nombre del Contacto</label
                                         >
                                         <input
                                             pInputText
                                             formControlName="nombreCliente"
                                             readonly
-                                            class="bg-surface-100 dark:bg-surface-800"
+                                            tabindex="-1"
+                                            class="cursor-not-allowed select-none bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 border-surface-200 dark:border-surface-700"
                                         />
                                     </div>
                                     <div class="col-span-4 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold">Teléfono</label>
+                                        <label class="text-xs font-semibold text-surface-500"
+                                            >Teléfono</label
+                                        >
                                         <input
                                             pInputText
                                             formControlName="telefono"
                                             readonly
-                                            class="bg-surface-100 dark:bg-surface-800"
+                                            tabindex="-1"
+                                            class="cursor-not-allowed select-none bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 border-surface-200 dark:border-surface-700"
                                         />
                                     </div>
                                 </div>
@@ -330,6 +346,8 @@
                                             [minFractionDigits]="2"
                                             [maxFractionDigits]="2"
                                             placeholder="0.00"
+                                            (onFocus)="seleccionarTexto($event)"
+                                            (click)="seleccionarTexto($event)"
                                         />
                                     </div>
                                     <div class="col-span-3 flex flex-col gap-1">
@@ -343,10 +361,12 @@
                                             [minFractionDigits]="2"
                                             [maxFractionDigits]="2"
                                             placeholder="0.00"
+                                            (onFocus)="seleccionarTexto($event)"
+                                            (click)="seleccionarTexto($event)"
                                         />
                                     </div>
                                     <div class="col-span-6 flex flex-col gap-1">
-                                        <label class="text-xs font-semibold"
+                                        <label class="text-xs font-semibold text-surface-500"
                                             >Reglas de Recepción</label
                                         >
                                         <input
@@ -357,7 +377,8 @@
                                                 )
                                             "
                                             readonly
-                                            class="bg-surface-100 dark:bg-surface-800 truncate"
+                                            tabindex="-1"
+                                            class="cursor-not-allowed select-none bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400 border-surface-200 dark:border-surface-700 truncate"
                                         />
                                     </div>
                                 </div>
