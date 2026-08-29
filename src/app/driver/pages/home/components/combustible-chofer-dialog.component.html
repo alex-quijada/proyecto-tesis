@@ -1,0 +1,161 @@
+<p-dialog
+    [(visible)]="visible"
+    [modal]="true"
+    [style]="{ width: '95%', maxWidth: '460px' }"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="combustible-chofer-dialog"
+    [breakpoints]="{ '480px': '95vw' }"
+>
+    <ng-template pTemplate="header">
+        <div class="flex items-center gap-2 w-full">
+            <i class="pi pi-truck text-primary text-xl"></i>
+            <span class="font-semibold text-sm">Registrar Carga de Gasolina</span>
+        </div>
+    </ng-template>
+
+    <form [formGroup]="form" class="space-y-4">
+        <p-message
+            *ngIf="errorMessage"
+            severity="error"
+            [text]="errorMessage"
+            styleClass="w-full"
+        ></p-message>
+
+        <p-fluid>
+            <div class="flex flex-col gap-2">
+                <label for="vehiculo" class="font-semibold text-sm"
+                    >Vehículo <span class="text-red-500">*</span></label
+                >
+                <p-select
+                    id="vehiculo"
+                    formControlName="idVehiculo"
+                    [options]="vehiculoSelectList"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Seleccionar vehículo"
+                    appendTo="body"
+                />
+                <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500"
+                    >Seleccione un vehículo</small
+                >
+                @if (vehiculos().length === 0) {
+                    <small class="text-amber-500"
+                        >No tienes vehículos asignados. No puedes registrar combustible.</small
+                    >
+                }
+            </div>
+
+            <div class="flex flex-col gap-2 mt-2">
+                <label for="tipoCombustible" class="font-semibold text-sm"
+                    >Tipo <span class="text-red-500">*</span></label
+                >
+                <p-select
+                    id="tipoCombustible"
+                    formControlName="tipoCombustible"
+                    [options]="tiposCombustible"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Tipo"
+                    appendTo="body"
+                />
+            </div>
+        </p-fluid>
+
+        <p-divider />
+
+        <p-fluid>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-2">
+                    <label for="litros" class="font-semibold text-sm"
+                        >Litros Cargados <span class="text-red-500">*</span></label
+                    >
+                    <p-inputnumber
+                        id="litros"
+                        formControlName="litrosCargados"
+                        [min]="limitesLitros.min"
+                        [max]="limitesLitros.max"
+                        [suffix]="' L'"
+                        placeholder="0.0"
+                    />
+                    <small
+                        *ngIf="submitted && form.get('litrosCargados')?.errors?.['maxLitros']"
+                        class="text-red-500"
+                        >Máximo {{ limitesLitros.max }} L para este vehículo.</small
+                    >
+                    <small
+                        *ngIf="submitted && form.get('litrosCargados')?.errors?.['minLitros']"
+                        class="text-red-500"
+                        >Mínimo {{ limitesLitros.min }} L.</small
+                    >
+                    <small class="text-xs text-surface-400"
+                        >Según el tipo de vehículo, máximo {{ limitesLitros.max }} L.</small
+                    >
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="precioLitro" class="font-semibold text-sm"
+                        >Precio por Litro ($) <span class="text-red-500">*</span></label
+                    >
+                    <p-inputnumber
+                        id="precioLitro"
+                        formControlName="costoPorLitro"
+                        [min]="0"
+                        mode="currency"
+                        currency="USD"
+                        placeholder="0.00"
+                    />
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-2">
+                <label for="tasaBs" class="font-semibold text-sm"
+                    >Tasa del día (Bs/USD) <span class="text-red-500">*</span></label
+                >
+                <p-inputnumber
+                    id="tasaBs"
+                    formControlName="tasaBs"
+                    [min]="0"
+                    [suffix]="' Bs'"
+                    placeholder="Ej: 36.50"
+                />
+                <small class="text-xs text-surface-400"
+                    >Se usa para calcular el costo en bolívares de esta carga.</small
+                >
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3">
+                    <span class="text-xs text-surface-400 block">Total USD</span>
+                    <span class="text-xl font-bold text-primary">{{
+                        costoTotalUsd | currency: 'USD' : 'symbol' : '1.2-2'
+                    }}</span>
+                </div>
+                <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-3">
+                    <span class="text-xs text-surface-400 block">Total Bs</span>
+                    <span class="text-xl font-bold text-surface-700 dark:text-surface-200"
+                        >{{ costoTotalBs | number: '1.2-2' }} Bs</span
+                    >
+                </div>
+            </div>
+        </p-fluid>
+    </form>
+
+    <ng-template pTemplate="footer">
+        <div class="flex gap-2 w-full">
+            <p-button
+                label="Cancelar"
+                severity="secondary"
+                (onClick)="hideDialog()"
+                styleClass="flex-1"
+            />
+            <p-button
+                label="Registrar"
+                icon="pi pi-check"
+                [loading]="guardando()"
+                [disabled]="vehiculos().length === 0"
+                (onClick)="save()"
+                styleClass="flex-1"
+            />
+        </div>
+    </ng-template>
+</p-dialog>

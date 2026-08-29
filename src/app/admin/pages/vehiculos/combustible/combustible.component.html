@@ -32,27 +32,14 @@
                         </ng-template>
 
                         <div class="flex flex-col gap-2 mt-2">
-                            <!-- Tanque visual "rallitas" -->
                             <div class="flex flex-col gap-1">
                                 <span class="text-xs text-surface-400">Último nivel</span>
-                                <div class="flex items-end gap-1 h-10">
-                                    <div
-                                        *ngFor="let r of [1, 2, 3, 4, 5, 6, 7, 8]"
-                                        class="w-3 rounded-t transition-all"
-                                        [ngClass]="
-                                            r / 8 <= (v.ultimaCarga?.nivelTanqueDespues ?? 0)
-                                                ? 'bg-green-500'
-                                                : 'bg-surface-200 dark:bg-surface-600'
-                                        "
-                                        [style.height]="r * 5 + 'px'"
-                                    ></div>
-                                    <span class="text-xs text-surface-400 ml-1">
-                                        {{
-                                            (v.ultimaCarga?.nivelTanqueDespues ?? 0) * 100
-                                                | number: '1.0-0'
-                                        }}%
-                                    </span>
-                                </div>
+                                <app-tanque-gauge
+                                    [valor]="v.ultimaCarga?.nivelTanqueDespues ?? 0"
+                                    color="#22c55e"
+                                    [ancho]="120"
+                                    [interactivo]="false"
+                                />
                             </div>
 
                             <div class="grid grid-cols-2 gap-1 text-xs">
@@ -100,14 +87,13 @@
                 <tr>
                     <th>Fecha</th>
                     <th>Unidad</th>
+                    <th>Chofer</th>
                     <th>Tipo</th>
-                    <th>Método</th>
                     <th>Litros</th>
                     <th>Costo/L</th>
                     <th>Total USD</th>
                     <th>Total Bs</th>
-                    <th>Tanque</th>
-                    <th>Estación</th>
+                    <th>Tasa</th>
                     <th style="width: 80px"></th>
                 </tr>
             </ng-template>
@@ -120,20 +106,16 @@
                         <span class="text-xs text-surface-400 ml-1">{{ r.vehiculoDesc }}</span>
                     </td>
                     <td>
+                        @if (r.nombreChofer) {
+                            <span class="text-sm font-medium">{{ r.nombreChofer }}</span>
+                        } @else {
+                            <span class="text-xs text-surface-400">—</span>
+                        }
+                    </td>
+                    <td>
                         <p-tag
                             [value]="r.tipoCombustible"
                             [severity]="r.tipoCombustible === 'DIESEL' ? 'warn' : 'info'"
-                        />
-                    </td>
-                    <td>
-                        <p-chip
-                            [label]="metodoLabels[r.metodoCalculo] || r.metodoCalculo"
-                            styleClass="text-xs"
-                            [ngClass]="{
-                                'bg-blue-100 text-blue-800': r.metodoCalculo === 'TANQUE',
-                                'bg-green-100 text-green-800': r.metodoCalculo === 'ODOMETRO',
-                                'bg-yellow-100 text-yellow-800': r.metodoCalculo === 'GPS',
-                            }"
                         />
                     </td>
                     <td class="text-right font-semibold">
@@ -148,27 +130,8 @@
                     <td class="text-right font-semibold">
                         {{ r.costoTotalBss | number: '1.2-2' }} Bs
                     </td>
-                    <td>
-                        <div class="flex items-center gap-1">
-                            <div class="flex items-end gap-px h-6">
-                                <div
-                                    *ngFor="let bar of [1, 2, 3, 4]"
-                                    class="w-1.5 rounded-t transition-all"
-                                    [ngClass]="
-                                        bar / 4 <= r.nivelTanqueDespues
-                                            ? 'bg-green-500'
-                                            : 'bg-surface-200 dark:bg-surface-600'
-                                    "
-                                    [style.height]="bar * 4 + 'px'"
-                                ></div>
-                            </div>
-                            <span class="text-xs text-surface-400"
-                                >{{ r.nivelTanqueDespues * 100 | number: '1.0-0' }}%</span
-                            >
-                        </div>
-                    </td>
-                    <td>
-                        <span class="text-xs">{{ r.estacionServicio || '-' }}</span>
+                    <td class="text-right text-xs text-surface-400">
+                        {{ r.tasaBs ? (r.tasaBs | number: '1.2-2') + ' Bs' : '—' }}
                     </td>
                     <td>
                         <div class="flex items-center gap-1">
@@ -197,7 +160,7 @@
 
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="11" class="text-center py-8 text-surface-400">
+                    <td colspan="10" class="text-center py-8 text-surface-400">
                         <i class="pi pi-inbox text-4xl block mb-2"></i>
                         No hay registros de combustible aún
                     </td>
@@ -212,3 +175,5 @@
     [cargaData]="editingRecord()"
     (onSave)="onSave($event)"
 />
+
+<p-confirmDialog />

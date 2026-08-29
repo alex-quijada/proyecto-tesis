@@ -31,16 +31,15 @@ export class CargaCombustibleService {
             p_id_vehiculo: carga.idVehiculo,
             p_fecha: carga.fecha,
             p_tipo_combustible: carga.tipoCombustible,
-            p_metodo_calculo: carga.metodoCalculo || 'TANQUE',
-            p_kilometraje: carga.kilometraje ?? null,
             p_nivel_tanque_antes: carga.nivelTanqueAntes ?? null,
             p_nivel_tanque_despues: carga.nivelTanqueDespues ?? null,
             p_litros: carga.litrosCargados,
             p_costo_por_litro: carga.costoPorLitro,
             p_costo_total: carga.costoTotal,
             p_costo_total_bss: carga.costoTotalBss ?? 0,
-            p_estacion_servicio: carga.estacionServicio || null,
-            p_observaciones: carga.observaciones || null,
+            p_tasa_bs: carga.tasaBs ?? 0,
+            p_id_chofer: carga.idChofer || null,
+            p_origen: carga.origen || 'STAFF',
         });
 
         if (error) throw new Error(`Error al registrar carga de combustible: ${error.message}`);
@@ -53,16 +52,15 @@ export class CargaCombustibleService {
             p_id_vehiculo: carga.idVehiculo,
             p_fecha: carga.fecha,
             p_tipo_combustible: carga.tipoCombustible,
-            p_metodo_calculo: carga.metodoCalculo || 'TANQUE',
-            p_kilometraje: carga.kilometraje ?? null,
             p_nivel_tanque_antes: carga.nivelTanqueAntes ?? null,
             p_nivel_tanque_despues: carga.nivelTanqueDespues ?? null,
             p_litros: carga.litrosCargados,
             p_costo_por_litro: carga.costoPorLitro,
             p_costo_total: carga.costoTotal,
-            p_estacion_servicio: carga.estacionServicio || null,
-            p_observaciones: carga.observaciones || null,
             p_costo_total_bss: carga.costoTotalBss ?? 0,
+            p_tasa_bs: carga.tasaBs ?? 0,
+            p_id_chofer: carga.idChofer || null,
+            p_origen: carga.origen || 'STAFF',
         });
 
         if (error) throw new Error(`Error al actualizar carga de combustible: ${error.message}`);
@@ -81,8 +79,6 @@ export class CargaCombustibleService {
             vehiculoDesc: row.vehiculo_desc || '',
             fecha: row.fecha || '',
             tipoCombustible: row.tipo_combustible || 'DIESEL',
-            metodoCalculo: row.metodo_calculo || 'TANQUE',
-            kilometraje: row.kilometraje != null ? Number(row.kilometraje) : undefined,
             nivelTanqueAntes: row.nivel_tanque_antes != null ? Number(row.nivel_tanque_antes) : 0,
             nivelTanqueDespues:
                 row.nivel_tanque_despues != null ? Number(row.nivel_tanque_despues) : 1,
@@ -90,8 +86,10 @@ export class CargaCombustibleService {
             costoPorLitro: Number(row.costo_por_litro) || 0,
             costoTotal: Number(row.costo_total) || 0,
             costoTotalBss: row.costo_total_bss != null ? Number(row.costo_total_bss) : 0,
-            estacionServicio: row.estacion_servicio || undefined,
-            observaciones: row.observaciones || undefined,
+            tasaBs: row.tasa_bs != null ? Number(row.tasa_bs) : 0,
+            idChofer: row.id_chofer || null,
+            nombreChofer: row.nombre_chofer || null,
+            origen: row.origen || 'STAFF',
         };
     }
 }

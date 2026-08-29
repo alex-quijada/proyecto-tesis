@@ -9,11 +9,19 @@ import { TooltipModule } from 'primeng/tooltip';
 
 import { DriverStoreService } from '../../services/driver-store.service';
 import { Entrega, GuiaPendiente } from '../../services/driver-store.service';
+import { CombustibleChoferDialogComponent } from './components/combustible-chofer-dialog.component';
 
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, ButtonModule, TagModule, SkeletonModule, TooltipModule],
+    imports: [
+        CommonModule,
+        ButtonModule,
+        TagModule,
+        SkeletonModule,
+        TooltipModule,
+        CombustibleChoferDialogComponent,
+    ],
     templateUrl: './home.component.html',
 })
 export class HomeComponent implements OnInit {
@@ -21,9 +29,14 @@ export class HomeComponent implements OnInit {
     private router = inject(Router);
 
     selectedHistory = signal<Entrega | null>(null);
+    combustibleDialogVisible = signal(false);
 
     ngOnInit() {
         void this.store.verificarDatosAlEntrar();
+    }
+
+    abrirCombustibleDialog() {
+        this.combustibleDialogVisible.set(true);
     }
 
     refrescar() {

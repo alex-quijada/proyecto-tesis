@@ -1,25 +1,30 @@
 import { Component, input, output, model, effect, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import {
+    ReactiveFormsModule,
+    FormBuilder,
+    FormGroup,
+    Validators,
+    AbstractControl,
+    ValidationErrors,
+} from '@angular/forms';
 
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { FluidModule } from 'primeng/fluid';
 import { MessageModule } from 'primeng/message';
-import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DividerModule } from 'primeng/divider';
 
 import {
     CargaCombustible,
     TIPOS_COMBUSTIBLE,
-    METODOS_CALCULO,
-    NIVELES_TANQUE,
+    limitesLitrosPorTipo,
 } from '../data/combustible-mock';
 import { VehiculoService } from '../../service/vehiculo.service';
+import { TanqueGaugeComponent } from './tanque-gauge.component';
 
 @Component({
     selector: 'app-combustible-dialog',
@@ -29,14 +34,13 @@ import { VehiculoService } from '../../service/vehiculo.service';
         ReactiveFormsModule,
         DialogModule,
         ButtonModule,
-        InputTextModule,
         InputNumberModule,
         SelectModule,
         FluidModule,
         MessageModule,
-        TextareaModule,
         DatePickerModule,
         DividerModule,
+        TanqueGaugeComponent,
     ],
     templateUrl: './combustible-dialog.component.html',
 })
@@ -52,25 +56,25 @@ export class CombustibleDialogComponent implements OnInit {
     errorMessage = '';
 
     tiposCombustible = TIPOS_COMBUSTIBLE;
-    metodos = METODOS_CALCULO;
-    nivelesTanque = NIVELES_TANQUE;
-    vehiculos: { id: string; placa: string; label: string; capacidadTanque: number }[] = [];
+    vehiculos: {
+        id: string;
+        placa: string;
+        label: string;
+        capacidadTanque: number;
+        tipo: string;
+    }[] = [];
     cargandoVehiculos = true;
 
     form: FormGroup = this.fb.group({
         idVehiculo: ['', Validators.required],
         fecha: ['', Validators.required],
         tipoCombustible: ['GASOLINA_95', Validators.required],
-        metodoCalculo: ['TANQUE', Validators.required],
-        kilometraje: [0],
         nivelTanqueAntes: [0.25, Validators.required],
         nivelTanqueDespues: [1, Validators.required],
-        litrosCargados: [0, [Validators.required, Validators.min(0.1)]],
-        costoPorLitro: [0, [Validators.required, Validators.min(0)]],
+        litrosCargados: [null, [Validators.required]],
+        costoPorLitro: [null, [Validators.required, Validators.min(0)]],
         costoTotal: [{ value: 0, disabled: true }],
-        costoTotalBss: [0, [Validators.required, Validators.min(0)]],
-        estacionServicio: [''],
-        observaciones: [''],
+        tasaBs: [null, [Validators.required, Validators.min(0)]],
     });
 
     get vehiculoSelectList() {
@@ -85,6 +89,16 @@ export class CombustibleDialogComponent implements OnInit {
         return this.vehiculos.find((v) => v.id === id);
     }
 
+    /** Límites de litros según el vehículo seleccionado. */
+    get limitesLitros(): { min: number; max: number } {
+        return limitesLitrosPorTipo(this.selectedVehiculo?.tipo);
+    }
+
+    /** Capacidad del tanque (L) según el tipo del vehículo seleccionado. */
+    get capacidadTanque(): number {
+        return limitesLitrosPorTipo(this.selectedVehiculo?.tipo).max;
+    }
+
     async ngOnInit() {
         try {
             const reales = await this.vehiculoService.obtenerVehiculos();
@@ -93,29 +107,13 @@ export class CombustibleDialogComponent implements OnInit {
                 placa: v.placa || '',
                 label: `${v.marca || ''} ${v.modelo || ''} (${v.anio || ''})`.trim(),
                 capacidadTanque: 0,
+                tipo: v.tipo || '',
             }));
         } catch {
             this.vehiculos = [];
         } finally {
             this.cargandoVehiculos = false;
         }
-    }
-
-    get nivelAntesValue(): number {
-        return this.form.get('nivelTanqueAntes')?.value ?? 0;
-    }
-
-    get nivelDespuesValue(): number {
-        return this.form.get('nivelTanqueDespues')?.value ?? 1;
-    }
-
-    get metodoCalculoValue(): string {
-        return this.form.get('metodoCalculo')?.value ?? 'TANQUE';
-    }
-
-    get metodoDescripcion(): string {
-        const m = METODOS_CALCULO.find((x) => x.value === this.metodoCalculoValue);
-        return m?.desc ?? '';
     }
 
     private recalcularCostoTotal() {
@@ -125,15 +123,63 @@ export class CombustibleDialogComponent implements OnInit {
         this.form.get('costoTotal')?.setValue(total);
     }
 
+    /** Recalcula el nivel "después" según antes + litros / capacidad del tanque. */
+    private recalcularDespues() {
+        const antes = this.form.get('nivelTanqueAntes')?.value ?? 0;
+        const litros = this.form.get('litrosCargados')?.value ?? 0;
+        const cap = this.capacidadTanque;
+        const despues = cap > 0 ? Math.max(0, Math.min(1, antes + litros / cap)) : antes;
+        this.form.get('nivelTanqueDespues')?.setValue(despues);
+    }
+
+    get costoTotalBss(): number {
+        const total = this.form.get('costoTotal')?.value ?? 0;
+        const tasa = this.form.get('tasaBs')?.value ?? 0;
+        return total * tasa;
+    }
+
+    /** Actualiza el nivel "antes" desde el medidor y reconcilia el "después". */
+    setNivel(campo: 'nivelTanqueAntes' | 'nivelTanqueDespues', valor: number) {
+        this.form.get(campo)?.setValue(valor);
+        this.recalcularDespues();
+    }
+
     onLitrosChange() {
         this.recalcularCostoTotal();
+        this.recalcularDespues();
     }
 
     onPrecioChange() {
         this.recalcularCostoTotal();
     }
 
+    /** Valida litros: rango del tipo de vehículo y no exceder la capacidad restante. */
+    private litrosValidator() {
+        return (control: AbstractControl): ValidationErrors | null => {
+            const idVehiculo = this.form.get('idVehiculo')?.value;
+            const vehiculo = this.vehiculos.find((v) => v.id === idVehiculo);
+            const { min, max } = limitesLitrosPorTipo(vehiculo?.tipo);
+            const antes = this.form.get('nivelTanqueAntes')?.value ?? 0;
+            const restante = (1 - antes) * max;
+            const valor = control.value;
+            if (valor === null || valor === undefined || valor === '') return null;
+            if (valor < min) return { minLitros: { min, actual: valor } };
+            if (valor > max) return { maxLitros: { max, actual: valor } };
+            if (valor > restante) return { excedeTanque: { restante } };
+            return null;
+        };
+    }
+
     constructor() {
+        const litros = this.form.get('litrosCargados');
+        if (litros) litros.setValidators([Validators.required, this.litrosValidator()]);
+        this.form.get('idVehiculo')?.valueChanges.subscribe(() => {
+            litros?.updateValueAndValidity();
+            this.recalcularDespues();
+        });
+        this.form.get('nivelTanqueAntes')?.valueChanges.subscribe(() => {
+            litros?.updateValueAndValidity();
+        });
         effect(() => {
             const data = this.cargaData();
             this.submitted = false;
@@ -144,31 +190,24 @@ export class CombustibleDialogComponent implements OnInit {
                     idVehiculo: data.idVehiculo || '',
                     fecha: data.fecha ? new Date(data.fecha) : null,
                     tipoCombustible: data.tipoCombustible || 'GASOLINA_95',
-                    metodoCalculo: data.metodoCalculo || 'TANQUE',
-                    kilometraje: data.kilometraje || 0,
                     nivelTanqueAntes: data.nivelTanqueAntes ?? 0.25,
                     nivelTanqueDespues: data.nivelTanqueDespues ?? 1,
-                    litrosCargados: data.litrosCargados || 0,
-                    costoPorLitro: data.costoPorLitro || 0,
-                    costoTotalBss: data.costoTotalBss || 0,
-                    estacionServicio: data.estacionServicio || '',
-                    observaciones: data.observaciones || '',
+                    litrosCargados: data.litrosCargados || null,
+                    costoPorLitro: data.costoPorLitro || null,
+                    tasaBs: data.tasaBs || null,
                 });
                 this.recalcularCostoTotal();
+                this.recalcularDespues();
             } else {
                 this.form.reset({
                     idVehiculo: '',
                     fecha: null,
                     tipoCombustible: 'GASOLINA_95',
-                    metodoCalculo: 'TANQUE',
-                    kilometraje: 0,
                     nivelTanqueAntes: 0.25,
                     nivelTanqueDespues: 1,
-                    litrosCargados: 0,
-                    costoPorLitro: 0,
-                    costoTotalBss: 0,
-                    estacionServicio: '',
-                    observaciones: '',
+                    litrosCargados: null,
+                    costoPorLitro: null,
+                    tasaBs: null,
                 });
             }
         });
@@ -192,7 +231,16 @@ export class CombustibleDialogComponent implements OnInit {
         this.errorMessage = '';
 
         if (this.form.invalid) {
-            this.errorMessage = 'Complete todos los campos obligatorios.';
+            const litrosErr = this.form.get('litrosCargados')?.errors;
+            if (litrosErr?.['maxLitros']) {
+                this.errorMessage = `La cantidad supera la capacidad del vehículo (máximo ${litrosErr['maxLitros'].max} L).`;
+            } else if (litrosErr?.['excedeTanque']) {
+                this.errorMessage = `La cantidad excede el espacio restante del tanque (máximo ${litrosErr['excedeTanque'].restante.toFixed(1)} L).`;
+            } else if (litrosErr?.['minLitros']) {
+                this.errorMessage = `La cantidad es demasiado pequeña (mínimo ${litrosErr['minLitros'].min} L).`;
+            } else {
+                this.errorMessage = 'Complete todos los campos obligatorios.';
+            }
             return;
         }
 
@@ -206,16 +254,13 @@ export class CombustibleDialogComponent implements OnInit {
             vehiculoDesc: vehiculo?.label || '',
             fecha: this.formatDate(raw.fecha),
             tipoCombustible: raw.tipoCombustible,
-            metodoCalculo: raw.metodoCalculo,
-            kilometraje: raw.metodoCalculo === 'ODOMETRO' ? raw.kilometraje : undefined,
             nivelTanqueAntes: raw.nivelTanqueAntes,
             nivelTanqueDespues: raw.nivelTanqueDespues,
             litrosCargados: raw.litrosCargados,
             costoPorLitro: raw.costoPorLitro,
             costoTotal: raw.litrosCargados * raw.costoPorLitro,
-            costoTotalBss: raw.costoTotalBss || 0,
-            estacionServicio: raw.estacionServicio || undefined,
-            observaciones: raw.observaciones || undefined,
+            tasaBs: raw.tasaBs || 0,
+            costoTotalBss: raw.tasaBs ? raw.litrosCargados * raw.costoPorLitro * raw.tasaBs : 0,
         };
 
         this.onSave.emit(cargaFinal);

@@ -77,6 +77,15 @@ export interface EntregaPendiente {
     ts: number;
 }
 
+export interface CargaCombustiblePendiente {
+    idVehiculo: string;
+    tipoCombustible: 'GASOLINA_95' | 'GASOLINA_91' | 'DIESEL';
+    litros: number;
+    costoPorLitro: number;
+    tasaBs: number;
+    ts: number;
+}
+
 export interface GuiaPendiente {
     id: string;
     numeroGuia: string;
@@ -448,7 +457,12 @@ export class DriverStoreService implements OnDestroy {
     private async cargarPendientes() {
         if (!this.uid) return;
         const caché = await this.offlineStorage.leer<EntregaPendiente[]>(this.uid, 'pendientes');
-        this.pendientesSincronizar.set(caché?.data.length ?? 0);
+        const cachéComb = await this.offlineStorage.leer<CargaCombustiblePendiente[]>(
+            this.uid,
+            'pendientesCombustible',
+        );
+        const total = (caché?.data.length ?? 0) + (cachéComb?.data.length ?? 0);
+        this.pendientesSincronizar.set(total);
     }
 
     async finalizarEntrega(entrega: Entrega, firma: string, observaciones: string) {
@@ -505,6 +519,38 @@ export class DriverStoreService implements OnDestroy {
         await this.recargarViajes().catch(() => undefined);
     }
 
+    /** Registra una carga de combustible del chofer; si no hay red, la encola. */
+    async registrarCargaCombustible(params: {
+        idVehiculo: string;
+        tipoCombustible: 'GASOLINA_95' | 'GASOLINA_91' | 'DIESEL';
+        litros: number;
+        costoPorLitro: number;
+        tasaBs: number;
+    }): Promise<void> {
+        try {
+            await this.choferService.registrarCargaCombustible(params);
+        } catch (err) {
+            // Sin red (o fallo de red): encolar y sincronizar al reconectar.
+            if (this.uid) {
+                const caché = await this.offlineStorage.leer<CargaCombustiblePendiente[]>(
+                    this.uid,
+                    'pendientesCombustible',
+                );
+                const pendientes = caché?.data ?? [];
+                pendientes.push({ ...params, ts: Date.now() });
+                await this.offlineStorage.guardar(this.uid, 'pendientesCombustible', pendientes);
+                this.pendientesSincronizar.update((n) => n + 1);
+                this.notif.add({
+                    severity: 'warn',
+                    summary: 'Carga guardada localmente',
+                    detail: 'Se sincronizará cuando recuperes conexión.',
+                });
+            } else {
+                throw err;
+            }
+        }
+    }
+
     /** Llegada GPS a un punto de entrega: sus facturas pasan a 'espera'. */
     async marcarParadaEnEspera(idsFacturas: string[]) {
         if (!idsFacturas.length) return;
@@ -552,7 +598,12 @@ export class DriverStoreService implements OnDestroy {
         if (!this.uid || this.sincronizando()) return;
         const caché = await this.offlineStorage.leer<EntregaPendiente[]>(this.uid, 'pendientes');
         const pendientes = caché?.data ?? [];
-        if (pendientes.length < 1) return;
+        const cachéComb = await this.offlineStorage.leer<CargaCombustiblePendiente[]>(
+            this.uid,
+            'pendientesCombustible',
+        );
+        const pendientesCombustible = cachéComb?.data ?? [];
+        if (pendientes.length < 1 && pendientesCombustible.length < 1) return;
 
         this.sincronizando.set(true);
         const restantes: EntregaPendiente[] = [];
@@ -569,8 +620,19 @@ export class DriverStoreService implements OnDestroy {
                     restantes.push(p);
                 }
             }
-            if (restantes.length === 0) {
-                await this.offlineStorage.eliminar(this.uid, 'pendientes');
+            const restantesComb: CargaCombustiblePendiente[] = [];
+            for (const p of pendientesCombustible) {
+                try {
+                    await this.choferService.registrarCargaCombustible(p);
+                } catch (err) {
+                    console.warn('[Offline] Carga de combustible no sincronizada:', p.ts, err);
+                    restantesComb.push(p);
+                }
+            }
+            if (restantes.length === 0 && restantesComb.length === 0) {
+                if (pendientes.length) await this.offlineStorage.eliminar(this.uid, 'pendientes');
+                if (pendientesCombustible.length)
+                    await this.offlineStorage.eliminar(this.uid, 'pendientesCombustible');
                 this.pendientesSincronizar.set(0);
                 this.notif.add({
                     severity: 'success',
@@ -578,8 +640,15 @@ export class DriverStoreService implements OnDestroy {
                     detail: 'Tus entregas guardadas se sincronizaron correctamente.',
                 });
             } else {
-                await this.offlineStorage.guardar(this.uid, 'pendientes', restantes);
-                this.pendientesSincronizar.set(restantes.length);
+                if (restantes.length)
+                    await this.offlineStorage.guardar(this.uid, 'pendientes', restantes);
+                if (restantesComb.length)
+                    await this.offlineStorage.guardar(
+                        this.uid,
+                        'pendientesCombustible',
+                        restantesComb,
+                    );
+                this.pendientesSincronizar.set(restantes.length + restantesComb.length);
             }
             await this.recargarGuias().catch(() => undefined);
         } finally {

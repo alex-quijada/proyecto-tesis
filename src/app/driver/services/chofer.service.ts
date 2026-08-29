@@ -102,6 +102,25 @@ export class ChoferService {
         return this.authService.obtenerChoferes();
     }
 
+    /** Registra una carga de combustible del chofer (origen CHOFER). */
+    async registrarCargaCombustible(params: {
+        idVehiculo: string;
+        tipoCombustible: 'GASOLINA_95' | 'GASOLINA_91' | 'DIESEL';
+        litros: number;
+        costoPorLitro: number;
+        tasaBs: number;
+    }): Promise<string> {
+        const { data, error } = await this.supabase.rpc('registrar_carga_combustible_chofer', {
+            p_id_vehiculo: params.idVehiculo,
+            p_tipo_combustible: params.tipoCombustible,
+            p_litros: params.litros,
+            p_costo_por_litro: params.costoPorLitro,
+            p_tasa_bs: params.tasaBs || 0,
+        });
+        if (error) throw new Error(`Error al registrar la carga de combustible: ${error.message}`);
+        return data;
+    }
+
     async finalizarEntrega(
         idFactura: string,
         observacion?: string | null,

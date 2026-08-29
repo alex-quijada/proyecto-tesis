@@ -16,13 +16,9 @@ import { ToastModule } from 'primeng/toast';
 
 import { NotificationService } from '@/app/services/notification.service';
 
-import {
-    CargaCombustible,
-    NIVELES_TANQUE,
-    METODOS_CALCULO,
-    TIPOS_COMBUSTIBLE,
-} from './data/combustible-mock';
+import { CargaCombustible, TIPOS_COMBUSTIBLE } from './data/combustible-mock';
 import { CombustibleDialogComponent } from './components/combustible-dialog.component';
+import { TanqueGaugeComponent } from './components/tanque-gauge.component';
 import { CargaCombustibleService } from './service/carga-combustible.service';
 import { VehiculoService } from '../service/vehiculo.service';
 
@@ -53,6 +49,7 @@ interface VehiculoConsolidado {
         ConfirmDialogModule,
         ToastModule,
         CombustibleDialogComponent,
+        TanqueGaugeComponent,
     ],
     providers: [ConfirmationService],
     templateUrl: './combustible.component.html',
@@ -70,15 +67,7 @@ export class CombustibleComponent {
     editingRecord = signal<CargaCombustible>({} as CargaCombustible);
     eliminandoId = signal<string | null>(null);
 
-    niveles = NIVELES_TANQUE;
-    metodos = METODOS_CALCULO;
     tipos = TIPOS_COMBUSTIBLE;
-
-    get metodoLabels(): Record<string, string> {
-        const map: Record<string, string> = {};
-        this.metodos.forEach((m) => (map[m.value] = m.label));
-        return map;
-    }
 
     get tipoLabels(): Record<string, string> {
         const map: Record<string, string> = {};
@@ -105,10 +94,6 @@ export class CombustibleComponent {
         }
         return Array.from(mapa.values());
     });
-
-    getNivelLabel(value: number): string {
-        return this.niveles.find((n) => n.value === value)?.label ?? `${value * 100}%`;
-    }
 
     get consumoTanque(): number {
         return this.registros().reduce((s, r) => s + r.litrosCargados, 0);
@@ -219,19 +204,6 @@ export class CombustibleComponent {
             });
         } finally {
             this.eliminandoId.set(null);
-        }
-    }
-
-    getSeverity(metodo: string): 'info' | 'success' | 'warn' {
-        switch (metodo) {
-            case 'TANQUE':
-                return 'info';
-            case 'ODOMETRO':
-                return 'success';
-            case 'GPS':
-                return 'warn';
-            default:
-                return 'info';
         }
     }
 }
