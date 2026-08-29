@@ -17,6 +17,7 @@ export class FiltrosReporteComponent {
     municipios = input<OpcionFiltro[]>([]);
     vehiculos = input<OpcionFiltro[]>([]);
     empresas = input<OpcionFiltro[]>([]);
+    estados = input<OpcionFiltro[]>([]);
 
     /** Modelo de filtros compartido con el reporte. */
     filtros = model<FiltrosReporte>({});
