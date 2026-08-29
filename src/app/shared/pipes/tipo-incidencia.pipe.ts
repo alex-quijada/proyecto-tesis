@@ -14,6 +14,7 @@ const MAPA_TIPOS: Record<string, string> = {
 export class TipoIncidenciaPipe implements PipeTransform {
     transform(codigo?: string | null): string {
         if (!codigo) return '';
-        return MAPA_TIPOS[codigo] || codigo;
+        const norm = codigo.toUpperCase().trim();
+        return MAPA_TIPOS[norm] || codigo;
     }
 }

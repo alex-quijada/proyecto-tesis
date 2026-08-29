@@ -40,6 +40,7 @@ interface KpiCard {
 })
 export class IncidenciasComponent {
     private reporteService = inject(ReporteService);
+    private tipoPipe = new TipoIncidenciaPipe();
 
     cargando = signal(true);
     datos = signal<ResumenIncidencias | null>(null);
@@ -152,7 +153,7 @@ export class IncidenciasComponent {
             '#f97316',
         ];
         this.tipoData.set({
-            labels: porTipo.map((t) => t.tipo),
+            labels: porTipo.map((t) => this.tipoPipe.transform(t.tipo)),
             datasets: [
                 {
                     label: 'Incidencias',
@@ -185,7 +186,7 @@ export class IncidenciasComponent {
                     { key: 'monto_bss', label: 'Monto Bs' },
                 ],
                 filas: d.por_tipo.map((t) => ({
-                    tipo: t.tipo,
+                    tipo: this.tipoPipe.transform(t.tipo),
                     total: t.total,
                     recuperables: t.recuperables,
                     terminales: t.terminales,
