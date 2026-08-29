@@ -183,9 +183,19 @@
                                 @for (guia of guiasDelMunicipio; track guia.id) {
                                     @let pendientes = facturasPendientes(guia);
                                     @let abierta = guiaListaExpandida() === guia.id;
+                                    @let esAlta = tieneAltaPrioridad(guia);
                                     <div
-                                        class="px-3 py-2.5 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
+                                        class="px-3 py-2.5 transition-colors border-l-4"
+                                        [class.border-l-red-500]="esAlta"
+                                        [class.border-l-transparent]="!esAlta"
+                                        [class.bg-red-50/60]="esAlta && !selectedGuias().has(guia.id)"
+                                        [class.dark:bg-red-950/20]="esAlta && !selectedGuias().has(guia.id)"
                                         [class.bg-primary-50]="selectedGuias().has(guia.id)"
+                                        [class.dark:bg-primary-950/30]="selectedGuias().has(guia.id)"
+                                        [class.hover:bg-surface-50]="!esAlta && !selectedGuias().has(guia.id)"
+                                        [class.dark:hover:bg-surface-800/50]="!esAlta && !selectedGuias().has(guia.id)"
+                                        [class.hover:bg-red-100/50]="esAlta && !selectedGuias().has(guia.id)"
+                                        [class.dark:hover:bg-red-900/30]="esAlta && !selectedGuias().has(guia.id)"
                                     >
                                         <div class="flex items-center gap-2">
                                             <p-checkbox
@@ -212,16 +222,16 @@
                                                             [class.pi-chevron-right]="!abierta"
                                                         ></i>
                                                     </button>
-                                                    @if (tieneAltaPrioridad(guia)) {
+                                                    @if (esAlta) {
                                                         <span
-                                                            class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400 text-[10px] font-semibold cursor-help"
-                                                            pTooltip="Cliente de alta prioridad"
+                                                            class="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 text-[10px] font-bold cursor-help border border-red-200 dark:border-red-800/40 shadow-xs"
+                                                            pTooltip="Contiene cliente(s) con factura de alta prioridad"
                                                             tooltipPosition="top"
                                                         >
                                                             <i
                                                                 class="pi pi-exclamation-triangle text-[9px]"
                                                             ></i>
-                                                            Alta
+                                                            Alta Prioridad
                                                         </span>
                                                     }
                                                     <span
@@ -249,21 +259,48 @@
                                         </div>
                                         @if (abierta) {
                                             <div
-                                                class="ml-6 mt-1 flex flex-col gap-0.5 border-l border-surface-200 dark:border-surface-700 pl-3 py-1"
+                                                class="ml-6 mt-1.5 flex flex-col gap-1 border-l-2 pl-3 py-1"
+                                                [class.border-red-300]="esAlta"
+                                                [class.dark:border-red-800/60]="esAlta"
+                                                [class.border-surface-200]="!esAlta"
+                                                [class.dark:border-surface-700]="!esAlta"
                                             >
                                                 @for (f of pendientes; track f.id) {
+                                                    @let fAlta = esAltaPrioridadFactura(f);
                                                     <div
-                                                        class="flex items-center gap-1.5 text-[11px]"
+                                                        class="flex items-center justify-between gap-1.5 text-[11px] rounded px-1.5 py-0.5"
+                                                        [class.bg-red-100/60]="fAlta"
+                                                        [class.dark:bg-red-900/30]="fAlta"
                                                     >
-                                                        <i
-                                                            class="pi pi-receipt text-surface-300 text-[10px]"
-                                                        ></i>
-                                                        <span class="font-mono">{{
-                                                            f.numeroFactura
-                                                        }}</span>
-                                                        <span class="text-surface-500 truncate">{{
-                                                            f.nombreCliente
-                                                        }}</span>
+                                                        <div class="flex items-center gap-1.5 min-w-0">
+                                                            <i
+                                                                class="pi text-[10px]"
+                                                                [class.pi-exclamation-circle]="fAlta"
+                                                                [class.text-red-500]="fAlta"
+                                                                [class.pi-receipt]="!fAlta"
+                                                                [class.text-surface-300]="!fAlta"
+                                                            ></i>
+                                                            <span
+                                                                class="font-mono"
+                                                                [class.font-semibold]="fAlta"
+                                                                [class.text-red-700]="fAlta"
+                                                                [class.dark:text-red-300]="fAlta"
+                                                            >{{ f.numeroFactura }}</span>
+                                                            <span
+                                                                class="truncate"
+                                                                [class.font-medium]="fAlta"
+                                                                [class.text-red-700]="fAlta"
+                                                                [class.dark:text-red-300]="fAlta"
+                                                                [class.text-surface-500]="!fAlta"
+                                                            >{{ f.nombreCliente }}</span>
+                                                        </div>
+                                                        @if (fAlta) {
+                                                            <span
+                                                                class="shrink-0 px-1 py-0.2 rounded bg-red-200/70 dark:bg-red-800/50 text-red-800 dark:text-red-200 text-[9px] font-bold uppercase"
+                                                            >
+                                                                Alta
+                                                            </span>
+                                                        }
                                                     </div>
                                                 }
                                                 @if (pendientes.length === 0) {

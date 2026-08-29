@@ -157,10 +157,12 @@ export class ReporteService {
 
     async obtenerChoferes(): Promise<OpcionFiltro[]> {
         const choferes = await this.authService.obtenerChoferes(true);
-        return choferes.map((c) => ({
-            label: capitalizar(c.nombreCompleto) || 'Sin nombre',
-            value: c.id || '',
-        }));
+        return choferes
+            .filter((c) => c.rol === 'Chofer')
+            .map((c) => ({
+                label: capitalizar(c.nombreCompleto) || 'Sin nombre',
+                value: c.id || '',
+            }));
     }
 
     async obtenerMunicipios(): Promise<OpcionFiltro[]> {

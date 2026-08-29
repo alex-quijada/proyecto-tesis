@@ -1052,7 +1052,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
     }
 
     tieneAltaPrioridad(guia: GuiaDespacho): boolean {
-        return this.facturasPendientes(guia).some((f) => f.prioridad === 'Alta');
+        return this.facturasPendientes(guia).some((f) => this.esAltaPrioridadFactura(f));
+    }
+
+    esAltaPrioridadFactura(factura: FacturaGuia): boolean {
+        return factura?.prioridad?.toLowerCase() === 'alta';
     }
 
     getMunicipioLabelFrom(value: string): string {
