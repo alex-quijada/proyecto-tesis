@@ -55,10 +55,21 @@ export class OperacionesComponent {
     cargando = signal(true);
     guias = signal<GuiaDespacho[]>([]);
     filtros = signal<FiltrosReporte>({});
+    filtrosAplicados = signal<FiltrosReporte>({});
     choferes = signal<OpcionFiltro[]>([]);
     municipios = signal<OpcionFiltro[]>([]);
     vehiculos = signal<OpcionFiltro[]>([]);
     empresas = signal<OpcionFiltro[]>([]);
+    readonly estados = signal<OpcionFiltro[]>([
+        { label: 'Entregado', value: 'finalizado' },
+        { label: 'Incidencia', value: 'incidencia' },
+        { label: 'Cancelado', value: 'cancelada' },
+        { label: 'Entregando', value: 'entrega' },
+        { label: 'En espera', value: 'espera' },
+        { label: 'En camino', value: 'proceso' },
+        { label: 'En carga', value: 'embarque' },
+        { label: 'Nuevo', value: 'nuevo' },
+    ]);
     exportandoExcel = signal(false);
     exportandoPdf = signal(false);
 
@@ -98,7 +109,7 @@ export class OperacionesComponent {
     }
 
     readonly filasFiltradas = () => {
-        const f = this.filtros();
+        const f = this.filtrosAplicados();
         return this.mapearConIds().filter(
             (x) =>
                 this.enRango(x.fecha, f) &&
@@ -106,7 +117,10 @@ export class OperacionesComponent {
                 (!f.idMunicipio || x.municipioId === f.idMunicipio) &&
                 (!f.idVehiculo || x.vehiculoId === f.idVehiculo) &&
                 (!f.idEmpresa || x.empresaId === f.idEmpresa) &&
-                (!f.estado || x.estado === f.estado),
+                (!f.estado ||
+                    x.estado === f.estado ||
+                    (f.estado === 'cancelada' && (x.estado === 'cancelado' || x.estado === 'CANCELADO' || x.estado === 'CANCELADA')) ||
+                    (f.estado === 'cancelado' && (x.estado === 'cancelada' || x.estado === 'CANCELADO' || x.estado === 'CANCELADA'))),
         );
     };
 
@@ -177,22 +191,25 @@ export class OperacionesComponent {
     }
 
     aplicarFiltros() {
-        void this.cargarDatos();
+        this.filtrosAplicados.set({ ...this.filtros() });
     }
 
     estadoSeverity(estado: string): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {
-        switch (estado) {
+        switch (estado?.toLowerCase()) {
             case 'finalizado':
                 return 'success';
             case 'incidencia':
+            case 'cancelada':
+            case 'cancelado':
                 return 'danger';
             case 'entrega':
             case 'espera':
                 return 'warn';
             case 'proceso':
-                return 'info';
             case 'embarque':
                 return 'info';
+            case 'nuevo':
+                return 'secondary';
             default:
                 return 'secondary';
         }
@@ -203,12 +220,13 @@ export class OperacionesComponent {
             case 'Entregado':
                 return 'success';
             case 'Incidencia':
+            case 'Cancelado':
+            case 'Cancelada':
                 return 'danger';
             case 'Entregando':
             case 'En espera':
                 return 'warn';
             case 'En camino':
-                return 'info';
             case 'En carga':
                 return 'info';
             case 'Nuevo':
@@ -219,11 +237,14 @@ export class OperacionesComponent {
     }
 
     estadoLabel(estado: string): string {
-        switch (estado) {
+        switch (estado?.toLowerCase()) {
             case 'finalizado':
                 return 'Entregado';
             case 'incidencia':
                 return 'Incidencia';
+            case 'cancelada':
+            case 'cancelado':
+                return 'Cancelado';
             case 'entrega':
                 return 'Entregando';
             case 'espera':
@@ -299,7 +320,7 @@ export class OperacionesComponent {
                 subtitulo: this.subtituloRango(),
                 nombreArchivo: 'reporte-operaciones',
                 pageOrientation: 'landscape',
-                columnWidths: [6, 5, 13, 7, 9, 9, 7, 6, 6],
+                columnWidths: [6, 5, 12, 7, 8, 8, 6, 6, 6, 6],
                 columnas: [
                     { key: 'numeroFactura', label: 'Factura' },
                     { key: 'numeroGuia', label: 'Guía' },
@@ -307,6 +328,7 @@ export class OperacionesComponent {
                     { key: 'municipio', label: 'Municipio' },
                     { key: 'chofer', label: 'Chofer' },
                     { key: 'empresa', label: 'Empresa' },
+                    { key: 'montoUsd', label: 'Monto USD' },
                     { key: 'montoVES', label: 'Monto Bs' },
                     { key: 'estado', label: 'Estado' },
                     { key: 'fecha', label: 'Fecha' },
@@ -318,7 +340,8 @@ export class OperacionesComponent {
                     municipio: f.municipio,
                     chofer: this.capitalizar(f.chofer),
                     empresa: f.empresa,
-                    montoVES: f.montoVES.toFixed(2),
+                    montoUsd: `$${f.montoUsd.toFixed(2)}`,
+                    montoVES: `${f.montoVES.toFixed(2)} Bs`,
                     estado: this.estadoLabel(f.estado),
                     fecha: f.fecha ? new Date(f.fecha).toLocaleDateString('es-VE') : '',
                 })),
@@ -329,7 +352,7 @@ export class OperacionesComponent {
     }
 
     private subtituloRango(): string {
-        const f = this.filtros();
+        const f = this.filtrosAplicados();
         if (f.fechaDesde && f.fechaHasta) {
             return `Periodo: ${f.fechaDesde} al ${f.fechaHasta}`;
         }
