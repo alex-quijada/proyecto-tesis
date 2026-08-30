@@ -112,25 +112,27 @@
         />
     </div>
     @if (activeViaje(); as viaje) {
-        <!-- Acciones de planificación -->
-        <div class="flex gap-2 items-center">
-            <p-button
-                icon="pi pi-route"
-                label="Optimizar ruta"
-                [loading]="optimizando()"
-                [disabled]="guiasPendientes().length < 2"
-                (onClick)="optimizarRuta()"
-                styleClass="flex-1 text-sm"
-            />
-            <p-button
-                [icon]="reordering() ? 'pi pi-check' : 'pi pi-bars'"
-                [label]="reordering() ? 'Hecho' : 'Reordenar'"
-                [severity]="reordering() ? 'success' : 'secondary'"
-                [disabled]="guiasPendientes().length < 2"
-                (onClick)="toggleReordering()"
-                styleClass="flex-1 text-sm"
-            />
-        </div>
+        <!-- Acciones de planificación: solo antes de iniciar el viaje (programado) -->
+        @if (viaje.estado === 'programado') {
+            <div class="flex gap-2 items-center">
+                <p-button
+                    icon="pi pi-route"
+                    label="Optimizar ruta"
+                    [loading]="optimizando()"
+                    [disabled]="guiasPendientes().length < 2"
+                    (onClick)="optimizarRuta()"
+                    styleClass="flex-1 text-sm"
+                />
+                <p-button
+                    [icon]="reordering() ? 'pi pi-check' : 'pi pi-bars'"
+                    [label]="reordering() ? 'Hecho' : 'Reordenar'"
+                    [severity]="reordering() ? 'success' : 'secondary'"
+                    [disabled]="guiasPendientes().length < 2"
+                    (onClick)="toggleReordering()"
+                    styleClass="flex-1 text-sm"
+                />
+            </div>
+        }
 
         <div class="flex items-center justify-between text-xs text-surface-400 px-0.5">
             <span>Orden de entrega del viaje</span>

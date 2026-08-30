@@ -141,6 +141,10 @@ export class DriverStoreService implements OnDestroy {
     /** El chofer decidió volver al almacén (hora de finalizar): el mapa debe
      *  navegar directo al almacén al abrirse. Se limpia al consumirlo. */
     readonly volviendoAlAlmacen = signal(false);
+    /** El chofer reordenó manualmente las paradas del viaje (solo antes de
+     *  iniciarlo). Al iniciar el viaje se respeta el orden manual en vez de
+     *  recalcular VRPTW. Flag de sesión (no sobrevive reinicios). */
+    readonly ordenManual = signal(false);
     /** Momento de la última carga exitosa de datos (para "actualizado hace"). */
     readonly ultimaActualizacion = signal<Date | null>(null);
 
@@ -664,6 +668,12 @@ export class DriverStoreService implements OnDestroy {
                 void this.cargarViajes(true);
             }
         }, 3000);
+    }
+
+    /** Marca que el chofer reordenó manualmente las paradas del viaje: al
+     *  iniciarlo se respetará ese orden en vez de recalcular VRPTW. */
+    marcarOrdenManual() {
+        this.ordenManual.set(true);
     }
 
     ngOnDestroy() {

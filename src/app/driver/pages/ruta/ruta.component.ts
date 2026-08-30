@@ -318,6 +318,8 @@ export class RutaComponent implements OnInit {
         if (target < 0 || target >= pendientes.length) return;
         [pendientes[index], pendientes[target]] = [pendientes[target], pendientes[index]];
         this.paradas.set([...pendientes, ...completadas]);
+        // Reorden manual: al iniciar el viaje se respeta este orden (no VRPTW).
+        this.store.marcarOrdenManual();
         this.persistirOrden();
     }
 

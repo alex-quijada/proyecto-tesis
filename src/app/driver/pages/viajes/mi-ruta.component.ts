@@ -43,7 +43,8 @@ import {
     IncidenciaDatos,
 } from '../../components/incidencia-dialog/incidencia-dialog.component';
 import { haversine, iconoManiobra, limpiarHtmlInstruccion, LatLng } from './navegacion.util';
-import { ordenarPorVentana } from '../../services/time-window.router';
+import { ordenarPorVentana, ParadaRuteable } from '../../services/time-window.router';
+import { OsrmMatrixService } from '../../services/osrm-matrix.service';
 import { TrazaService } from '../../services/traza.service';
 import {
     esHoraDeVolver,
@@ -117,6 +118,7 @@ export class MiRutaComponent implements OnInit {
     private destroyRef = inject(DestroyRef);
     private connectivity = inject(ConnectivityService);
     private trazaService = inject(TrazaService);
+    private osrmMatrix = inject(OsrmMatrixService);
     navigation = inject(NavigationService);
     store = inject(DriverStoreService);
 
@@ -860,10 +862,10 @@ export class MiRutaComponent implements OnInit {
      * (VRPTW: cierres próximos primero, aún-no-abiertas después, cerradas
      * al final) y devuelve las paradas navegables en ese orden.
      */
-    private construirParadasOrdenadas(
+    private async construirParadasOrdenadas(
         puntos: PuntoEntrega[],
         origen: { lat: number; lng: number },
-    ): { paradas: ParadaNavegacion[]; cerradas: PuntoEntrega[] } {
+    ): Promise<{ paradas: ParadaNavegacion[]; cerradas: PuntoEntrega[] }> {
         const ruteables = puntos.map((p) => ({
             id: p.key,
             latitud: p.latitud,
@@ -872,9 +874,29 @@ export class MiRutaComponent implements OnInit {
             horaHasta: p.horaHasta,
         }));
 
+        let tiempoEntre:
+            | ((p: ParadaRuteable, ant: { lat: number; lng: number }) => number)
+            | undefined = undefined;
+
+        if (this.osrmMatrix.habilitado) {
+            const todosPuntos = [
+                origen,
+                ...ruteables.map((r) => ({ lat: r.latitud, lng: r.longitud })),
+            ];
+            const matriz = await this.osrmMatrix.obtenerMatriz(todosPuntos);
+            if (matriz) {
+                tiempoEntre = this.osrmMatrix.crearCalculadorTiempo(
+                    ruteables,
+                    origen,
+                    matriz,
+                );
+            }
+        }
+
         const res = ordenarPorVentana(ruteables, origen, undefined, {
             tiempoServicio: 12,
             velocidadKmh: 35,
+            tiempoEntre,
         });
 
         const mapa = new Map(puntos.map((p) => [p.key, p]));
@@ -1027,7 +1049,7 @@ export class MiRutaComponent implements OnInit {
             // Fallback heurístico si está offline o no se pudo optimizar con Google
             if (paradasNav.length < 1) {
                 const { paradas: fallbackParadas, cerradas: fallbackCerradas } =
-                    this.construirParadasOrdenadas(puntos, origenCoords);
+                    await this.construirParadasOrdenadas(puntos, origenCoords);
                 paradasNav = fallbackParadas;
                 cerradas = fallbackCerradas;
             }
@@ -1266,16 +1288,26 @@ export class MiRutaComponent implements OnInit {
             return;
         }
 
-        // Orden VRPTW: respeta las ventanas de recepción (no se pone de
-        // primera una empresa que aún no abre, y se priorizan las que
-        // cierran pronto). Las cerradas ahora se dejan al final.
-        const { paradas: paradasOrdenadas, cerradas } = this.construirParadasOrdenadas(conPuntos, {
-            lat: warehouse.lat,
-            lng: warehouse.lng,
-        });
-        const puntosOrdenados = paradasOrdenadas
-            .map((pn) => conPuntos.find((p) => p.key === pn.id))
-            .filter((p): p is PuntoEntrega => !!p);
+        // Si el chofer reordenó manualmente las paradas (página ruta), se
+        // respeta ese orden al iniciar. Si no, se aplica VRPTW (ventanas).
+        const ordenManual = this.store.ordenManual();
+        let puntosOrdenados: PuntoEntrega[] = conPuntos;
+        let cerradas: PuntoEntrega[] = [];
+
+        if (!ordenManual) {
+            // Orden VRPTW: respeta las ventanas de recepción (no se pone de
+            // primera una empresa que aún no abre, y se priorizan las que
+            // cierran pronto). Las cerradas ahora se dejan al final.
+            const { paradas: paradasOrdenadas, cerradas: cerradasVrptw } =
+                await this.construirParadasOrdenadas(conPuntos, {
+                    lat: warehouse.lat,
+                    lng: warehouse.lng,
+                });
+            puntosOrdenados = paradasOrdenadas
+                .map((pn) => conPuntos.find((p) => p.key === pn.id))
+                .filter((p): p is PuntoEntrega => !!p);
+            cerradas = cerradasVrptw;
+        }
 
         this.iniciando.set(true);
         try {
@@ -1332,10 +1364,11 @@ export class MiRutaComponent implements OnInit {
             this.notif.add({
                 severity: 'success',
                 summary: 'Viaje iniciado',
-                detail:
-                    cerradas.length > 0
-                        ? `Se navegará respetando las ventanas. ${cerradas.length} empresa(s) cerradas ahora quedan al final.`
-                        : 'La navegación comenzó desde el almacén respetando las ventanas de entrega.',
+                detail: ordenManual
+                    ? 'Navegando en el orden que reordenaste manualmente.'
+                    : cerradas.length > 0
+                      ? `Se navegará respetando las ventanas. ${cerradas.length} empresa(s) cerradas ahora quedan al final.`
+                      : 'La navegación comenzó desde el almacén respetando las ventanas de entrega.',
             });
         } catch (err) {
             console.error('Error al iniciar el viaje', err);
