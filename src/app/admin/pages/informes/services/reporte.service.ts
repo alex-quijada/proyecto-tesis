@@ -11,17 +11,24 @@ export interface MetricasEficiencia {
     kpis: {
         viajes_finalizados: number;
         entregas: number;
+        entregas_directas?: number;
         incidencias: number;
+        incidencias_resueltas?: number;
+        incidencias_pendientes?: number;
         monto_entregado_usd: number;
         monto_entregado_bss: number;
         monto_incidencia_usd: number;
         monto_incidencia_bss: number;
+        monto_recuperado_usd?: number;
+        monto_recuperado_bss?: number;
     };
     por_chofer: {
         id_chofer: string;
         nombre_chofer: string;
         entregas: number;
         incidencias: number;
+        incidencias_resueltas?: number;
+        incidencias_pendientes?: number;
         monto_usd: number;
         monto_bss: number;
         km_planificados: number;
@@ -30,6 +37,7 @@ export interface MetricasEficiencia {
         municipio: string;
         entregas: number;
         incidencias: number;
+        incidencias_resueltas?: number;
         monto_usd: number;
         monto_bss: number;
     }[];

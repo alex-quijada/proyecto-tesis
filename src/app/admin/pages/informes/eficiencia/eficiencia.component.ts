@@ -4,6 +4,7 @@ import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TooltipModule } from 'primeng/tooltip';
 
 import { CabeceraReporteComponent } from '../componentes-compartidos/cabecera-reporte.component';
 import { FiltrosReporteComponent } from '../componentes-compartidos/filtros-reporte.component';
@@ -32,6 +33,7 @@ interface KpiCard {
         TableModule,
         TagModule,
         SkeletonModule,
+        TooltipModule,
         CabeceraReporteComponent,
         FiltrosReporteComponent,
         CapitalizePipe,
@@ -88,9 +90,13 @@ export class EficienciaComponent {
             const d = this.datos();
             if (!d) return [];
             const k = d.kpis;
+            const resueltas = k.incidencias_resueltas ?? 0;
+            const pendientes =
+                k.incidencias_pendientes ?? Math.max(0, k.incidencias - resueltas);
+            const totalIntentos = k.entregas + pendientes;
             const tasa =
-                k.entregas + k.incidencias > 0
-                    ? ((k.entregas / (k.entregas + k.incidencias)) * 100).toFixed(1) + '%'
+                totalIntentos > 0
+                    ? ((k.entregas / totalIntentos) * 100).toFixed(1) + '%'
                     : '—';
             return [
                 {
@@ -99,20 +105,31 @@ export class EficienciaComponent {
                     icon: 'pi pi-check-circle',
                     color: 'text-green-500',
                     detalle: `${k.viajes_finalizados} viajes finalizados`,
+                    detalleExtra:
+                        resueltas > 0
+                            ? `(${resueltas} recuperadas tras incidencia)`
+                            : undefined,
                 },
                 {
                     label: 'Incidencias',
                     value: String(k.incidencias),
                     icon: 'pi pi-exclamation-triangle',
                     color: 'text-red-500',
-                    detalle: 'facturas con incidencia',
+                    detalle: `${resueltas} resueltas · ${pendientes} pendientes`,
+                    detalleExtra: k.monto_recuperado_usd
+                        ? `$${k.monto_recuperado_usd.toLocaleString('es-VE', { maximumFractionDigits: 0 })} recuperados`
+                        : undefined,
                 },
                 {
                     label: 'Cumplimiento',
                     value: tasa,
                     icon: 'pi pi-percentage',
                     color: 'text-blue-500',
-                    detalle: 'entregas sobre el total',
+                    detalle: 'entregas sobre total despachado',
+                    detalleExtra:
+                        resueltas > 0 && k.incidencias > 0
+                            ? `${((resueltas / k.incidencias) * 100).toFixed(0)}% incidencias resueltas`
+                            : undefined,
                 },
                 {
                     label: 'Monto entregado',
@@ -251,7 +268,9 @@ export class EficienciaComponent {
                 columnas: [
                     { key: 'nombre_chofer', label: 'Chofer' },
                     { key: 'entregas', label: 'Entregas' },
-                    { key: 'incidencias', label: 'Incidencias' },
+                    { key: 'incidencias', label: 'Incidencias Totales' },
+                    { key: 'incidencias_resueltas', label: 'Incidencias Resueltas' },
+                    { key: 'incidencias_pendientes', label: 'Incidencias Pendientes' },
                     { key: 'monto_usd', label: 'Monto USD' },
                     { key: 'monto_bss', label: 'Monto Bs' },
                     { key: 'km_planificados', label: 'Km planificados' },
@@ -260,6 +279,8 @@ export class EficienciaComponent {
                     nombre_chofer: this.capitalizar(c.nombre_chofer),
                     entregas: c.entregas,
                     incidencias: c.incidencias,
+                    incidencias_resueltas: c.incidencias_resueltas ?? 0,
+                    incidencias_pendientes: c.incidencias_pendientes ?? 0,
                     monto_usd: c.monto_usd,
                     monto_bss: c.monto_bss,
                     km_planificados: c.km_planificados,
@@ -283,6 +304,7 @@ export class EficienciaComponent {
                     { key: 'nombre_chofer', label: 'Chofer' },
                     { key: 'entregas', label: 'Entregas' },
                     { key: 'incidencias', label: 'Incidencias' },
+                    { key: 'incidencias_resueltas', label: 'Resueltas' },
                     { key: 'monto_usd', label: 'Monto USD' },
                     { key: 'monto_bss', label: 'Monto Bs' },
                     { key: 'km_planificados', label: 'Km' },
@@ -291,6 +313,7 @@ export class EficienciaComponent {
                     nombre_chofer: this.capitalizar(c.nombre_chofer),
                     entregas: c.entregas,
                     incidencias: c.incidencias,
+                    incidencias_resueltas: c.incidencias_resueltas ?? 0,
                     monto_usd: c.monto_usd.toFixed(2),
                     monto_bss: c.monto_bss.toFixed(2),
                     km_planificados: c.km_planificados.toFixed(1),

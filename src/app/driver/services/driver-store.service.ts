@@ -31,6 +31,7 @@ export interface Entrega {
     direccion: string;
     rif: string;
     precioCarga: number;
+    montoVES?: number;
     estado: string;
     observaciones?: string;
     tuvoDevolucion: boolean;
@@ -152,6 +153,8 @@ export class DriverStoreService implements OnDestroy {
     private realtimeCanal: RealtimeChannel | null = null;
     private debounceRealtime: ReturnType<typeof setTimeout> | null = null;
     private pollInterval: ReturnType<typeof setInterval> | null = null;
+    private catalogoVehiculos: ChoferVehiculo[] = [];
+    private guiasAsignadasRaw: ChoferGuia[] = [];
     private escuchandoReconexion = false;
 
     readonly guiasPendientes = computed(() =>
@@ -301,14 +304,13 @@ export class DriverStoreService implements OnDestroy {
 
         try {
             const guias = await this.choferService.obtenerGuias();
+            this.guiasAsignadasRaw = guias;
             const vehiculos = await this.choferService.obtenerVehiculos().catch((e) => {
                 console.error('Error cargando vehículos:', e);
                 return [] as ChoferVehiculo[];
             });
-            this.driverInfo.update((info) => ({
-                ...(info || this.driverInfo()!),
-                vehiculos: this.mapearVehiculos(guias, vehiculos),
-            }));
+            this.catalogoVehiculos = vehiculos;
+            this.actualizarVehiculosDriverInfo();
             this.guiasAsignadas.set(
                 await this.enriquecerConIncidencias(this.mapearEntregas(guias)),
             );
@@ -351,6 +353,7 @@ export class DriverStoreService implements OnDestroy {
             const viajes = await this.viajeService.obtenerViajeChofer();
             this.viajesChofer.set(viajes);
             this.viajesCargados.set(true);
+            this.actualizarVehiculosDriverInfo();
             this.ultimaActualizacion.set(new Date());
             if (this.uid) await this.offlineStorage.guardar(this.uid, 'viajes', viajes);
         } catch (err) {
@@ -360,6 +363,7 @@ export class DriverStoreService implements OnDestroy {
                 if (caché && caché.data.length > 0) {
                     this.viajesChofer.set(caché.data);
                     this.viajesCargados.set(true);
+                    this.actualizarVehiculosDriverInfo();
                     this.datosOffline.set(true);
                     console.info('[Offline] Viaje cargado desde la caché local.');
                 }
@@ -694,7 +698,9 @@ export class DriverStoreService implements OnDestroy {
 
     async recargarGuias() {
         const guias = await this.choferService.obtenerGuias();
+        this.guiasAsignadasRaw = guias;
         this.guiasAsignadas.set(await this.enriquecerConIncidencias(this.mapearEntregas(guias)));
+        this.actualizarVehiculosDriverInfo();
         this.ultimaActualizacion.set(new Date());
     }
 
@@ -758,11 +764,13 @@ export class DriverStoreService implements OnDestroy {
             this.viajesChofer.set(viajes);
             this.viajesCargados.set(true);
             if (guias !== null) {
+                this.guiasAsignadasRaw = guias;
                 this.guiasAsignadas.set(
                     await this.enriquecerConIncidencias(this.mapearEntregas(guias)),
                 );
                 this.ultimaActualizacion.set(new Date());
             }
+            this.actualizarVehiculosDriverInfo();
         } catch (err) {
             console.warn('[Store] No se pudo verificar datos al entrar:', err);
         }
@@ -800,8 +808,23 @@ export class DriverStoreService implements OnDestroy {
     }
 
     vehiculoPrincipal() {
-        const v = this.driverInfo()?.vehiculos;
-        return v && v.length > 0 ? v[0] : null;
+        const viaje = this.activeViaje();
+        const vehiculos = this.driverInfo()?.vehiculos || [];
+        if (viaje?.id_vehiculo) {
+            const match = vehiculos.find((v) => v.id === viaje.id_vehiculo);
+            if (match) return match;
+            if (viaje.placa_vehiculo) {
+                return {
+                    id: viaje.id_vehiculo,
+                    placa: viaje.placa_vehiculo,
+                    marca: '',
+                    modelo: '',
+                    anio: 0,
+                    tipo: 'Vehículo',
+                };
+            }
+        }
+        return vehiculos.length > 0 ? vehiculos[0] : null;
     }
 
     tieneFirma(id: string): boolean {
@@ -844,13 +867,23 @@ export class DriverStoreService implements OnDestroy {
                     direccion: f.direccion_sucursal || '',
                     rif: f.rif_cliente || '',
                     precioCarga: Number(f.monto_dolares) || 0,
+                    montoVES: Number(f.monto_bss) || 0,
                     estado,
                     observaciones: guia.observaciones || undefined,
                     tuvoDevolucion: false,
                     eventos: [],
                     fechaEntrega: estado === 'finalizado' ? guia.fecha_despacho : undefined,
-                    fechaInicioCarga: f.fecha_inicio_carga || undefined,
-                    fechaUltimoCambio: f.fecha_ultimo_cambio || undefined,
+                    fechaInicioCarga:
+                        f.fecha_inicio_carga ||
+                        guia.fecha_registro ||
+                        guia.fecha_despacho ||
+                        undefined,
+                    fechaUltimoCambio:
+                        f.fecha_ultimo_cambio ||
+                        f.fecha_inicio_carga ||
+                        guia.fecha_registro ||
+                        guia.fecha_despacho ||
+                        undefined,
                     latitud: f.latitud ?? undefined,
                     longitud: f.longitud ?? undefined,
                 });
@@ -870,26 +903,72 @@ export class DriverStoreService implements OnDestroy {
         return entregas;
     }
 
-    private mapearVehiculos(
-        guias: ChoferGuia[],
-        vehiculos: ChoferVehiculo[],
-    ): DriverInfo['vehiculos'] {
-        const vehiculoMap = new Map(vehiculos.map((v) => [v.id_vehiculo, v]));
-        const ids = [...new Set(guias.map((g) => g.id_vehiculo).filter(Boolean))];
+    private actualizarVehiculosDriverInfo(
+        guias?: ChoferGuia[],
+        vehiculos?: ChoferVehiculo[],
+    ) {
+        if (guias) this.guiasAsignadasRaw = guias;
+        if (vehiculos) this.catalogoVehiculos = vehiculos;
 
-        return ids
+        const rawGuias = this.guiasAsignadasRaw || [];
+        const rawVehiculos = this.catalogoVehiculos || [];
+        const vehiculoMap = new Map(rawVehiculos.map((v) => [v.id_vehiculo, v]));
+
+        const viajeActivo = this.viajesChofer()[0] || null;
+        const idsOrdenados: string[] = [];
+        const idsSet = new Set<string>();
+
+        // 1. Primerísimo: el vehículo asignado al viaje actual
+        if (viajeActivo?.id_vehiculo) {
+            idsOrdenados.push(viajeActivo.id_vehiculo);
+            idsSet.add(viajeActivo.id_vehiculo);
+        }
+
+        // 2. Luego los vehículos asociados a las guías del chofer
+        for (const g of rawGuias) {
+            if (g.id_vehiculo && !idsSet.has(g.id_vehiculo)) {
+                idsOrdenados.push(g.id_vehiculo);
+                idsSet.add(g.id_vehiculo);
+            }
+        }
+
+        const mapeados = idsOrdenados
             .map((id) => {
-                const detalle = vehiculoMap.get(id!);
-                const deGuia = guias.find((g) => g.id_vehiculo === id);
+                const detalle = vehiculoMap.get(id);
+                const deGuia = rawGuias.find((g) => g.id_vehiculo === id);
                 return {
-                    id: id!,
-                    placa: detalle?.placa || deGuia?.placa_vehiculo || '',
+                    id,
+                    placa:
+                        detalle?.placa ||
+                        (id === viajeActivo?.id_vehiculo ? viajeActivo?.placa_vehiculo : '') ||
+                        deGuia?.placa_vehiculo ||
+                        '',
                     marca: detalle?.marca || deGuia?.marca_vehiculo || '',
                     modelo: detalle?.modelo || deGuia?.modelo_vehiculo || '',
                     anio: detalle?.anio || 0,
-                    tipo: detalle?.tipo_nombre || '',
+                    tipo: detalle?.tipo_nombre || 'Vehículo',
                 };
             })
             .filter((v) => !!v.placa);
+
+        // Fallback: si no hay coincidencia por ID pero el viaje activo tiene placa
+        if (mapeados.length === 0 && viajeActivo?.placa_vehiculo) {
+            mapeados.push({
+                id: viajeActivo.id_vehiculo || 'viaje-actual',
+                placa: viajeActivo.placa_vehiculo,
+                marca: '',
+                modelo: '',
+                anio: 0,
+                tipo: 'Vehículo',
+            });
+        }
+
+        this.driverInfo.update((info) => {
+            if (!info) return null;
+            return {
+                ...info,
+                vehiculos: mapeados,
+            };
+        });
     }
 }

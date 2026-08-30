@@ -28,7 +28,7 @@ import { puntoEnPoligono } from '../data/geo-utils';
             </label>
             <app-busqueda-ubicacion
                 [municipioNombre]="municipioNombre()"
-                [direccionInicial]="sucursalGroup().get('direccion')?.value ?? ''"
+                [direccionInicial]="direccionInicial()"
                 (ubicacionSeleccionada)="onUbicacionSeleccionada($event)"
             />
             <p-message
@@ -53,6 +53,7 @@ import { puntoEnPoligono } from '../data/geo-utils';
 export class MapaSucursalComponent implements OnDestroy {
     readonly sucursalGroup = input.required<AbstractControl>();
     readonly municipioNombre = input<string>('');
+    readonly direccionInicial = input<string>('');
     readonly marcadorMovido = output<void>();
 
     outsideBoundary = signal(false);

@@ -157,26 +157,40 @@
                 <h3
                     class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"
                 >
-                    <i class="pi pi-truck text-primary"></i> Vehículos asignados
+                    <i class="pi pi-truck text-primary"></i> Vehículo asignado
                 </h3>
                 <div class="space-y-2">
-                    @for (v of vehiculos; track v.id) {
+                    @for (v of vehiculos; track v.id; let first = $first) {
                         <div
                             class="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-700/50"
+                            [ngClass]="{
+                                'border border-primary/30 bg-primary-50/40 dark:bg-primary-950/20':
+                                    first && store.activeViaje()
+                            }"
                         >
                             <div
-                                class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"
+                                class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"
                             >
                                 <i class="pi pi-truck text-primary text-lg"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div
-                                    class="text-sm font-semibold text-surface-700 dark:text-surface-200"
-                                >
-                                    {{ v.placa }}
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="text-sm font-bold text-surface-800 dark:text-surface-100"
+                                    >
+                                        {{ v.placa }}
+                                    </span>
+                                    @if (first && store.activeViaje()) {
+                                        <span
+                                            class="text-[10px] font-semibold bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 px-2 py-0.5 rounded-full"
+                                        >
+                                            Viaje actual
+                                        </span>
+                                    }
                                 </div>
-                                <div class="text-xs text-surface-400 truncate">
-                                    {{ v.marca }} {{ v.modelo }} · {{ v.anio }}
+                                <div class="text-xs text-surface-400 truncate mt-0.5">
+                                    {{ v.marca }} {{ v.modelo }}
+                                    {{ v.anio ? '· ' + v.anio : '' }}
                                 </div>
                             </div>
                             <span

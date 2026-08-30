@@ -568,7 +568,9 @@ export class GuiaDialogComponent implements OnInit {
                     id: `fact-pdf-${i}`,
                     numeroFactura: f.numero || '',
                     idCliente: clienteMatch?.activo === false ? '' : clienteMatch?.id || '',
-                    nombreCliente: clienteMatch?.personaContacto || '',
+                    nombreCliente: clienteMatch
+                        ? clienteMatch.personaContacto || clienteMatch.nombreComercial || ''
+                        : f.cliente || '',
                     rifCliente: clienteMatch?.documentoIdentidad
                         ? `${clienteMatch.documentoIdentidad.prefijo}-${clienteMatch.documentoIdentidad.numero}`
                         : '',
@@ -731,7 +733,14 @@ export class GuiaDialogComponent implements OnInit {
     }
 
     obtenerIdCliente(raw: any): string {
-        return typeof raw === 'object' && raw !== null ? (raw.value ?? '') : (raw ?? '');
+        if (typeof raw === 'object' && raw !== null) {
+            return raw.value ?? '';
+        }
+        if (typeof raw === 'string' && raw) {
+            const existe = this.clientesSig().some((c) => c.id === raw || c.idCliente === raw);
+            return existe ? raw : '';
+        }
+        return '';
     }
 
     private optionCliente(id: string): { label: string; value: string } | string {
@@ -899,7 +908,10 @@ export class GuiaDialogComponent implements OnInit {
 
     abrirRegistroCliente(index: number) {
         const group = this.facturas.at(index);
-        const nombre = group.get('personaContacto')?.value || '';
+        const valorIdCliente = group.get('idCliente')?.value;
+        const nombreDesdeInput =
+            typeof valorIdCliente === 'string' ? valorIdCliente : valorIdCliente?.label || '';
+        const nombre = group.get('nombreCliente')?.value || nombreDesdeInput || '';
         const telefono = group.get('telefono')?.value || '';
         const direccion = group.get('direccion')?.value || '';
         let idMunicipio = '';

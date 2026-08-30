@@ -85,26 +85,32 @@ export class TiemposService implements OnDestroy {
 
     /**
      * Tiempo real de carga: desde que la factura entró a 'embarque'.
-     * Fallback: estimación por posición de guía.
+     * Fallback: fechaUltimoCambio o fecha de asignación.
      */
     getTiempoCarga(entrega: Entrega): string {
-        const mins = this.minutosDesde(entrega?.fechaInicioCarga);
+        const fecha =
+            entrega?.fechaInicioCarga || entrega?.fechaUltimoCambio || entrega?.fechaEntrega;
+        const mins = this.minutosDesde(fecha);
         if (mins !== null) {
             return `${this.formatearMinutos(mins)} subiendo mercancía`;
         }
-        return 'Pendiente';
+        return 'Recién asignada';
     }
 
     /**
      * Tiempo en el estado actual de la factura: desde su última transición
      * (fechaUltimoCambio). El texto incluye el label del estado.
-     * Ej: "15 min · En proceso", "5 min · En espera".
+     * Ej: "15 min · En proceso", "5 min · En espera", "10 min · En embarque".
      */
     getTiempoEstado(entrega: Entrega): string {
         if (!entrega) return '';
-        const mins = this.minutosDesde(entrega.fechaUltimoCambio);
-        if (mins === null) return '';
+        const fecha =
+            entrega.fechaUltimoCambio || entrega.fechaInicioCarga || entrega.fechaEntrega;
+        const mins = this.minutosDesde(fecha);
         const label = this.getEstadoLabel(entrega.estado);
+        if (mins === null) {
+            return `Recién iniciada · ${label}`;
+        }
         return `${this.formatearMinutos(mins)} · ${label}`;
     }
 }

@@ -209,6 +209,7 @@ export class MiRutaComponent implements OnInit {
             if (viaje?.estado === 'programado' && this.navigation.navegando()) {
                 this.navigation.detener();
                 this.puntoEntrega.set(null);
+                this.puntoEntregaKey.set(null);
                 this.navigation.puntoEntregaGuardado.set(null);
                 const id = viaje.id_viaje;
                 if (id) void this.navigation.limpiarSimulacionGuardada(id);
@@ -225,6 +226,7 @@ export class MiRutaComponent implements OnInit {
             );
             if (pendientes.length === 0) {
                 this.puntoEntrega.set(null);
+                this.puntoEntregaKey.set(null);
                 this.navigation.puntoEntregaGuardado.set(null);
                 this.navigation.reanudarTrasEntrega();
             }
@@ -253,6 +255,7 @@ export class MiRutaComponent implements OnInit {
     @ViewChild(IncidenciaDialogComponent) private incidenciaDialog!: IncidenciaDialogComponent;
 
     puntoEntrega = signal<number | null>(null);
+    readonly puntoEntregaKey = signal<string | null>(null);
     detallePuntoAbierto = signal(false);
     entregando = signal(false);
     finalizando = signal(false);
@@ -394,6 +397,11 @@ export class MiRutaComponent implements OnInit {
     });
 
     readonly puntoActual = computed<PuntoEntrega | null>(() => {
+        const key = this.puntoEntregaKey();
+        if (key) {
+            const encontrado = this.puntos().find((p) => p.key === key);
+            if (encontrado) return encontrado;
+        }
         const idx = this.puntoEntrega();
         if (idx === null || idx < 0) return null;
         return this.puntos()[idx] ?? null;
@@ -506,6 +514,7 @@ export class MiRutaComponent implements OnInit {
         if (!punto) return;
 
         this.puntoEntrega.set(targetIndex);
+        this.puntoEntregaKey.set(punto.key);
         try {
             await this.store.marcarParadaEnEspera(punto.facturaIds);
         } catch {
@@ -797,6 +806,7 @@ export class MiRutaComponent implements OnInit {
                 punto.facturas.some((f) => f.estado === 'entrega' || f.estado === 'espera')
             ) {
                 this.puntoEntrega.set(guardado);
+                this.puntoEntregaKey.set(punto.key);
                 return;
             }
         }
@@ -816,7 +826,10 @@ export class MiRutaComponent implements OnInit {
         const dist = haversine(pos, { lat: punto.latitud, lng: punto.longitud });
         if (dist < 15) {
             const idx = this.puntos().findIndex((p) => p.key === punto.key);
-            if (idx >= 0) this.puntoEntrega.set(idx);
+            if (idx >= 0) {
+                this.puntoEntrega.set(idx);
+                this.puntoEntregaKey.set(punto.key);
+            }
         }
     }
 
@@ -957,6 +970,137 @@ export class MiRutaComponent implements OnInit {
                 name: 'Almacén',
             };
 
+            // Detectar si el chofer está actualmente detenido atendiendo una entrega
+            const puntoEnCurso = this.puntoActual();
+            const estaEnEntrega =
+                !!puntoEnCurso &&
+                (this.navigation.estaPausaPorEntrega() ||
+                    this.puntoEntrega() !== null ||
+                    this.navigation.puntoEntregaGuardado() !== null);
+
+            if (estaEnEntrega && puntoEnCurso) {
+                // CASO 1: Chofer en medio de una entrega (parado en el cliente).
+                // NO se reinicia la navegación ni se resetea la posición.
+                // Se optimizan las paradas FUTURAS partiendo desde la parada actual hacia el almacén.
+                const otrosPuntos = puntos.filter((p) => p.key !== puntoEnCurso.key);
+                let otrosOrdenados: PuntoEntrega[] = otrosPuntos;
+                let detallada: RutaDetallada | null = null;
+
+                const origenWaypoint: Waypoint = {
+                    lat: puntoEnCurso.latitud,
+                    lng: puntoEnCurso.longitud,
+                    name: puntoEnCurso.nombreCliente,
+                };
+
+                if (otrosPuntos.length > 0) {
+                    const waypoints: Waypoint[] = otrosPuntos.map((p) => ({
+                        lat: p.latitud,
+                        lng: p.longitud,
+                        name: `${p.nombreCliente} - ${p.facturas[0]?.numeroGuia || p.facturas[0]?.numeroFactura || ''}`,
+                    }));
+
+                    if (this.connectivity.isOnline()) {
+                        try {
+                            const optRes = await this.googleOptimization.optimize(
+                                waypoints,
+                                origenWaypoint,
+                                warehouse,
+                            );
+                            if (optRes && optRes.order && optRes.order.length > 0) {
+                                otrosOrdenados = optRes.order
+                                    .map((idx) => otrosPuntos[idx])
+                                    .filter((p): p is PuntoEntrega => !!p);
+
+                                const waypointsOrdenados = optRes.order
+                                    .map((idx) => waypoints[idx])
+                                    .filter((w): w is Waypoint => !!w);
+
+                                detallada = await this.googleOptimization.getRutaDetallada(
+                                    waypointsOrdenados,
+                                    origenWaypoint,
+                                    warehouse,
+                                );
+                            }
+                        } catch (optErr) {
+                            console.warn(
+                                'Fallo optimización de Google Maps para paradas futuras:',
+                                optErr,
+                            );
+                        }
+                    }
+
+                    if (!detallada) {
+                        const { paradas: fallbackParadas } =
+                            await this.construirParadasOrdenadas(otrosPuntos, {
+                                lat: puntoEnCurso.latitud,
+                                lng: puntoEnCurso.longitud,
+                            });
+                        if (fallbackParadas.length > 0) {
+                            otrosOrdenados = fallbackParadas
+                                .map((fp) => otrosPuntos.find((op) => op.key === fp.id))
+                                .filter((p): p is PuntoEntrega => !!p);
+                        }
+                    }
+                }
+
+                const puntoEnCursoNav: ParadaNavegacion = {
+                    id: puntoEnCurso.key,
+                    ordenVisita: 0,
+                    numeroGuia: puntoEnCurso.facturas[0]?.numeroGuia || '',
+                    numeroFactura: puntoEnCurso.facturas[0]?.numeroFactura || '',
+                    nombreCliente: puntoEnCurso.nombreCliente,
+                    latitud: puntoEnCurso.latitud,
+                    longitud: puntoEnCurso.longitud,
+                };
+
+                const otrosNav: ParadaNavegacion[] = otrosOrdenados.map((p, i) => ({
+                    id: p.key,
+                    ordenVisita: i + 1,
+                    numeroGuia: p.facturas[0]?.numeroGuia || '',
+                    numeroFactura: p.facturas[0]?.numeroFactura || '',
+                    nombreCliente: p.nombreCliente,
+                    latitud: p.latitud,
+                    longitud: p.longitud,
+                }));
+
+                const paradasNav = [puntoEnCursoNav, ...otrosNav];
+
+                // Actualizar la ruta manteniendo la pausa de la entrega actual
+                this.navigation.actualizarRutaEnEntrega(paradasNav, warehouse, detallada);
+
+                // Persistir el orden de las facturas en BD
+                try {
+                    const idsFinalizados = this.puntos()
+                        .filter((p) => p.facturas.every((f) => f.estado === 'finalizado'))
+                        .sort((a, b) => a.ordenVisita - b.ordenVisita)
+                        .flatMap((p) => p.facturaIds);
+
+                    const idsPuntoEnCurso = puntoEnCurso.facturaIds;
+                    const idsOtrosOrdenados = otrosOrdenados.flatMap((p) => p.facturaIds);
+                    const idsTodosOrdenados = [
+                        ...idsFinalizados,
+                        ...idsPuntoEnCurso,
+                        ...idsOtrosOrdenados,
+                    ];
+
+                    if (idsTodosOrdenados.length > 0) {
+                        await this.viajeService.actualizarOrdenViaje(
+                            viaje.id_viaje,
+                            idsTodosOrdenados,
+                        );
+                    }
+                } catch (err) {
+                    console.warn('No se pudo persistir el orden de la re-entrega', err);
+                }
+
+                // Mantener el punto de entrega activo fijado
+                const nuevoIdx = this.puntos().findIndex((p) => p.key === puntoEnCurso.key);
+                if (nuevoIdx >= 0) this.puntoEntrega.set(nuevoIdx);
+                this.puntoEntregaKey.set(puntoEnCurso.key);
+                return;
+            }
+
+            // CASO 2: Chofer en ruta (no en medio de una entrega).
             // Origen = posición actual del chofer (desde donde está ahora).
             const pos = this.navigation.posicionDriver();
             let origen: Waypoint | undefined = pos
@@ -1642,7 +1786,11 @@ export class MiRutaComponent implements OnInit {
 
     /** Abre el sheet de entrega de un punto pendiente (desde la lista). */
     abrirPunto(i: number) {
-        if (this.puntoTienePendientes(i)) this.puntoEntrega.set(i);
+        if (this.puntoTienePendientes(i)) {
+            this.puntoEntrega.set(i);
+            const p = this.puntos()[i];
+            if (p) this.puntoEntregaKey.set(p.key);
+        }
     }
 
     /** Punto del que se muestra la info de sucursal (diálogo). */
@@ -1681,6 +1829,7 @@ export class MiRutaComponent implements OnInit {
             await this.viajeService.finalizarViaje(viaje.id_viaje);
             await this.store.recargarViajes();
             this.puntoEntrega.set(null);
+            this.puntoEntregaKey.set(null);
             this.navigation.puntoEntregaGuardado.set(null);
             await this.navigation.limpiarSimulacionGuardada(viaje.id_viaje);
             this.notif.add({
@@ -1712,6 +1861,7 @@ export class MiRutaComponent implements OnInit {
             await this.store.recargarViajes();
             this.sincronizarParadas();
             this.puntoEntrega.set(null);
+            this.puntoEntregaKey.set(null);
             this.navigation.puntoEntregaGuardado.set(null);
             const warehouse: Waypoint = {
                 lat: environment.warehouseLat,

@@ -39,7 +39,14 @@ export interface EstadoSimulacion {
 }
 
 const UMBRAL_PASO_M = 25;
-const UMBRAL_LLEGADA_M = 15;
+/** Radio cercano de llegada inmediata (tanto al pin como al final del tramo en calle). */
+const UMBRAL_LLEGADA_INMEDIATA_M = 20;
+/** Radio extendido que requiere detención / tiempo de permanencia para evitar falsos positivos. */
+const UMBRAL_LLEGADA_EXTENDIDA_M = 50;
+/** Tiempo mínimo detenido en radio extendido (en ms) antes de confirmar llegada por permanencia. */
+const TIEMPO_PERMANENCIA_LLEGADA_MS = 45000;
+/** Velocidad máxima (km/h) para considerar que el vehículo está detenido/estacionado. */
+const VELOCIDAD_MAX_DETENIDO_KMH = 10;
 const UMBRAL_RE_RUTEO_M = 300;
 const DEBOUNCE_RE_RUTEO_MS = 60000;
 const SIM_INTERVALO_MS = 200;
@@ -92,6 +99,7 @@ export class NavigationService {
     private ultimaPos: LatLng | null = null;
     private ultimaLlegadaAnunciada = -1;
     private pausaPorEntrega = false;
+    private primerTimestampEnRadio = 0;
     private readonly esNativo = Capacitor.isNativePlatform();
 
     /** Hook invocado al detectar la llegada a una parada (antes de avanzar). */
@@ -251,6 +259,43 @@ export class NavigationService {
         this.detenerSimulacion();
     }
 
+    /** Indica si la navegación está actualmente en pausa por entrega en una parada. */
+    estaPausaPorEntrega(): boolean {
+        return this.pausaPorEntrega;
+    }
+
+    /**
+     * Actualiza las paradas y el path de la ruta mientras el chofer se encuentra
+     * detenido realizando una entrega (p. ej. tras autorizarse una re-entrega).
+     * Mantiene la pausa por entrega y no reinicia la simulación ni mueve la posición.
+     */
+    actualizarRutaEnEntrega(
+        paradas: ParadaNavegacion[],
+        warehouse: Waypoint,
+        rutaDetallada?: RutaDetallada | null,
+    ) {
+        if (paradas.length < 1) return;
+        this.paradas = [...paradas].sort((a, b) => a.ordenVisita - b.ordenVisita);
+        this.paradasNavList.set(this.paradas);
+        this.warehouse = warehouse;
+        this.totalParadas.set(this.paradas.length);
+        // La parada 0 es la que se está atendiendo ahora; la siguiente meta es la parada 1
+        this.paradaActual.set(this.paradas.length > 1 ? 1 : 0);
+        this.pasoActual.set(0);
+        this.ultimaLlegadaAnunciada = 0;
+
+        if (rutaDetallada && rutaDetallada.pasos.length > 0) {
+            this.path.set(rutaDetallada.path);
+            this.pasos.set(rutaDetallada.pasos);
+            this.legs.set(rutaDetallada.legs || []);
+            this.precalcularSim();
+        }
+
+        this.pausaPorEntrega = true;
+        this.pausado.set(true);
+        this.detenerSimulacion();
+    }
+
     /** Reanuda la simulación tras completar la entrega de la parada. */
     reanudarTrasEntrega() {
         if (!this.pausaPorEntrega) return;
@@ -359,6 +404,7 @@ export class NavigationService {
         this.posicionDriver.set(null);
         this.ultimaPos = null;
         this.ultimaLlegadaAnunciada = -1;
+        this.primerTimestampEnRadio = 0;
         this.rumbo.set(0);
         this.pausado.set(false);
         this.paradas = [];
@@ -371,6 +417,7 @@ export class NavigationService {
         this.paradaActual.set(0);
         this.pasoActual.set(0);
         this.ultimaLlegadaAnunciada = -1;
+        this.primerTimestampEnRadio = 0;
         this.distRestantePaso.set(0);
         this.distRestanteParada.set(0);
 
@@ -406,7 +453,11 @@ export class NavigationService {
         }
         this.watchId = navigator.geolocation.watchPosition(
             (pos) => {
-                this.manejarPosicion(pos.coords.latitude, pos.coords.longitude);
+                const vel =
+                    pos.coords.speed != null && pos.coords.speed >= 0
+                        ? pos.coords.speed * 3.6
+                        : 0;
+                this.manejarPosicion(pos.coords.latitude, pos.coords.longitude, vel);
             },
             (err) => {
                 console.error('Error de geolocalización', err);
@@ -445,7 +496,11 @@ export class NavigationService {
                 });
                 return;
             }
-            this.manejarPosicion(position.coords.latitude, position.coords.longitude);
+            const vel =
+                position.coords.speed != null && position.coords.speed >= 0
+                    ? position.coords.speed * 3.6
+                    : 0;
+            this.manejarPosicion(position.coords.latitude, position.coords.longitude, vel);
         };
 
         try {
@@ -536,7 +591,7 @@ export class NavigationService {
             this.simDistanciaAcumulada = Math.min(total, this.simDistanciaAcumulada + avance);
 
             const pos = this.posicionEnDistancia(this.simDistanciaAcumulada);
-            if (pos) this.manejarPosicion(pos.lat, pos.lng);
+            if (pos) this.manejarPosicion(pos.lat, pos.lng, this.velocidadSimulacion() * 3.6);
         };
 
         this.simInterval = setInterval(mover, SIM_INTERVALO_MS);
@@ -574,7 +629,7 @@ export class NavigationService {
         };
     }
 
-    private manejarPosicion(lat: number, lng: number) {
+    private manejarPosicion(lat: number, lng: number, velocidadKmh: number = 0) {
         const pos: LatLng = { lat, lng };
         this.posicionDriver.set(pos);
 
@@ -584,7 +639,7 @@ export class NavigationService {
         this.ultimaPos = pos;
 
         this.avanzarPaso(pos);
-        this.comprobarLlegadaParada(pos);
+        this.comprobarLlegadaParada(pos, velocidadKmh);
         this.comprobarReRuteo(pos);
     }
 
@@ -603,56 +658,85 @@ export class NavigationService {
         this.distRestantePaso.set(Math.round(haversine(pos, pasos[idx].fin)));
     }
 
-    private comprobarLlegadaParada(pos: LatLng) {
+    private comprobarLlegadaParada(pos: LatLng, velocidadKmh: number = 0) {
         const paradas = this.paradas;
         if (paradas.length < 1) return;
         const idx = this.paradaActual();
         if (idx >= paradas.length) return;
 
         const parada = paradas[idx];
-        const dist = haversine(pos, { lat: parada.latitud, lng: parada.longitud });
-        this.distRestanteParada.set(Math.round(dist));
+        const distAlPin = haversine(pos, { lat: parada.latitud, lng: parada.longitud });
 
-        if (dist < UMBRAL_LLEGADA_M) {
-            // En simulación el punto sigue el path exacto, así que se puede
-            // llegar mucho más cerca del destino que en GPS real (donde el
-            // margen de 15 m compensa la imprecisión de la señal). Aquí se
-            // acerca el marcador hasta ~3 m del punto de entrega antes de
-            // detenerse, en vez de quedarse en el borde del área.
-            if (this.simulando() && dist > 3) {
-                // Interpolar desde la PARADA hacia la posición actual: el punto
-                // queda a 3 m de la parada (no desde pos hacia parada).
-                const t = 3 / dist;
-                const cerca: LatLng = {
-                    lat: parada.latitud + (pos.lat - parada.latitud) * t,
-                    lng: parada.longitud + (pos.lng - parada.longitud) * t,
-                };
-                this.posicionDriver.set(cerca);
-                this.ultimaPos = cerca;
-                this.distRestanteParada.set(3);
+        // Punto exacto de la calle donde concluye el tramo (leg) hacia esta parada en Google Maps
+        const legActual = this.legs()[idx];
+        const finLeg =
+            legActual?.path && legActual.path.length > 0
+                ? legActual.path[legActual.path.length - 1]
+                : null;
+        const distAlFinLeg = finLeg ? haversine(pos, finLeg) : Infinity;
+
+        // La distancia efectiva es la menor entre el pin físico y el punto de parada vial
+        const distEfectiva = Math.min(distAlPin, distAlFinLeg);
+        this.distRestanteParada.set(Math.round(distEfectiva));
+
+        if (idx === this.ultimaLlegadaAnunciada) return;
+
+        if (this.simulando()) {
+            // MODO SIMULACIÓN:
+            // Sigue el trazado exacto de la calle. Se detecta llegada cuando alcanza
+            // el final del tramo vial (< 10m) o el radio del pin (< 20m).
+            if (distAlFinLeg < 10 || distEfectiva < UMBRAL_LLEGADA_INMEDIATA_M) {
+                if (finLeg) {
+                    this.posicionDriver.set(finLeg);
+                    this.ultimaPos = finLeg;
+                }
+                this.anunciarYLlegarParada(idx, parada);
             }
-
-            // Anunciar la llegada una sola vez por parada (la última no avanza
-            // paradaActual, así que sin este latch el toast se repetía cada tick).
-            if (idx === this.ultimaLlegadaAnunciada) return;
-            this.ultimaLlegadaAnunciada = idx;
-            this.onLlegadaParada?.(idx, parada);
-            // En simulación: detenerse en la parada hasta completar la entrega.
-            this.pausarParaEntrega();
-            if (idx < paradas.length - 1) {
-                this.paradaActual.set(idx + 1);
-                this.notif.add({
-                    severity: 'success',
-                    summary: 'Has llegado',
-                    detail: `${parada.nombreCliente} — ${parada.numeroGuia || parada.numeroFactura}`,
-                });
+        } else {
+            // MODO GPS REAL:
+            // 1. Llegada inmediata si se encuentra a <= 20m del pin o del punto de entrega en calle
+            if (distEfectiva <= UMBRAL_LLEGADA_INMEDIATA_M) {
+                this.primerTimestampEnRadio = 0;
+                this.anunciarYLlegarParada(idx, parada);
+            }
+            // 2. Llegada por permanencia (20m a 50m) si el vehículo está detenido o a baja velocidad (< 10 km/h)
+            else if (
+                distEfectiva <= UMBRAL_LLEGADA_EXTENDIDA_M &&
+                velocidadKmh <= VELOCIDAD_MAX_DETENIDO_KMH
+            ) {
+                const ahora = Date.now();
+                if (this.primerTimestampEnRadio === 0) {
+                    this.primerTimestampEnRadio = ahora;
+                } else if (ahora - this.primerTimestampEnRadio >= TIEMPO_PERMANENCIA_LLEGADA_MS) {
+                    this.primerTimestampEnRadio = 0;
+                    this.anunciarYLlegarParada(idx, parada);
+                }
             } else {
-                this.notif.add({
-                    severity: 'success',
-                    summary: 'Ruta completada',
-                    detail: 'Llegaste a la última parada.',
-                });
+                // Si sale del radio o va rápido por la calle paralela, reiniciar temporizador
+                this.primerTimestampEnRadio = 0;
             }
+        }
+    }
+
+    private anunciarYLlegarParada(idx: number, parada: ParadaNavegacion) {
+        if (idx === this.ultimaLlegadaAnunciada) return;
+        this.ultimaLlegadaAnunciada = idx;
+        this.onLlegadaParada?.(idx, parada);
+        // En simulación: detenerse en la parada hasta completar la entrega.
+        this.pausarParaEntrega();
+        if (idx < this.paradas.length - 1) {
+            this.paradaActual.set(idx + 1);
+            this.notif.add({
+                severity: 'success',
+                summary: 'Has llegado',
+                detail: `${parada.nombreCliente} — ${parada.numeroGuia || parada.numeroFactura}`,
+            });
+        } else {
+            this.notif.add({
+                severity: 'success',
+                summary: 'Ruta completada',
+                detail: 'Llegaste a la última parada.',
+            });
         }
     }
 

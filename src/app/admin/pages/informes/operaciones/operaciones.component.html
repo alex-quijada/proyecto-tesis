@@ -39,6 +39,7 @@
                     <p-skeleton width="6rem" height="1.5rem" />
                     <p-skeleton width="7rem" height="1.5rem" />
                     <p-skeleton width="5rem" height="1.5rem" />
+                    <p-skeleton width="8rem" height="1.5rem" />
                     <p-skeleton width="6rem" height="1.5rem" />
                 </div>
             }
@@ -78,8 +79,10 @@
                 'chofer',
                 'placaVehiculo',
                 'empresa',
+                'incidenciaTipoPrincipal',
+                'incidenciaDescripcionPrincipal',
             ]"
-            [tableStyle]="{ 'min-width': '70rem' }"
+            [tableStyle]="{ 'min-width': '75rem' }"
         >
             <ng-template #caption>
                 <div class="flex flex-wrap items-center justify-between gap-2">
@@ -107,6 +110,7 @@
                     <th>Monto USD</th>
                     <th>Monto Bs</th>
                     <th>Estado</th>
+                    <th>Incidencia</th>
                     <th>Fecha</th>
                 </tr>
             </ng-template>
@@ -129,12 +133,45 @@
                             [severity]="estadoSeverity(f.estado)"
                         />
                     </td>
+                    <td>
+                        @if (f.tuvoIncidencia) {
+                            <div class="flex items-center gap-1.5">
+                                <p-tag
+                                    [value]="(f.incidenciaTipoPrincipal | tipoIncidencia) || 'Incidencia'"
+                                    [severity]="f.incidenciaResuelta ? 'warn' : 'danger'"
+                                    [pTooltip]="tooltipIncidencia(f)"
+                                    tooltipPosition="top"
+                                    styleClass="text-xs cursor-pointer"
+                                />
+                                @if (f.incidenciaResuelta) {
+                                    <i
+                                        class="pi pi-check-circle text-xs text-green-500"
+                                        pTooltip="Incidencia resuelta (entregada)"
+                                        tooltipPosition="top"
+                                    ></i>
+                                }
+                                @if (f.incidenciaFotoPrincipal) {
+                                    <a
+                                        [href]="f.incidenciaFotoPrincipal"
+                                        target="_blank"
+                                        pTooltip="Ver foto de la incidencia"
+                                        tooltipPosition="top"
+                                        class="text-xs text-blue-500 hover:text-blue-700 inline-flex items-center"
+                                    >
+                                        <i class="pi pi-image"></i>
+                                    </a>
+                                }
+                            </div>
+                        } @else {
+                            <span class="text-xs text-surface-400">—</span>
+                        }
+                    </td>
                     <td class="text-sm text-surface-500">{{ formatFecha(f.fecha) }}</td>
                 </tr>
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="11" class="text-center py-6 text-surface-400">
+                    <td colspan="12" class="text-center py-6 text-surface-400">
                         No hay facturas que coincidan.
                     </td>
                 </tr>

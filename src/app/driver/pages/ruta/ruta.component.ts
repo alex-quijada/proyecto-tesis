@@ -34,6 +34,7 @@ interface ParadaDisplay {
     direccion: string;
     rif: string;
     precioCarga: number;
+    montoVES?: number;
     estado: string;
     observaciones?: string;
     eventos: any[];
@@ -210,6 +211,7 @@ export class RutaComponent implements OnInit {
                             direccion: p.direccion || entrega?.direccion || '',
                             rif: entrega?.rif || '',
                             precioCarga: Number(p.monto_dolares) || entrega?.precioCarga || 0,
+                            montoVES: Number(p.monto_ves ?? p.monto_bss) || entrega?.montoVES || 0,
                             estado: p.estado_factura || entrega?.estado || 'embarque',
                             observaciones: entrega?.observaciones,
                             eventos: entrega?.eventos || [],

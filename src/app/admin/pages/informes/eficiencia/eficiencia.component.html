@@ -134,7 +134,7 @@
                         <tr>
                             <th>Chofer</th>
                             <th style="width: 7rem">Entregas</th>
-                            <th style="width: 7rem">Incidencias</th>
+                            <th style="width: 10rem">Incidencias</th>
                             <th style="width: 9rem">Monto USD</th>
                             <th style="width: 9rem">Monto Bs</th>
                             <th style="width: 8rem">Km planif.</th>
@@ -147,7 +147,23 @@
                                 <p-tag value="{{ c.entregas }}" severity="success" />
                             </td>
                             <td>
-                                <p-tag value="{{ c.incidencias }}" severity="danger" />
+                                <div class="flex items-center gap-1.5">
+                                    <p-tag
+                                        value="{{ c.incidencias }}"
+                                        [severity]="c.incidencias > 0 ? (c.incidencias_pendientes ? 'danger' : 'warn') : 'secondary'"
+                                        [pTooltip]="(c.incidencias_resueltas ?? 0) + ' resueltas · ' + (c.incidencias_pendientes ?? 0) + ' pendientes'"
+                                        tooltipPosition="top"
+                                    />
+                                    @if ((c.incidencias_resueltas ?? 0) > 0) {
+                                        <span
+                                            class="text-xs text-green-600 font-medium"
+                                            pTooltip="Incidencias recuperadas y entregadas"
+                                            tooltipPosition="top"
+                                        >
+                                            ({{ c.incidencias_resueltas }} res.)
+                                        </span>
+                                    }
+                                </div>
                             </td>
                             <td class="font-mono">
                                 {{ c.monto_usd | currency: 'USD' : 'symbol' : '1.2-2' }}

@@ -24,7 +24,7 @@ import { NotificationService } from '@/app/services/notification.service';
 import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
 
 import { environment } from '@/environments/environment';
-import { ViajeAdmin } from '@/app/services/viaje.types';
+import { ViajeAdmin, ParadaViaje } from '@/app/services/viaje.types';
 import { ViajeService } from '@/app/services/viaje.service';
 import {
     SeguimientoService,
@@ -67,6 +67,16 @@ interface ParadaDetalle {
     incidenciaDescripcion?: string;
     /** Incidencias pendientes (resuelta != true) de la factura, si las hay. */
     incidenciasPendientes?: { tipo?: string; descripcion?: string }[];
+}
+
+interface PuntoEntregaInfo {
+    parada: ParadaViaje;
+    viaje: ViajeAdmin;
+    lat: number;
+    lng: number;
+    estado: string;
+    orden: number;
+    cliente: string;
 }
 
 interface LineaTiempoItem {
@@ -218,6 +228,8 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     private markers = new Map<string, google.maps.marker.AdvancedMarkerElement>();
     private puntosEntrega = new Map<string, google.maps.marker.AdvancedMarkerElement>();
     private polylines = new Map<string, google.maps.Polyline>();
+    private infoWindow: google.maps.InfoWindow | null = null;
+    private readonly tipoIncidenciaPipe = new TipoIncidenciaPipe();
     private ajustado = false;
     /** Chofer al que ya se le encuadró la vista: evitar re-encuadrar en cada
      *  actualización de posición (se perdería el zoom/pan manual del admin). */
@@ -609,6 +621,10 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     ngOnDestroy() {
         if (this.tickTimer) clearInterval(this.tickTimer);
         if (this.debounceHistorial) clearTimeout(this.debounceHistorial);
+        if (this.infoWindow) {
+            this.infoWindow.close();
+            this.infoWindow = null;
+        }
         for (const m of this.markers.values()) m.map = null;
         this.markers.clear();
         for (const m of this.puntosEntrega.values()) m.map = null;
@@ -623,6 +639,15 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     seleccionarChofer(id: string | null) {
         this.choferSeleccionado.set(this.choferSeleccionado() === id ? null : id);
+    }
+
+    abrirDetallePorIdChofer(idChofer: string) {
+        const c = this.monitoreo().find((m) => m.idChofer === idChofer);
+        if (c) {
+            this.abrirDetalle(c);
+        } else {
+            this.seleccionarChofer(idChofer);
+        }
     }
 
     abrirDetalle(c: ChoferMonitoreo) {
@@ -839,6 +864,9 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             mapId: 'seguimiento',
             disableDefaultUI: true,
         });
+        this.mapa.addListener('click', () => {
+            this.infoWindow?.close();
+        });
         google.maps.event.addListenerOnce(this.mapa, 'idle', () => {
             this.mapaListo.set(true);
             this.agregarMarcadorAlmacen();
@@ -911,7 +939,9 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     /**
      * Puntos de entrega en el mapa. Sin chofer seleccionado se muestran todos;
      * al seleccionar un chofer solo los de su viaje. Azul = pendiente,
-     * verde = entregado, amarillo = incidencia.
+     * verde = entregado, rojo/amarillo = incidencia.
+     * Al hacer clic en un punto, se abre un InfoWindow interactivo con detalles
+     * completos de la entrega y las incidencias (con pipe y fotos).
      */
     private actualizarPuntosEntrega() {
         if (!this.mapa) return;
@@ -921,19 +951,18 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         );
         const viajes = seleccion ? activos.filter((v) => v.id_chofer === seleccion) : activos;
 
-        const visibles = new Map<
-            string,
-            { lat: number; lng: number; estado: string; orden: number; cliente: string }
-        >();
+        const visibles = new Map<string, PuntoEntregaInfo>();
         for (const v of viajes) {
             for (const p of v.paradas) {
                 if (p.latitud == null || p.longitud == null) continue;
                 visibles.set(p.id_factura, {
+                    parada: p,
+                    viaje: v,
                     lat: p.latitud as number,
                     lng: p.longitud as number,
                     estado: p.estado_factura || '',
                     orden: p.orden_visita,
-                    cliente: p.nombre_cliente || '',
+                    cliente: p.nombre_cliente || 'Cliente',
                 });
             }
         }
@@ -951,39 +980,295 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             if (m) {
                 m.position = pos;
                 m.content = this.crearContenidoPuntoEntrega(info);
+                google.maps.event.clearListeners(m, 'gmp-click');
+                m.addListener('gmp-click', () => this.abrirInfoPuntoEntrega(info, m));
             } else {
                 const nuevo = new google.maps.marker.AdvancedMarkerElement({
                     position: pos,
                     map: this.mapa,
                     content: this.crearContenidoPuntoEntrega(info),
-                    title: `${info.orden}. ${info.cliente}`,
+                    title: `#${info.orden} · ${info.cliente} (${this.estadoFacturaLabel(info.estado)})`,
                     zIndex: 4,
                 });
+                nuevo.addListener('gmp-click', () => this.abrirInfoPuntoEntrega(info, nuevo));
                 this.puntosEntrega.set(id, nuevo);
             }
         }
     }
 
-    private crearContenidoPuntoEntrega(info: {
-        estado: string;
-        orden: number;
-        cliente: string;
-    }): HTMLElement {
-        const color =
-            info.estado === 'finalizado'
-                ? '#10b981'
-                : info.estado === 'incidencia'
-                  ? '#f59e0b'
-                  : '#3b82f6';
-        const icono =
-            info.estado === 'finalizado'
-                ? '&#10003;'
-                : info.estado === 'incidencia'
-                  ? '&#33;'
-                  : String(info.orden);
+    private crearContenidoPuntoEntrega(info: PuntoEntregaInfo): HTMLElement {
+        let color = '#3b82f6';
+        let icono = String(info.orden);
+
+        switch (info.estado) {
+            case 'finalizado':
+                color = '#10b981';
+                icono = '&#10003;';
+                break;
+            case 'incidencia':
+                color = '#ef4444';
+                icono = '&#33;';
+                break;
+            case 'entrega':
+                color = '#06b6d4';
+                icono = '⚡';
+                break;
+            case 'espera':
+                color = '#f59e0b';
+                icono = '⏳';
+                break;
+            case 'proceso':
+                color = '#3b82f6';
+                icono = String(info.orden);
+                break;
+            default:
+                color = '#64748b';
+                icono = String(info.orden);
+                break;
+        }
+
+        const div = document.createElement('div');
+        div.style.cursor = 'pointer';
+        div.innerHTML = `
+            <div style="width:26px;height:26px;background:${color};border-radius:50%;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:transform .15s ease;" title="Toca para ver detalles de la entrega">
+                ${icono}
+            </div>`;
+        return div.firstElementChild as HTMLElement;
+    }
+
+    private abrirInfoPuntoEntrega(
+        info: PuntoEntregaInfo,
+        marker: google.maps.marker.AdvancedMarkerElement,
+    ) {
+        if (!this.infoWindow) {
+            this.infoWindow = new google.maps.InfoWindow({
+                maxWidth: 340,
+            });
+        }
+        const contenido = this.crearContenidoInfoWindow(info);
+        this.infoWindow.setContent(contenido);
+        this.infoWindow.open({
+            anchor: marker,
+            map: this.mapa,
+        });
+
+        setTimeout(() => {
+            const btn = document.getElementById(`btn-ver-viaje-${info.parada.id_factura}`);
+            if (btn) {
+                btn.onclick = () => {
+                    this.abrirDetallePorIdChofer(info.viaje.id_chofer);
+                    this.infoWindow?.close();
+                };
+            }
+        }, 50);
+    }
+
+    private crearContenidoInfoWindow(info: PuntoEntregaInfo): HTMLElement {
+        let badgeBg = '#f1f5f9';
+        let badgeColor = '#475569';
+        let badgeBorder = '#cbd5e1';
+        let badgeLabel = 'Pendiente';
+
+        switch (info.estado) {
+            case 'finalizado':
+                badgeBg = '#dcfce7';
+                badgeColor = '#15803d';
+                badgeBorder = '#86efac';
+                badgeLabel = 'Entregado';
+                break;
+            case 'incidencia':
+                badgeBg = '#fee2e2';
+                badgeColor = '#b91c1c';
+                badgeBorder = '#fca5a5';
+                badgeLabel = 'Incidencia';
+                break;
+            case 'entrega':
+                badgeBg = '#cffafe';
+                badgeColor = '#0e7490';
+                badgeBorder = '#67e8f9';
+                badgeLabel = 'Entregando';
+                break;
+            case 'espera':
+                badgeBg = '#fef3c7';
+                badgeColor = '#b45309';
+                badgeBorder = '#fde68a';
+                badgeLabel = 'En espera';
+                break;
+            case 'proceso':
+                badgeBg = '#dbeafe';
+                badgeColor = '#1d4ed8';
+                badgeBorder = '#93c5fd';
+                badgeLabel = 'En camino';
+                break;
+            case 'embarque':
+                badgeBg = '#f3e8ff';
+                badgeColor = '#7e22ce';
+                badgeBorder = '#d8b4fe';
+                badgeLabel = 'En carga';
+                break;
+        }
+
+        const montoUsd =
+            info.parada.monto_dolares != null
+                ? `$${Number(info.parada.monto_dolares).toFixed(2)} USD`
+                : '';
+        const montoBs =
+            info.parada.monto_bss != null || info.parada.monto_ves != null
+                ? `Bs. ${Number(info.parada.monto_bss ?? info.parada.monto_ves).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '';
+        const montoText = [montoUsd, montoBs].filter(Boolean).join(' · ');
+
+        let outcomeHtml = '';
+        if (
+            info.estado === 'incidencia' ||
+            (info.parada.incidencias && info.parada.incidencias.length > 0)
+        ) {
+            const incs =
+                info.parada.incidencias && info.parada.incidencias.length > 0
+                    ? info.parada.incidencias
+                    : [
+                          {
+                              tipo: info.parada.incidencia_tipo,
+                              descripcion: info.parada.incidencia_descripcion,
+                              foto: info.parada.incidencia_foto,
+                              recuperable: info.parada.incidencia_recuperable,
+                              hora_reporte: undefined,
+                          },
+                      ];
+
+            outcomeHtml = `
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px;">
+                    <span style="font-weight:700;color:#dc2626;font-size:12px;display:flex;align-items:center;gap:4px;">
+                        ⚠️ Incidencia reportada
+                    </span>
+                    <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;${
+                        info.parada.incidencia_recuperable === true
+                            ? 'background:#fef3c7;color:#b45309;border:1px solid #fde68a;'
+                            : 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;'
+                    }">
+                        ${info.parada.incidencia_recuperable === true ? 'Recuperable (Re-despachable)' : 'Terminal (No recuperable)'}
+                    </span>
+                </div>
+                ${incs
+                    .map((inc, i) => {
+                        const tipoLabel =
+                            this.tipoIncidenciaPipe.transform(inc.tipo) ||
+                            inc.tipo ||
+                            'Incidencia no especificada';
+                        return `
+                    <div style="${i > 0 ? 'margin-top:6px;padding-top:6px;border-top:1px dashed #fca5a5;' : ''}">
+                        <div style="font-size:11px;font-weight:700;color:#b91c1c;">
+                            ${tipoLabel}
+                        </div>
+                        ${inc.descripcion ? `<div style="font-size:11px;color:#475569;margin-top:2px;font-style:italic;">"${inc.descripcion}"</div>` : ''}
+                        ${inc.hora_reporte ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Reportado a las ${inc.hora_reporte}</div>` : ''}
+                        ${inc.foto ? `<div style="margin-top:6px;"><a href="${inc.foto}" target="_blank" rel="noopener noreferrer" title="Toca para ver la foto completa"><img src="${inc.foto}" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;border:1px solid #fecaca;display:block;" alt="Foto de incidencia"/></a></div>` : ''}
+                    </div>
+                    `;
+                    })
+                    .join('')}
+            </div>`;
+        } else if (info.estado === 'finalizado') {
+            outcomeHtml = `
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                <div style="width:22px;height:22px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;flex-shrink:0;">
+                    ✓
+                </div>
+                <div style="font-size:12px;color:#166534;font-weight:600;">
+                    Entrega completada y confirmada con éxito.
+                </div>
+            </div>`;
+        } else if (info.estado === 'entrega') {
+            outcomeHtml = `
+            <div style="background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                <div style="width:22px;height:22px;border-radius:50%;background:#0891b2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                    ⚡
+                </div>
+                <div style="font-size:12px;color:#155e75;font-weight:600;">
+                    Chofer actualmente en el punto entregando la mercancía.
+                </div>
+            </div>`;
+        } else if (info.estado === 'espera') {
+            outcomeHtml = `
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                <div style="width:22px;height:22px;border-radius:50%;background:#d97706;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                    ⏳
+                </div>
+                <div style="font-size:12px;color:#92400e;font-weight:600;">
+                    Chofer en el sitio en espera de recepción por el cliente.
+                </div>
+            </div>`;
+        } else if (info.estado === 'proceso') {
+            outcomeHtml = `
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                    🚚
+                </div>
+                <div style="font-size:12px;color:#1e40af;font-weight:600;">
+                    Vehículo en camino hacia este punto de entrega.
+                </div>
+            </div>`;
+        }
+
+        let contactHtml = '';
+        const detallesContacto: string[] = [];
+        if (info.parada.contacto || info.parada.telefono) {
+            detallesContacto.push(
+                `👤 ${info.parada.contacto || 'Contacto'} ${info.parada.telefono ? '(' + info.parada.telefono + ')' : ''}`,
+            );
+        }
+        if (info.parada.referencia) {
+            detallesContacto.push(`🧭 ${info.parada.referencia}`);
+        }
+        if (info.parada.nota_sucursal) {
+            detallesContacto.push(`📝 ${info.parada.nota_sucursal}`);
+        }
+        if (detallesContacto.length > 0) {
+            contactHtml = `
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;margin-bottom:8px;font-size:11px;color:#475569;">
+                ${detallesContacto.map((c) => `<div style="margin-bottom:2px;">${c}</div>`).join('')}
+            </div>`;
+        }
+
         const div = document.createElement('div');
         div.innerHTML = `
-            <div style="width:24px;height:24px;background:${color};border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">${icono}</div>`;
+        <div style="font-family:inherit;font-size:13px;color:#1e293b;max-width:320px;padding:4px 2px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">
+                <div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="background:#3b82f6;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;">
+                            #${info.orden}
+                        </span>
+                        <span style="font-weight:700;font-size:13px;color:#0f172a;">
+                            ${info.cliente}
+                        </span>
+                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                        Factura ${info.parada.numero_factura} ${info.parada.codigo_guia ? '· Guía ' + info.parada.codigo_guia : ''}
+                    </div>
+                </div>
+                <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeBorder};">
+                    ${badgeLabel}
+                </span>
+            </div>
+
+            <div style="margin-bottom:8px;font-size:11px;color:#334155;line-height:1.4;">
+                ${info.parada.direccion ? `<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:3px;"><span style="color:#94a3b8;">📍</span> <span>${info.parada.direccion}${info.parada.municipio ? ' (' + info.parada.municipio + ')' : ''}</span></div>` : ''}
+                ${montoText ? `<div style="display:flex;align-items:center;gap:4px;font-weight:600;color:#0f172a;margin-top:2px;"><span style="color:#94a3b8;">💵</span> <span>${montoText}</span></div>` : ''}
+                ${info.viaje.chofer ? `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#64748b;margin-top:2px;"><span style="color:#94a3b8;">🚚</span> <span>${info.viaje.chofer} ${info.viaje.placa_vehiculo ? '· ' + info.viaje.placa_vehiculo : ''}</span></div>` : ''}
+            </div>
+
+            ${outcomeHtml}
+            ${contactHtml}
+
+            <div style="margin-top:8px;padding-top:6px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;">
+                <button id="btn-ver-viaje-${info.parada.id_factura}" style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#334155;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <span>Ver viaje de ${info.viaje.chofer || 'chofer'}</span>
+                    <span>&rarr;</span>
+                </button>
+            </div>
+        </div>`;
         return div.firstElementChild as HTMLElement;
     }
 

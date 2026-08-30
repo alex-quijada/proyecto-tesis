@@ -6,6 +6,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { TooltipModule } from 'primeng/tooltip';
 
 import { CabeceraReporteComponent } from '../componentes-compartidos/cabecera-reporte.component';
 import { FiltrosReporteComponent } from '../componentes-compartidos/filtros-reporte.component';
@@ -16,6 +17,7 @@ import { exportarExcel } from '../utils/exportar-excel.util';
 import { exportarPdf } from '../utils/exportar-pdf.util';
 import { FacturaGuia, GuiaDespacho } from '../../rutas/data/rutas-mock';
 import { CapitalizePipe } from '../../clientes/pipes/capitalize.pipe';
+import { TipoIncidenciaPipe } from '@/app/shared/pipes/tipo-incidencia.pipe';
 
 interface FilaOperacion {
     numeroFactura: string;
@@ -29,6 +31,21 @@ interface FilaOperacion {
     montoUsd: number;
     montoVES: number;
     fecha: string;
+    tuvoIncidencia: boolean;
+    incidenciaResuelta: boolean;
+    incidenciaTipoPrincipal?: string;
+    incidenciaDescripcionPrincipal?: string;
+    incidenciaFotoPrincipal?: string;
+    incidenciasTotal: number;
+    incidencias: {
+        id_incidencia?: string;
+        tipo?: string;
+        descripcion?: string;
+        foto?: string;
+        hora_reporte?: string;
+        recuperable?: boolean;
+        resuelta?: boolean;
+    }[];
 }
 
 @Component({
@@ -42,15 +59,18 @@ interface FilaOperacion {
         InputTextModule,
         IconFieldModule,
         InputIconModule,
+        TooltipModule,
         CabeceraReporteComponent,
         FiltrosReporteComponent,
         CapitalizePipe,
+        TipoIncidenciaPipe,
     ],
     templateUrl: './operaciones.component.html',
 })
 export class OperacionesComponent {
     private reporteService = inject(ReporteService);
     private rutaService = inject(RutaService);
+    private readonly tipoIncidenciaPipe = new TipoIncidenciaPipe();
 
     cargando = signal(true);
     guias = signal<GuiaDespacho[]>([]);
@@ -62,7 +82,9 @@ export class OperacionesComponent {
     empresas = signal<OpcionFiltro[]>([]);
     readonly estados = signal<OpcionFiltro[]>([
         { label: 'Entregado', value: 'finalizado' },
-        { label: 'Incidencia', value: 'incidencia' },
+        { label: 'Incidencia pendiente', value: 'incidencia' },
+        { label: 'Con incidencias (Todas)', value: 'con_incidencias' },
+        { label: 'Incidencia resuelta (Entregada)', value: 'incidencia_resuelta' },
         { label: 'Cancelado', value: 'cancelada' },
         { label: 'Entregando', value: 'entrega' },
         { label: 'En espera', value: 'espera' },
@@ -118,6 +140,12 @@ export class OperacionesComponent {
                 (!f.idVehiculo || x.vehiculoId === f.idVehiculo) &&
                 (!f.idEmpresa || x.empresaId === f.idEmpresa) &&
                 (!f.estado ||
+                    (f.estado === 'con_incidencias' && x.tuvoIncidencia) ||
+                    (f.estado === 'incidencia_resuelta' && x.incidenciaResuelta) ||
+                    (f.estado === 'incidencia' &&
+                        (x.estado === 'incidencia' ||
+                            (x.tuvoIncidencia && x.estado !== 'finalizado'))) ||
+                    (f.estado === 'finalizado' && x.estado === 'finalizado') ||
                     x.estado === f.estado ||
                     (f.estado === 'cancelada' &&
                         (x.estado === 'cancelado' ||
@@ -150,6 +178,18 @@ export class OperacionesComponent {
         })[] = [];
         for (const g of this.guias()) {
             for (const f of g.facturas) {
+                const incs = f.incidencias || [];
+                const tieneInc =
+                    incs.length > 0 || !!f.incidenciaTipo || f.idEstado === 'incidencia';
+                const resuelta = tieneInc && f.idEstado === 'finalizado';
+                const incPrincipal = incs[0];
+                const tipoPrincipal =
+                    incPrincipal?.tipo ||
+                    f.incidenciaTipo ||
+                    (f.idEstado === 'incidencia' ? 'INCIDENCIA' : undefined);
+                const descPrincipal = incPrincipal?.descripcion || f.incidenciaDescripcion;
+                const fotoPrincipal = incPrincipal?.foto || f.incidenciaFoto;
+
                 filas.push({
                     numeroFactura: f.numeroFactura,
                     numeroGuia: g.numeroGuia || g.codigoGuia || '',
@@ -166,6 +206,13 @@ export class OperacionesComponent {
                     municipioId: g.municipio,
                     vehiculoId: g.idVehiculo,
                     empresaId: g.empresa,
+                    tuvoIncidencia: tieneInc,
+                    incidenciaResuelta: resuelta,
+                    incidenciaTipoPrincipal: tipoPrincipal,
+                    incidenciaDescripcionPrincipal: descPrincipal,
+                    incidenciaFotoPrincipal: fotoPrincipal,
+                    incidenciasTotal: incs.length || (tieneInc ? 1 : 0),
+                    incidencias: incs,
                 });
             }
         }
@@ -188,11 +235,34 @@ export class OperacionesComponent {
         return () => {
             const filas = this.filasFiltradas();
             const conteo = new Map<string, number>();
+            let incResueltas = 0;
+            let incPendientes = 0;
+
             for (const f of filas) {
                 const key = this.estadoLabel(f.estado);
                 conteo.set(key, (conteo.get(key) || 0) + 1);
+                if (f.tuvoIncidencia) {
+                    if (f.incidenciaResuelta) {
+                        incResueltas++;
+                    } else {
+                        incPendientes++;
+                    }
+                }
             }
-            return [...conteo.entries()].map(([estado, cantidad]) => ({ estado, cantidad }));
+
+            const items = [...conteo.entries()].map(([estado, cantidad]) => ({
+                estado,
+                cantidad,
+            }));
+
+            if (incResueltas > 0) {
+                items.push({ estado: 'Incidencia resuelta', cantidad: incResueltas });
+            }
+            if (incPendientes > 0 && !conteo.has('Incidencia')) {
+                items.push({ estado: 'Incidencia pendiente', cantidad: incPendientes });
+            }
+
+            return items;
         };
     }
 
@@ -226,9 +296,11 @@ export class OperacionesComponent {
             case 'Entregado':
                 return 'success';
             case 'Incidencia':
+            case 'Incidencia pendiente':
             case 'Cancelado':
             case 'Cancelada':
                 return 'danger';
+            case 'Incidencia resuelta':
             case 'Entregando':
             case 'En espera':
                 return 'warn';
@@ -266,6 +338,22 @@ export class OperacionesComponent {
         }
     }
 
+    tooltipIncidencia(f: FilaOperacion): string {
+        const partes: string[] = [];
+        if (f.incidenciasTotal > 1) {
+            partes.push(`${f.incidenciasTotal} incidencias registradas`);
+        }
+        partes.push(
+            f.incidenciaResuelta
+                ? 'Estado: Resuelta y entregada con éxito'
+                : 'Estado: Incidencia pendiente / no completada',
+        );
+        if (f.incidenciaDescripcionPrincipal) {
+            partes.push(`Motivo: "${f.incidenciaDescripcionPrincipal}"`);
+        }
+        return partes.join(' · ');
+    }
+
     formatFecha(fecha?: string): string {
         if (!fecha) return '—';
         return new Date(fecha).toLocaleDateString('es-VE', {
@@ -295,6 +383,7 @@ export class OperacionesComponent {
                     { key: 'montoUsd', label: 'Monto USD' },
                     { key: 'montoVES', label: 'Monto Bs' },
                     { key: 'estado', label: 'Estado' },
+                    { key: 'incidencia', label: 'Incidencia' },
                     { key: 'fecha', label: 'Fecha' },
                 ],
                 filas: filas.map((f) => ({
@@ -308,6 +397,9 @@ export class OperacionesComponent {
                     montoUsd: f.montoUsd,
                     montoVES: f.montoVES,
                     estado: this.estadoLabel(f.estado),
+                    incidencia: f.tuvoIncidencia
+                        ? `${this.tipoIncidenciaPipe.transform(f.incidenciaTipoPrincipal) || 'Incidencia'} (${f.incidenciaResuelta ? 'Resuelta' : 'Pendiente'})${f.incidenciaDescripcionPrincipal ? ' - ' + f.incidenciaDescripcionPrincipal : ''}`
+                        : '—',
                     fecha: f.fecha,
                 })),
             });
@@ -326,7 +418,7 @@ export class OperacionesComponent {
                 subtitulo: this.subtituloRango(),
                 nombreArchivo: 'reporte-operaciones',
                 pageOrientation: 'landscape',
-                columnWidths: [6, 5, 12, 7, 8, 8, 6, 6, 6, 6],
+                columnWidths: [6, 5, 11, 7, 7, 6, 6, 6, 6, 8, 6],
                 columnas: [
                     { key: 'numeroFactura', label: 'Factura' },
                     { key: 'numeroGuia', label: 'Guía' },
@@ -337,6 +429,7 @@ export class OperacionesComponent {
                     { key: 'montoUsd', label: 'Monto USD' },
                     { key: 'montoVES', label: 'Monto Bs' },
                     { key: 'estado', label: 'Estado' },
+                    { key: 'incidencia', label: 'Incidencia' },
                     { key: 'fecha', label: 'Fecha' },
                 ],
                 filas: filas.map((f) => ({
@@ -349,6 +442,9 @@ export class OperacionesComponent {
                     montoUsd: `$${f.montoUsd.toFixed(2)}`,
                     montoVES: `${f.montoVES.toFixed(2)} Bs`,
                     estado: this.estadoLabel(f.estado),
+                    incidencia: f.tuvoIncidencia
+                        ? `${this.tipoIncidenciaPipe.transform(f.incidenciaTipoPrincipal) || 'Incidencia'} (${f.incidenciaResuelta ? 'Res.' : 'Pend.'})`
+                        : '—',
                     fecha: f.fecha ? new Date(f.fecha).toLocaleDateString('es-VE') : '',
                 })),
             });

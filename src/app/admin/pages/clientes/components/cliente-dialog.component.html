@@ -238,6 +238,7 @@
                             <app-mapa-sucursal
                                 [sucursalGroup]="sGroup"
                                 [municipioNombre]="obtenerNombreMunicipio(municipioId)"
+                                [direccionInicial]="!clienteData().id ? (sGroup.get('direccion')?.value || '') : ''"
                                 (marcadorMovido)="onMarcadorMovido(i)"
                             />
 
