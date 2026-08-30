@@ -145,6 +145,7 @@
                                         <p-button
                                             label="Reportar incidencia"
                                             icon="pi pi-exclamation-triangle"
+                                            variant="outlined"
                                             severity="danger"
                                             text
                                             size="small"
@@ -363,13 +364,18 @@
                                                                         <span
                                                                             class="text-[10px] font-semibold text-red-600 dark:text-red-300"
                                                                         >
-                                                                            {{ inc.tipo | tipoIncidencia }}
+                                                                            {{
+                                                                                inc.tipo
+                                                                                    | tipoIncidencia
+                                                                            }}
                                                                         </span>
                                                                         @if (inc.descripcion) {
                                                                             <span
                                                                                 class="text-[10px] text-surface-500"
                                                                             >
-                                                                                {{ inc.descripcion }}
+                                                                                {{
+                                                                                    inc.descripcion
+                                                                                }}
                                                                             </span>
                                                                         }
                                                                     </div>

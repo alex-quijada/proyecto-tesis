@@ -27,6 +27,16 @@ import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconf
         AppFloatingConfigurator,
     ],
     templateUrl: './login-page.html',
+    styles: `
+        .custom-svg-icon {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            background-color: currentColor; /* Hereda el color del texto del icono */
+            -webkit-mask: url('public/pictures/Brandia-icon.svg') no-repeat center / contain;
+            mask: url('public/pictures/Brandia-icon.svg') no-repeat center / contain;
+        }
+    `,
 })
 export class LoginPage implements OnInit {
     private fb = inject(FormBuilder);
