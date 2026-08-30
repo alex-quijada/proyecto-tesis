@@ -107,10 +107,7 @@ export class RutaComponent implements OnInit {
 
         const legs = viaje?.ruta_detallada?.legs || [];
         if (legs.length > 0) {
-            const idxLeg = Math.max(
-                0,
-                Math.min((siguiente.ordenVisita || 0) - 1, legs.length - 1),
-            );
+            const idxLeg = Math.max(0, Math.min((siguiente.ordenVisita || 0) - 1, legs.length - 1));
             const dur = duracionLegMin(legs[idxLeg]);
             if (dur !== null) return Math.max(1, Math.round(dur));
         }

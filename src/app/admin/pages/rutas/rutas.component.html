@@ -288,7 +288,7 @@
                                                         Total USD
                                                     </div>
                                                     <div class="font-semibold text-primary">
-                                                        ${{ (fact.totalUSD || 0) | number: '1.2-2' }}
+                                                        ${{ fact.totalUSD || 0 | number: '1.2-2' }}
                                                     </div>
                                                 </div>
 
@@ -329,8 +329,11 @@
                                                     <div class="text-xs text-surface-400 mb-0.5">
                                                         Total Bs.
                                                     </div>
-                                                    <div class="font-semibold text-surface-800 dark:text-surface-100">
-                                                        Bs. {{ (fact.totalVES || 0) | number: '1.2-2' }}
+                                                    <div
+                                                        class="font-semibold text-surface-800 dark:text-surface-100"
+                                                    >
+                                                        Bs.
+                                                        {{ fact.totalVES || 0 | number: '1.2-2' }}
                                                     </div>
                                                 </div>
                                             </div>

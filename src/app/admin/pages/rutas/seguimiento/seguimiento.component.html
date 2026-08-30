@@ -113,7 +113,7 @@
                                 size="small"
                                 text
                                 rounded
-                                severity="secondary"
+                                severity="danger"
                                 (onClick)="cancelarVentana()"
                             />
                         } @else {
@@ -122,11 +122,14 @@
                                 [class.text-red-600]="fueraHorario()"
                                 [class.dark:text-red-400]="fueraHorario()"
                                 [class.animate-pulse]="fueraHorario()"
-                                pTooltip="{{ fueraHorario() ? 'Hora de volver al almacén — amplía la ventana para darle más chance al chofer' : '' }}"
+                                pTooltip="{{
+                                    fueraHorario()
+                                        ? 'Hora de volver al almacén — amplía la ventana para darle más chance al chofer'
+                                        : ''
+                                }}"
                                 tooltipPosition="top"
-                            >{{
-                                ventanaLabel(c) || '08:00 - 16:30'
-                            }}</span>
+                                >{{ ventanaLabel(c) || '08:00 - 16:30' }}</span
+                            >
                             @if (fueraHorario()) {
                                 <p-tag
                                     value="Volver al almacén"

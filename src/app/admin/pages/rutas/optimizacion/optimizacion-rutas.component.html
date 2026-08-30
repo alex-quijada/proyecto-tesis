@@ -188,14 +188,28 @@
                                         class="px-3 py-2.5 transition-colors border-l-4"
                                         [class.border-l-red-500]="esAlta"
                                         [class.border-l-transparent]="!esAlta"
-                                        [class.bg-red-50/60]="esAlta && !selectedGuias().has(guia.id)"
-                                        [class.dark:bg-red-950/20]="esAlta && !selectedGuias().has(guia.id)"
+                                        [class.bg-red-50/60]="
+                                            esAlta && !selectedGuias().has(guia.id)
+                                        "
+                                        [class.dark:bg-red-950/20]="
+                                            esAlta && !selectedGuias().has(guia.id)
+                                        "
                                         [class.bg-primary-50]="selectedGuias().has(guia.id)"
-                                        [class.dark:bg-primary-950/30]="selectedGuias().has(guia.id)"
-                                        [class.hover:bg-surface-50]="!esAlta && !selectedGuias().has(guia.id)"
-                                        [class.dark:hover:bg-surface-800/50]="!esAlta && !selectedGuias().has(guia.id)"
-                                        [class.hover:bg-red-100/50]="esAlta && !selectedGuias().has(guia.id)"
-                                        [class.dark:hover:bg-red-900/30]="esAlta && !selectedGuias().has(guia.id)"
+                                        [class.dark:bg-primary-950/30]="
+                                            selectedGuias().has(guia.id)
+                                        "
+                                        [class.hover:bg-surface-50]="
+                                            !esAlta && !selectedGuias().has(guia.id)
+                                        "
+                                        [class.dark:hover:bg-surface-800/50]="
+                                            !esAlta && !selectedGuias().has(guia.id)
+                                        "
+                                        [class.hover:bg-red-100/50]="
+                                            esAlta && !selectedGuias().has(guia.id)
+                                        "
+                                        [class.dark:hover:bg-red-900/30]="
+                                            esAlta && !selectedGuias().has(guia.id)
+                                        "
                                     >
                                         <div class="flex items-center gap-2">
                                             <p-checkbox
@@ -272,10 +286,14 @@
                                                         [class.bg-red-100/60]="fAlta"
                                                         [class.dark:bg-red-900/30]="fAlta"
                                                     >
-                                                        <div class="flex items-center gap-1.5 min-w-0">
+                                                        <div
+                                                            class="flex items-center gap-1.5 min-w-0"
+                                                        >
                                                             <i
                                                                 class="pi text-[10px]"
-                                                                [class.pi-exclamation-circle]="fAlta"
+                                                                [class.pi-exclamation-circle]="
+                                                                    fAlta
+                                                                "
                                                                 [class.text-red-500]="fAlta"
                                                                 [class.pi-receipt]="!fAlta"
                                                                 [class.text-surface-300]="!fAlta"
@@ -285,14 +303,16 @@
                                                                 [class.font-semibold]="fAlta"
                                                                 [class.text-red-700]="fAlta"
                                                                 [class.dark:text-red-300]="fAlta"
-                                                            >{{ f.numeroFactura }}</span>
+                                                                >{{ f.numeroFactura }}</span
+                                                            >
                                                             <span
                                                                 class="truncate"
                                                                 [class.font-medium]="fAlta"
                                                                 [class.text-red-700]="fAlta"
                                                                 [class.dark:text-red-300]="fAlta"
                                                                 [class.text-surface-500]="!fAlta"
-                                                            >{{ f.nombreCliente }}</span>
+                                                                >{{ f.nombreCliente }}</span
+                                                            >
                                                         </div>
                                                         @if (fAlta) {
                                                             <span
@@ -501,7 +521,7 @@
                                                 <p-button
                                                     label="Cancelar"
                                                     icon="pi pi-times"
-                                                    severity="secondary"
+                                                    severity="danger"
                                                     size="small"
                                                     styleClass="p-button-sm flex-1"
                                                     (onClick)="cancelarEdicion()"
@@ -668,7 +688,7 @@
         <div class="flex items-center gap-2 justify-end">
             <p-button
                 label="Cancelar"
-                severity="secondary"
+                severity="danger"
                 [disabled]="creandoViaje()"
                 (onClick)="showConfirmDialog.set(false)"
             />

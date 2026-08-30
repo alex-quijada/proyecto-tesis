@@ -19,12 +19,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ChipModule } from 'primeng/chip';
 
 import { GuiaDialogComponent } from './components/guia-dialog.component';
-import {
-    GuiaDespacho,
-    Ruta,
-    ESTADOS_FACTURA,
-    ESTADOS_GUIA,
-} from './data/rutas-mock';
+import { GuiaDespacho, Ruta, ESTADOS_FACTURA, ESTADOS_GUIA } from './data/rutas-mock';
 import { AuthService } from '../../../auth/service/auth.service';
 import { RutaService } from './services/ruta.service';
 import { MunicipioService } from '../../services/municipio.service';
@@ -143,8 +138,9 @@ export class RutasComponent implements OnInit {
                         (f.rifCliente || '').toLowerCase().includes(texto),
                 );
                 if (facturasMatch) return true;
-                return [g.numeroGuia, g.empresa, g.nombreChofer, g.municipio, g.placaVehiculo]
-                    .some((v) => (v || '').toLowerCase().includes(texto));
+                return [g.numeroGuia, g.empresa, g.nombreChofer, g.municipio, g.placaVehiculo].some(
+                    (v) => (v || '').toLowerCase().includes(texto),
+                );
             });
         }
         return list;
@@ -197,9 +193,7 @@ export class RutasComponent implements OnInit {
     /** Una guía es cancelable solo si TODAS sus facturas están en nuevo/embarque. */
     puedeCancelar(guia: GuiaDespacho): boolean {
         if (!guia.facturas?.length) return false;
-        return guia.facturas.every(
-            (f) => f.idEstado === 'nuevo' || f.idEstado === 'embarque',
-        );
+        return guia.facturas.every((f) => f.idEstado === 'nuevo' || f.idEstado === 'embarque');
     }
 
     getEstadoGuiaSeverity(
@@ -259,9 +253,8 @@ export class RutasComponent implements OnInit {
             } factura(s) quedarán canceladas y se retirarán del viaje si estaba asignada.`,
             header: 'Cancelar Guía',
             icon: 'pi pi-ban',
-            acceptLabel: 'Cancelar guía',
-            acceptIcon: 'pi pi-ban',
-            rejectLabel: 'No',
+            rejectButtonProps: { label: 'No', severity: 'secondary', outlined: true },
+            acceptButtonProps: { label: 'Cancelar guía', icon: 'pi pi-ban', severity: 'danger' },
             accept: () => void this.confirmarCancelacion(guia),
         });
     }

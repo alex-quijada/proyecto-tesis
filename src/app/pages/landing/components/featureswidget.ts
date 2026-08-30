@@ -19,8 +19,8 @@ import { CommonModule } from '@angular/common';
                         Módulos Clave del Sistema
                     </div>
                     <span class="text-muted-color text-lg sm:text-xl max-w-2xl mx-auto block"
-                        >Herramientas diseñadas para resolver la logística de última milla de extremo a
-                        extremo.</span
+                        >Herramientas diseñadas para resolver la logística de última milla de
+                        extremo a extremo.</span
                     >
                 </div>
 
@@ -38,8 +38,8 @@ import { CommonModule } from '@angular/common';
                             Asignación y Extracción PDF
                         </h4>
                         <p class="text-surface-600 dark:text-surface-300 leading-relaxed text-sm">
-                            Procesamiento automatizado de facturas y guías desde PDFs de distribuidores,
-                            vinculando clientes, montos y límites de carga.
+                            Procesamiento automatizado de facturas y guías desde PDFs de
+                            distribuidores, vinculando clientes, montos y límites de carga.
                         </p>
                     </div>
                 </div>
@@ -58,8 +58,8 @@ import { CommonModule } from '@angular/common';
                             Optimización Geoespacial
                         </h4>
                         <p class="text-surface-600 dark:text-surface-300 leading-relaxed text-sm">
-                            Secuenciación de visitas con Google Maps, agrupando entregas por municipio y
-                            respetando ventanas de recepción horaria.
+                            Secuenciación de visitas con Google Maps, agrupando entregas por
+                            municipio y respetando ventanas de recepción horaria.
                         </p>
                     </div>
                 </div>
@@ -78,8 +78,8 @@ import { CommonModule } from '@angular/common';
                             App Móvil del Chofer
                         </h4>
                         <p class="text-surface-600 dark:text-surface-300 leading-relaxed text-sm">
-                            Vista táctil adaptada para Android con navegación paso a paso, reporte fotográfico
-                            de incidencias y soporte sin conexión.
+                            Vista táctil adaptada para Android con navegación paso a paso, reporte
+                            fotográfico de incidencias y soporte sin conexión.
                         </p>
                     </div>
                 </div>
@@ -98,8 +98,8 @@ import { CommonModule } from '@angular/common';
                             Monitoreo en Tiempo Real
                         </h4>
                         <p class="text-surface-600 dark:text-surface-300 leading-relaxed text-sm">
-                            Seguimiento GPS de la flota en mapa interactivo con Supabase Realtime, telemetría
-                            de velocidad y estado de cada viaje activo.
+                            Seguimiento GPS de la flota en mapa interactivo con Supabase Realtime,
+                            telemetría de velocidad y estado de cada viaje activo.
                         </p>
                     </div>
                 </div>
@@ -118,8 +118,8 @@ import { CommonModule } from '@angular/common';
                             Mantenimiento de Flota
                         </h4>
                         <p class="text-surface-600 dark:text-surface-300 leading-relaxed text-sm">
-                            Control preventivo y correctivo de unidades, seguimiento de kilometraje, costos de
-                            taller y disponibilidad de vehículos.
+                            Control preventivo y correctivo de unidades, seguimiento de kilometraje,
+                            costos de taller y disponibilidad de vehículos.
                         </p>
                     </div>
                 </div>
@@ -138,8 +138,8 @@ import { CommonModule } from '@angular/common';
                             Control de Combustible
                         </h4>
                         <p class="text-surface-600 dark:text-surface-300 leading-relaxed text-sm">
-                            Registro de cargas por método visual de tanque u odómetro, costos en USD/VES y
-                            cálculo de eficiencia de consumo por ruta.
+                            Registro de cargas por método visual de tanque u odómetro, costos en
+                            USD/VES y cálculo de eficiencia de consumo por ruta.
                         </p>
                     </div>
                 </div>

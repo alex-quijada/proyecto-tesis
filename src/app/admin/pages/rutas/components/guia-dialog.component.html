@@ -176,7 +176,7 @@
                             label="Agregar Factura"
                             icon="pi pi-plus"
                             size="small"
-                            severity="info"
+                            severity="success"
                             (onClick)="addFactura()"
                         />
                     </div>
@@ -235,7 +235,7 @@
                                                     label="Crear Cliente"
                                                     icon="pi pi-plus"
                                                     size="small"
-                                                    severity="warn"
+                                                    severity="success"
                                                     [text]="true"
                                                     (onClick)="abrirRegistroCliente($index)"
                                                 />
@@ -399,10 +399,16 @@
 
     <ng-template #footer>
         @if (!cargandoPDF()) {
-            <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+            <p-button
+                label="Cancelar"
+                icon="pi pi-times"
+                severity="danger"
+                (onClick)="hideDialog()"
+            />
             <p-button
                 label="Guardar Guía"
                 icon="pi pi-check"
+                severity="success"
                 [loading]="guardando()"
                 [disabled]="guardando()"
                 (onClick)="save()"

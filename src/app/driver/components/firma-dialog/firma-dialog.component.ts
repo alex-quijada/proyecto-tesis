@@ -149,13 +149,14 @@ import { DividerModule } from 'primeng/divider';
                 <div class="flex gap-2 w-full">
                     <p-button
                         label="Cancelar"
-                        severity="secondary"
+                        severity="danger"
                         (onClick)="cancelar()"
                         styleClass="flex-1"
                     />
                     <p-button
                         label="Confirmar Entrega"
                         icon="pi pi-check"
+                        severity="success"
                         [disabled]="!hasSignature || !checklistCompleto"
                         (onClick)="confirmar()"
                         styleClass="flex-1"

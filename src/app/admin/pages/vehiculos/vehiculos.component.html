@@ -73,125 +73,127 @@
             [globalFilterFields]="['placa', 'marca', 'modelo', 'tipo']"
             [tableStyle]="{ 'min-width': '65rem' }"
         >
-        <ng-template #caption>
-            <div class="flex flex-wrap gap-2 items-center justify-between">
-                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0"
-                    >Unidades en Distribución</span
-                >
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input
-                        pInputText
-                        type="text"
-                        (input)="dt.filterGlobal($any($event.target).value, 'contains')"
-                        placeholder="Buscar por placa o marca..."
-                    />
-                </p-iconfield>
-            </div>
-        </ng-template>
-
-        <ng-template #header>
-            <tr>
-                <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                <th style="width: 5rem">Tipo de Vehículo</th>
-                <th pSortableColumn="placa" style="min-width: 8rem">
-                    Placa <p-sortIcon field="placa" />
-                </th>
-                <th pSortableColumn="marca" style="min-width: 10rem">
-                    Marca / Modelo <p-sortIcon field="marca" />
-                </th>
-                <th style="min-width: 7rem">Capacidad</th>
-                <th pSortableColumn="tipoCaja" style="min-width: 9rem">
-                    Estructura <p-sortIcon field="tipoCaja" />
-                </th>
-                <th pSortableColumn="estado" style="min-width: 7rem">
-                    Estado <p-sortIcon field="estado" />
-                </th>
-                <th style="min-width: 12rem">Acciones</th>
-            </tr>
-        </ng-template>
-
-        <ng-template #body let-carro>
-            <tr>
-                <td><p-tableCheckbox [value]="carro" /></td>
-                <td>
-                    <div
-                        class="w-10 h-10 rounded shadow-md bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 flex items-center justify-center"
+            <ng-template #caption>
+                <div class="flex flex-wrap gap-2 items-center justify-between">
+                    <span class="text-xl font-semibold text-surface-900 dark:text-surface-0"
+                        >Unidades en Distribución</span
                     >
-                        <span
-                            [innerHTML]="carro.tipo | tipoVehiculoIcono"
-                            class="text-lg text-surface-500 dark:text-surface-400 flex items-center justify-center"
-                        ></span>
-                    </div>
-                </td>
-                <td class="font-bold text-surface-900 dark:text-surface-0">{{ carro.placa }}</td>
-                <td>
-                    <div class="flex flex-col">
-                        <span class="font-medium text-surface-900 dark:text-surface-0">{{
-                            carro.marca
-                        }}</span>
-                        <span class="text-xs text-surface-500"
-                            >{{ carro.modelo }} ({{ carro.anio }})</span
+                    <p-iconfield>
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input
+                            pInputText
+                            type="text"
+                            (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+                            placeholder="Buscar por placa o marca..."
+                        />
+                    </p-iconfield>
+                </div>
+            </ng-template>
+
+            <ng-template #header>
+                <tr>
+                    <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+                    <th style="width: 5rem">Tipo de Vehículo</th>
+                    <th pSortableColumn="placa" style="min-width: 8rem">
+                        Placa <p-sortIcon field="placa" />
+                    </th>
+                    <th pSortableColumn="marca" style="min-width: 10rem">
+                        Marca / Modelo <p-sortIcon field="marca" />
+                    </th>
+                    <th style="min-width: 7rem">Capacidad</th>
+                    <th pSortableColumn="tipoCaja" style="min-width: 9rem">
+                        Estructura <p-sortIcon field="tipoCaja" />
+                    </th>
+                    <th pSortableColumn="estado" style="min-width: 7rem">
+                        Estado <p-sortIcon field="estado" />
+                    </th>
+                    <th style="min-width: 12rem">Acciones</th>
+                </tr>
+            </ng-template>
+
+            <ng-template #body let-carro>
+                <tr>
+                    <td><p-tableCheckbox [value]="carro" /></td>
+                    <td>
+                        <div
+                            class="w-10 h-10 rounded shadow-md bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 flex items-center justify-center"
                         >
-                    </div>
-                </td>
-                <td>
-                    <div class="text-sm">
-                        <span class="font-semibold">{{ carro.capacidadPallets || 0 }}</span>
-                        Pallets<br />
-                        <span class="text-xs text-surface-500"
-                            >{{ carro.pesoMaximo | number }} Kg</span
-                        >
-                    </div>
-                </td>
-                <td>
-                    <p-tag
-                        [value]="carro.tipoCaja | tipoCajaLabel"
-                        [severity]="getSeverityCaja(carro.tipoCaja)"
-                    />
-                </td>
-                <td>
-                    <p-tag
-                        [value]="getEstadoLabel(carro.estado)"
-                        [severity]="getSeverity(carro.estado)"
-                    />
-                </td>
-                <td>
-                    <div class="flex gap-1">
-                        <p-button
-                            icon="pi pi-pencil"
-                            severity="success"
-                            rounded
-                            outlined
-                            size="small"
-                            (onClick)="editVehiculo(carro)"
-                            pTooltip="Editar Datos"
+                            <span
+                                [innerHTML]="carro.tipo | tipoVehiculoIcono"
+                                class="text-lg text-surface-500 dark:text-surface-400 flex items-center justify-center"
+                            ></span>
+                        </div>
+                    </td>
+                    <td class="font-bold text-surface-900 dark:text-surface-0">
+                        {{ carro.placa }}
+                    </td>
+                    <td>
+                        <div class="flex flex-col">
+                            <span class="font-medium text-surface-900 dark:text-surface-0">{{
+                                carro.marca
+                            }}</span>
+                            <span class="text-xs text-surface-500"
+                                >{{ carro.modelo }} ({{ carro.anio }})</span
+                            >
+                        </div>
+                    </td>
+                    <td>
+                        <div class="text-sm">
+                            <span class="font-semibold">{{ carro.capacidadPallets || 0 }}</span>
+                            Pallets<br />
+                            <span class="text-xs text-surface-500"
+                                >{{ carro.pesoMaximo | number }} Kg</span
+                            >
+                        </div>
+                    </td>
+                    <td>
+                        <p-tag
+                            [value]="carro.tipoCaja | tipoCajaLabel"
+                            [severity]="getSeverityCaja(carro.tipoCaja)"
                         />
-                        <p-button
-                            *ngIf="(carro.estado | uppercase) !== 'INACTIVO'"
-                            icon="pi pi-ban"
-                            severity="danger"
-                            rounded
-                            outlined
-                            size="small"
-                            (onClick)="toggleEstadoVehiculo(carro)"
-                            pTooltip="Desactivar"
+                    </td>
+                    <td>
+                        <p-tag
+                            [value]="getEstadoLabel(carro.estado)"
+                            [severity]="getSeverity(carro.estado)"
                         />
-                        <p-button
-                            *ngIf="(carro.estado | uppercase) === 'INACTIVO'"
-                            icon="pi pi-check-circle"
-                            severity="success"
-                            rounded
-                            outlined
-                            size="small"
-                            (onClick)="toggleEstadoVehiculo(carro)"
-                            pTooltip="Reactivar"
-                        />
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
-    </p-table>
+                    </td>
+                    <td>
+                        <div class="flex gap-1">
+                            <p-button
+                                icon="pi pi-pencil"
+                                severity="success"
+                                rounded
+                                outlined
+                                size="small"
+                                (onClick)="editVehiculo(carro)"
+                                pTooltip="Editar Datos"
+                            />
+                            <p-button
+                                *ngIf="(carro.estado | uppercase) !== 'INACTIVO'"
+                                icon="pi pi-ban"
+                                severity="danger"
+                                rounded
+                                outlined
+                                size="small"
+                                (onClick)="toggleEstadoVehiculo(carro)"
+                                pTooltip="Desactivar"
+                            />
+                            <p-button
+                                *ngIf="(carro.estado | uppercase) === 'INACTIVO'"
+                                icon="pi pi-check-circle"
+                                severity="success"
+                                rounded
+                                outlined
+                                size="small"
+                                (onClick)="toggleEstadoVehiculo(carro)"
+                                pTooltip="Reactivar"
+                            />
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     }
 </div>
 

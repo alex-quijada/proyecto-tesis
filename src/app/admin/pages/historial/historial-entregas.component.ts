@@ -972,7 +972,12 @@ export class HistorialEntregasComponent implements OnInit {
                     position: pos,
                     map: mapa,
                     title: title,
-                    label: { text: String(num), color: '#ffffff', fontSize: '11px', fontWeight: 'bold' },
+                    label: {
+                        text: String(num),
+                        color: '#ffffff',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                    },
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         scale: 12,

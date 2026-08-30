@@ -249,9 +249,8 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             message: `¿Reiniciar el viaje de ${viaje.chofer || 'este chofer'}? El viaje volverá a "programado" y sus ${viaje.total_facturas ?? 0} facturas a "embarque" (se borra la firma).`,
             header: 'Reiniciar viaje',
             icon: 'pi pi-refresh',
-            acceptLabel: 'Reiniciar',
-            acceptIcon: 'pi pi-check',
-            rejectLabel: 'Cancelar',
+            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+            acceptButtonProps: { label: 'Reiniciar', icon: 'pi pi-check', severity: 'danger' },
             accept: () => void this.confirmarReinicio(viaje),
         });
     }

@@ -84,137 +84,140 @@
             ]"
             [tableStyle]="{ 'min-width': '85rem' }"
         >
-        <ng-template #caption>
-            <div class="flex flex-wrap gap-2 items-center justify-between">
-                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
-                    <i class="pi pi-users mr-2"></i>
-                    {{ usuariosFiltrados.length }} usuarios
-                </span>
-                <div class="flex items-center gap-2">
-                    <p-iconfield>
-                        <p-inputicon styleClass="pi pi-search" />
-                        <input
-                            pInputText
-                            type="text"
-                            (input)="dt.filterGlobal($any($event.target).value, 'contains')"
-                            placeholder="Buscar..."
-                        />
-                    </p-iconfield>
-                    <p-button
-                        icon="pi pi-refresh"
-                        text
-                        size="small"
-                        pTooltip="Refrescar"
-                        (onClick)="refrescar()"
-                    />
-                </div>
-            </div>
-        </ng-template>
-
-        <ng-template #header>
-            <tr>
-                <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                <th pSortableColumn="username" style="min-width: 10rem">
-                    Usuario <p-sortIcon field="username" />
-                </th>
-                <th pSortableColumn="nombreCompleto" style="min-width: 14rem">
-                    Nombre<p-sortIcon field="nombreCompleto" />
-                </th>
-                <th style="min-width: 9rem">Documento</th>
-                <th pSortableColumn="rol" style="min-width: 8rem">
-                    Rol <p-sortIcon field="rol" />
-                </th>
-                <th pSortableColumn="activo" style="min-width: 7rem">
-                    Estado <p-sortIcon field="activo" />
-                </th>
-                <th style="min-width: 10rem">Último Acceso</th>
-                <th style="width: 90px">Acciones</th>
-            </tr>
-        </ng-template>
-
-        <ng-template #body let-u>
-            <tr>
-                <td><p-tableCheckbox [value]="u" /></td>
-                <td>
-                    <div class="flex items-center gap-2">
-                        <i class="pi pi-user text-primary"></i>
-                        <div class="flex flex-col">
-                            <span class="font-semibold text-surface-900 dark:text-surface-0">{{
-                                u.username
-                            }}</span>
-                            <span class="text-xs text-surface-400">{{ u.email }}</span>
-                        </div>
-                    </div>
-                </td>
-                <td class="font-bold text-surface-900 dark:text-surface-0">
-                    {{ u.nombreCompleto | titlecase }}
-                </td>
-                <td>
-                    <span
-                        class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded"
-                    >
-                        {{ u.documentoIdentidad.prefijo }}-{{ u.documentoIdentidad.numero }}
+            <ng-template #caption>
+                <div class="flex flex-wrap gap-2 items-center justify-between">
+                    <span class="text-xl font-semibold text-surface-900 dark:text-surface-0">
+                        <i class="pi pi-users mr-2"></i>
+                        {{ usuariosFiltrados.length }} usuarios
                     </span>
-                </td>
-                <td>
-                    <p-tag [value]="rolLabels[u.rol] || u.rol" [severity]="getRolSeverity(u.rol)" />
-                </td>
-                <td>
-                    <p-tag
-                        [value]="u.activo ? 'Activo' : 'Inactivo'"
-                        [severity]="u.activo ? 'success' : 'danger'"
-                    />
-                </td>
-                <td>
-                    <span class="text-xs text-surface-400">{{
-                        u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yy HH:mm') : 'Nunca'
-                    }}</span>
-                </td>
-                <td>
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-2">
+                        <p-iconfield>
+                            <p-inputicon styleClass="pi pi-search" />
+                            <input
+                                pInputText
+                                type="text"
+                                (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+                                placeholder="Buscar..."
+                            />
+                        </p-iconfield>
                         <p-button
-                            icon="pi pi-pencil"
-                            severity="success"
+                            icon="pi pi-refresh"
                             text
                             size="small"
-                            pTooltip="Editar"
-                            tooltipPosition="top"
-                            (onClick)="editUsuario(u)"
-                        />
-                        <p-button
-                            *ngIf="u.activo"
-                            icon="pi pi-ban"
-                            severity="danger"
-                            text
-                            size="small"
-                            pTooltip="Desactivar"
-                            tooltipPosition="top"
-                            (onClick)="toggleEstadoUsuario(u)"
-                        />
-                        <p-button
-                            *ngIf="!u.activo"
-                            icon="pi pi-check-circle"
-                            severity="success"
-                            text
-                            size="small"
-                            pTooltip="Reactivar"
-                            tooltipPosition="top"
-                            (onClick)="toggleEstadoUsuario(u)"
+                            pTooltip="Refrescar"
+                            (onClick)="refrescar()"
                         />
                     </div>
-                </td>
-            </tr>
-        </ng-template>
+                </div>
+            </ng-template>
 
-        <ng-template #emptymessage>
-            <tr>
-                <td colspan="8" class="text-center py-8 text-surface-400">
-                    <i class="pi pi-inbox text-4xl block mb-2"></i>
-                    No hay usuarios registrados
-                </td>
-            </tr>
-        </ng-template>
-    </p-table>
+            <ng-template #header>
+                <tr>
+                    <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+                    <th pSortableColumn="username" style="min-width: 10rem">
+                        Usuario <p-sortIcon field="username" />
+                    </th>
+                    <th pSortableColumn="nombreCompleto" style="min-width: 14rem">
+                        Nombre<p-sortIcon field="nombreCompleto" />
+                    </th>
+                    <th style="min-width: 9rem">Documento</th>
+                    <th pSortableColumn="rol" style="min-width: 8rem">
+                        Rol <p-sortIcon field="rol" />
+                    </th>
+                    <th pSortableColumn="activo" style="min-width: 7rem">
+                        Estado <p-sortIcon field="activo" />
+                    </th>
+                    <th style="min-width: 10rem">Último Acceso</th>
+                    <th style="width: 90px">Acciones</th>
+                </tr>
+            </ng-template>
+
+            <ng-template #body let-u>
+                <tr>
+                    <td><p-tableCheckbox [value]="u" /></td>
+                    <td>
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-user text-primary"></i>
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-surface-900 dark:text-surface-0">{{
+                                    u.username
+                                }}</span>
+                                <span class="text-xs text-surface-400">{{ u.email }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="font-bold text-surface-900 dark:text-surface-0">
+                        {{ u.nombreCompleto | titlecase }}
+                    </td>
+                    <td>
+                        <span
+                            class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded"
+                        >
+                            {{ u.documentoIdentidad.prefijo }}-{{ u.documentoIdentidad.numero }}
+                        </span>
+                    </td>
+                    <td>
+                        <p-tag
+                            [value]="rolLabels[u.rol] || u.rol"
+                            [severity]="getRolSeverity(u.rol)"
+                        />
+                    </td>
+                    <td>
+                        <p-tag
+                            [value]="u.activo ? 'Activo' : 'Inactivo'"
+                            [severity]="u.activo ? 'success' : 'danger'"
+                        />
+                    </td>
+                    <td>
+                        <span class="text-xs text-surface-400">{{
+                            u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yy HH:mm') : 'Nunca'
+                        }}</span>
+                    </td>
+                    <td>
+                        <div class="flex items-center gap-1">
+                            <p-button
+                                icon="pi pi-pencil"
+                                severity="success"
+                                text
+                                size="small"
+                                pTooltip="Editar"
+                                tooltipPosition="top"
+                                (onClick)="editUsuario(u)"
+                            />
+                            <p-button
+                                *ngIf="u.activo"
+                                icon="pi pi-ban"
+                                severity="danger"
+                                text
+                                size="small"
+                                pTooltip="Desactivar"
+                                tooltipPosition="top"
+                                (onClick)="toggleEstadoUsuario(u)"
+                            />
+                            <p-button
+                                *ngIf="!u.activo"
+                                icon="pi pi-check-circle"
+                                severity="success"
+                                text
+                                size="small"
+                                pTooltip="Reactivar"
+                                tooltipPosition="top"
+                                (onClick)="toggleEstadoUsuario(u)"
+                            />
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="8" class="text-center py-8 text-surface-400">
+                        <i class="pi pi-inbox text-4xl block mb-2"></i>
+                        No hay usuarios registrados
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     }
 </div>
 

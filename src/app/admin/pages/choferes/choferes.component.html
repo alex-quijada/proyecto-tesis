@@ -74,155 +74,160 @@
             ]"
             [tableStyle]="{ 'min-width': '85rem' }"
         >
-        <ng-template #caption>
-            <div class="flex flex-wrap gap-2 items-center justify-between">
-                <span class="text-xl font-semibold text-surface-900 dark:text-surface-0"
-                    >Personal de Transporte</span
-                >
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input
-                        pInputText
-                        type="text"
-                        (input)="dt.filterGlobal($any($event.target).value, 'contains')"
-                        placeholder="Buscar personal..."
-                    />
-                </p-iconfield>
-            </div>
-        </ng-template>
+            <ng-template #caption>
+                <div class="flex flex-wrap gap-2 items-center justify-between">
+                    <span class="text-xl font-semibold text-surface-900 dark:text-surface-0"
+                        >Personal de Transporte</span
+                    >
+                    <p-iconfield>
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input
+                            pInputText
+                            type="text"
+                            (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+                            placeholder="Buscar personal..."
+                        />
+                    </p-iconfield>
+                </div>
+            </ng-template>
 
-        <ng-template #header>
-            <tr>
-                <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
-                <th pSortableColumn="nombreCompleto" style="min-width: 13rem">
-                    Nombre Completo <p-sortIcon field="nombreCompleto" />
-                </th>
-                <th style="min-width: 9rem">Cédula</th>
-                <th pSortableColumn="rol" style="min-width: 7rem">
-                    Rol <p-sortIcon field="rol" />
-                </th>
-                <th style="min-width: 16rem">Licencia de Conducir</th>
-                <th style="min-width: 14rem">Certificado Médico Vial</th>
-                <th pSortableColumn="activo" style="min-width: 7rem">
-                    Estado <p-sortIcon field="activo" />
-                </th>
-                <th style="min-width: 8rem">Acciones</th>
-            </tr>
-        </ng-template>
+            <ng-template #header>
+                <tr>
+                    <th style="width: 3rem"><p-tableHeaderCheckbox /></th>
+                    <th pSortableColumn="nombreCompleto" style="min-width: 13rem">
+                        Nombre Completo <p-sortIcon field="nombreCompleto" />
+                    </th>
+                    <th style="min-width: 9rem">Cédula</th>
+                    <th pSortableColumn="rol" style="min-width: 7rem">
+                        Rol <p-sortIcon field="rol" />
+                    </th>
+                    <th style="min-width: 16rem">Licencia de Conducir</th>
+                    <th style="min-width: 14rem">Certificado Médico Vial</th>
+                    <th pSortableColumn="activo" style="min-width: 7rem">
+                        Estado <p-sortIcon field="activo" />
+                    </th>
+                    <th style="min-width: 8rem">Acciones</th>
+                </tr>
+            </ng-template>
 
-        <ng-template #body let-chofer>
-            <tr>
-                <td><p-tableCheckbox [value]="chofer" /></td>
-                <td class="font-bold text-surface-900 dark:text-surface-0">
-                    {{ chofer.nombreCompleto | titlecase }}
-                </td>
-                <td>
-                    <span
-                        class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded"
-                    >
-                        {{ getDocumentoDisplay(chofer) }}
-                    </span>
-                </td>
-                <td>
-                    <p-tag [value]="chofer.rol" [severity]="getRolSeverity(chofer.rol || '')" />
-                </td>
-                <td>
-                    <div *ngIf="chofer.licencia" class="text-sm flex flex-col gap-1">
-                        <span class="font-medium">{{ chofer.licencia.numero }}</span>
-                        <span class="text-xs text-surface-500">{{
-                            getGradoLabel(chofer.licencia.grado)
-                        }}</span>
-                        <span class="flex items-center gap-1 text-xs">
-                            <i class="pi pi-calendar"></i>
-                            Vence: {{ chofer.licencia.fechaVencimiento }}
-                            <i
-                                class="pi pi-circle-fill ml-1"
-                                [ngClass]="{
-                                    'text-green-500':
-                                        getDocumentoValidez(chofer.licencia.fechaVencimiento) ===
-                                        'success',
-                                    'text-yellow-500':
-                                        getDocumentoValidez(chofer.licencia.fechaVencimiento) ===
-                                        'warn',
-                                    'text-red-500':
-                                        getDocumentoValidez(chofer.licencia.fechaVencimiento) ===
-                                        'danger',
-                                }"
-                            ></i>
+            <ng-template #body let-chofer>
+                <tr>
+                    <td><p-tableCheckbox [value]="chofer" /></td>
+                    <td class="font-bold text-surface-900 dark:text-surface-0">
+                        {{ chofer.nombreCompleto | titlecase }}
+                    </td>
+                    <td>
+                        <span
+                            class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded"
+                        >
+                            {{ getDocumentoDisplay(chofer) }}
                         </span>
-                    </div>
-                    <span *ngIf="!chofer.licencia" class="text-surface-400 italic text-sm"
-                        >Sin licencia</span
-                    >
-                </td>
-                <td>
-                    <div *ngIf="chofer.certificadoMedico" class="text-sm flex flex-col gap-1">
-                        <span class="font-medium">{{ chofer.certificadoMedico.numero }}</span>
-                        <span class="flex items-center gap-1 text-xs">
-                            <i class="pi pi-calendar"></i>
-                            Vence: {{ chofer.certificadoMedico.fechaVencimiento }}
-                            <i
-                                class="pi pi-circle-fill ml-1"
-                                [ngClass]="{
-                                    'text-green-500':
-                                        getDocumentoValidez(
-                                            chofer.certificadoMedico.fechaVencimiento
-                                        ) === 'success',
-                                    'text-yellow-500':
-                                        getDocumentoValidez(
-                                            chofer.certificadoMedico.fechaVencimiento
-                                        ) === 'warn',
-                                    'text-red-500':
-                                        getDocumentoValidez(
-                                            chofer.certificadoMedico.fechaVencimiento
-                                        ) === 'danger',
-                                }"
-                            ></i>
-                        </span>
-                    </div>
-                    <span *ngIf="!chofer.certificadoMedico" class="text-surface-400 italic text-sm"
-                        >Sin certificado</span
-                    >
-                </td>
-                <td>
-                    <p-tag
-                        [value]="chofer.activo !== false ? 'Activo' : 'Inactivo'"
-                        [severity]="chofer.activo !== false ? 'success' : 'danger'"
-                    />
-                </td>
-                <td>
-                    <div class="flex gap-2">
-                        <p-button
-                            icon="pi pi-pencil"
-                            severity="success"
-                            rounded
-                            outlined
-                            (onClick)="editChofer(chofer)"
-                            pTooltip="Editar"
+                    </td>
+                    <td>
+                        <p-tag [value]="chofer.rol" [severity]="getRolSeverity(chofer.rol || '')" />
+                    </td>
+                    <td>
+                        <div *ngIf="chofer.licencia" class="text-sm flex flex-col gap-1">
+                            <span class="font-medium">{{ chofer.licencia.numero }}</span>
+                            <span class="text-xs text-surface-500">{{
+                                getGradoLabel(chofer.licencia.grado)
+                            }}</span>
+                            <span class="flex items-center gap-1 text-xs">
+                                <i class="pi pi-calendar"></i>
+                                Vence: {{ chofer.licencia.fechaVencimiento }}
+                                <i
+                                    class="pi pi-circle-fill ml-1"
+                                    [ngClass]="{
+                                        'text-green-500':
+                                            getDocumentoValidez(
+                                                chofer.licencia.fechaVencimiento
+                                            ) === 'success',
+                                        'text-yellow-500':
+                                            getDocumentoValidez(
+                                                chofer.licencia.fechaVencimiento
+                                            ) === 'warn',
+                                        'text-red-500':
+                                            getDocumentoValidez(
+                                                chofer.licencia.fechaVencimiento
+                                            ) === 'danger',
+                                    }"
+                                ></i>
+                            </span>
+                        </div>
+                        <span *ngIf="!chofer.licencia" class="text-surface-400 italic text-sm"
+                            >Sin licencia</span
+                        >
+                    </td>
+                    <td>
+                        <div *ngIf="chofer.certificadoMedico" class="text-sm flex flex-col gap-1">
+                            <span class="font-medium">{{ chofer.certificadoMedico.numero }}</span>
+                            <span class="flex items-center gap-1 text-xs">
+                                <i class="pi pi-calendar"></i>
+                                Vence: {{ chofer.certificadoMedico.fechaVencimiento }}
+                                <i
+                                    class="pi pi-circle-fill ml-1"
+                                    [ngClass]="{
+                                        'text-green-500':
+                                            getDocumentoValidez(
+                                                chofer.certificadoMedico.fechaVencimiento
+                                            ) === 'success',
+                                        'text-yellow-500':
+                                            getDocumentoValidez(
+                                                chofer.certificadoMedico.fechaVencimiento
+                                            ) === 'warn',
+                                        'text-red-500':
+                                            getDocumentoValidez(
+                                                chofer.certificadoMedico.fechaVencimiento
+                                            ) === 'danger',
+                                    }"
+                                ></i>
+                            </span>
+                        </div>
+                        <span
+                            *ngIf="!chofer.certificadoMedico"
+                            class="text-surface-400 italic text-sm"
+                            >Sin certificado</span
+                        >
+                    </td>
+                    <td>
+                        <p-tag
+                            [value]="chofer.activo !== false ? 'Activo' : 'Inactivo'"
+                            [severity]="chofer.activo !== false ? 'success' : 'danger'"
                         />
-                        <p-button
-                            *ngIf="chofer.activo !== false"
-                            icon="pi pi-user-minus"
-                            severity="danger"
-                            rounded
-                            outlined
-                            (onClick)="toggleEstadoChofer(chofer)"
-                            pTooltip="Desactivar"
-                        />
-                        <p-button
-                            *ngIf="chofer.activo === false"
-                            icon="pi pi-check-circle"
-                            severity="success"
-                            rounded
-                            outlined
-                            (onClick)="toggleEstadoChofer(chofer)"
-                            pTooltip="Reactivar"
-                        />
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
-    </p-table>
+                    </td>
+                    <td>
+                        <div class="flex gap-2">
+                            <p-button
+                                icon="pi pi-pencil"
+                                severity="success"
+                                rounded
+                                outlined
+                                (onClick)="editChofer(chofer)"
+                                pTooltip="Editar"
+                            />
+                            <p-button
+                                *ngIf="chofer.activo !== false"
+                                icon="pi pi-user-minus"
+                                severity="danger"
+                                rounded
+                                outlined
+                                (onClick)="toggleEstadoChofer(chofer)"
+                                pTooltip="Desactivar"
+                            />
+                            <p-button
+                                *ngIf="chofer.activo === false"
+                                icon="pi pi-check-circle"
+                                severity="success"
+                                rounded
+                                outlined
+                                (onClick)="toggleEstadoChofer(chofer)"
+                                pTooltip="Reactivar"
+                            />
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     }
 </div>
 

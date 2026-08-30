@@ -227,7 +227,7 @@
         <p-button
             label="Cancelar"
             icon="pi pi-times"
-            text
+            severity="danger"
             (onClick)="hideDialog()"
             [disabled]="loading()"
         />
@@ -238,6 +238,7 @@
                     : 'Registrar Unidad'
             "
             icon="pi pi-check"
+            severity="success"
             [loading]="loading()"
             (onClick)="save()"
         />

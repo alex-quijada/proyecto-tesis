@@ -177,10 +177,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         const viaje = this.viajes().find((v) => v.id_viaje === c.idViaje);
         if (!viaje || viaje.estado !== 'proceso') return false;
         const pendientes = (viaje.paradas || [])
-            .filter(
-                (p) =>
-                    p.estado_factura !== 'finalizado' && p.estado_factura !== 'incidencia',
-            )
+            .filter((p) => p.estado_factura !== 'finalizado' && p.estado_factura !== 'incidencia')
             .sort((a, b) => a.orden_visita - b.orden_visita);
         if (pendientes.length < 1) return false;
         const siguiente = pendientes[0];
@@ -188,7 +185,10 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         let viajeMin = 0;
         const legs = viaje.ruta_detallada?.legs || [];
         if (legs.length > 0) {
-            const idxLeg = Math.max(0, Math.min((siguiente.orden_visita || 1) - 1, legs.length - 1));
+            const idxLeg = Math.max(
+                0,
+                Math.min((siguiente.orden_visita || 1) - 1, legs.length - 1),
+            );
             const dur = duracionLegMin(legs[idxLeg]);
             if (dur !== null) viajeMin = Math.max(1, Math.round(dur));
         }
@@ -506,12 +506,9 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
             // Punto actual: la primera parada aún activa (en camino, espera o
             // entrega). Su último item generado se resalta en la línea de tiempo.
-            const esActiva = p.estado === 'proceso' || p.estado === 'espera' || p.estado === 'entrega';
-            if (
-                esActiva &&
-                idxUltimoItemParada >= 0 &&
-                !items.some((it) => it.actual)
-            ) {
+            const esActiva =
+                p.estado === 'proceso' || p.estado === 'espera' || p.estado === 'entrega';
+            if (esActiva && idxUltimoItemParada >= 0 && !items.some((it) => it.actual)) {
                 items[idxUltimoItemParada].actual = true;
             }
         }
@@ -550,9 +547,7 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
                     incidenciaRecuperable: p.incidencia_recuperable,
                     incidenciaTipo: inc?.tipo ?? p.incidencia_tipo,
                     incidenciaDescripcion: inc?.descripcion ?? p.incidencia_descripcion,
-                    incidenciasPendientes: (p.incidencias || []).filter(
-                        (i) => i.resuelta !== true,
-                    ),
+                    incidenciasPendientes: (p.incidencias || []).filter((i) => i.resuelta !== true),
                 };
             });
     });
@@ -727,9 +722,10 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             if (p.estado !== 'incidencia') return false;
             // Si tiene incidencias multi, decidir por el tipo de la primera
             // pendiente; si no, usar el tipo del fallback.
-            const tipos = (p.incidenciasPendientes?.length
-                ? p.incidenciasPendientes.map((i) => i.tipo)
-                : [p.incidenciaTipo]
+            const tipos = (
+                p.incidenciasPendientes?.length
+                    ? p.incidenciasPendientes.map((i) => i.tipo)
+                    : [p.incidenciaTipo]
             ).filter((t): t is string => !!t);
             const tiposRelevantes = tipos.filter((t) => !autoResolubles.has(t));
             return tiposRelevantes.length > 0;
@@ -797,9 +793,8 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
             } facturas a "embarque". Se borrarán las firmas, incidencias, fotos de incidencia y el historial de estados.`,
             header: 'Reiniciar viaje',
             icon: 'pi pi-refresh',
-            acceptLabel: 'Reiniciar',
-            acceptIcon: 'pi pi-check',
-            rejectLabel: 'Cancelar',
+            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+            acceptButtonProps: { label: 'Reiniciar', icon: 'pi pi-check', severity: 'danger' },
             accept: () => void this.confirmarReinicio(c),
         });
     }

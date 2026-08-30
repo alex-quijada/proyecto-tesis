@@ -27,6 +27,9 @@ function loadInitialConfig(): LayoutConfig {
             localStorage.getItem(STORAGE_KEY) || localStorage.getItem('sakai_layout_config');
         if (saved) {
             const parsed = JSON.parse(saved);
+            if (parsed.primary === 'noir') {
+                parsed.primary = DEFAULT_CONFIG.primary;
+            }
             return {
                 ...DEFAULT_CONFIG,
                 ...parsed,

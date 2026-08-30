@@ -866,7 +866,8 @@ export class GuiaDialogComponent implements OnInit {
     }
 
     seleccionarTexto(event: any) {
-        const input = (event?.target as HTMLInputElement) || (event?.currentTarget as HTMLInputElement);
+        const input =
+            (event?.target as HTMLInputElement) || (event?.currentTarget as HTMLInputElement);
         if (input && typeof input.select === 'function') {
             setTimeout(() => input.select(), 0);
         }

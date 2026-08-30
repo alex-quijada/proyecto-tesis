@@ -274,10 +274,11 @@
     </ng-template>
 
     <ng-template #footer>
-        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+        <p-button label="Cancelar" icon="pi pi-times" severity="danger" (onClick)="hideDialog()" />
         <p-button
             [label]="usuarioData().id ? 'Guardar Cambios' : 'Registrar Usuario'"
             icon="pi pi-check"
+            severity="success"
             [loading]="loading()"
             [disabled]="loading()"
             (onClick)="save()"

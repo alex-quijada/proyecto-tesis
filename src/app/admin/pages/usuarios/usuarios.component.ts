@@ -169,8 +169,10 @@ export class UsuariosComponent implements OnInit {
                 : `¿Reactivar a <strong>${usuario.nombreCompleto}</strong>? Podrá iniciar sesión nuevamente.`,
             header: desactivando ? 'Confirmar Desactivación' : 'Confirmar Reactivación',
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: desactivando ? 'Desactivar' : 'Reactivar',
-            rejectLabel: 'Cancelar',
+            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+            acceptButtonProps: desactivando
+                ? { label: 'Desactivar', severity: 'danger' }
+                : { label: 'Reactivar', severity: 'success' },
             accept: async () => {
                 try {
                     if (desactivando) {
@@ -214,8 +216,8 @@ export class UsuariosComponent implements OnInit {
             message: `¿Desactivar ${selected.length} usuario(s) seleccionados?`,
             header: 'Confirmar Desactivación Masiva',
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Desactivar Todo',
-            rejectLabel: 'Cancelar',
+            rejectButtonProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
+            acceptButtonProps: { label: 'Desactivar Todo', severity: 'danger' },
             accept: async () => {
                 try {
                     for (const u of selected) {

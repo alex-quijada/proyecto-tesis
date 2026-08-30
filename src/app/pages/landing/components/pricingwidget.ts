@@ -37,14 +37,18 @@ import { RouterModule } from '@angular/router';
                             >
                             <i class="pi pi-bolt text-xl text-primary"></i>
                         </div>
-                        <div class="text-3xl font-extrabold text-surface-900 dark:text-surface-0 mb-1">
+                        <div
+                            class="text-3xl font-extrabold text-surface-900 dark:text-surface-0 mb-1"
+                        >
                             -35% Tiempo
                         </div>
                         <p class="text-muted-color text-sm mb-6">
                             Reducción promedio en los tiempos de recorrido mediante secuenciación de
                             paradas inteligentes.
                         </p>
-                        <ul class="space-y-3 text-sm text-surface-700 dark:text-surface-300 mt-auto">
+                        <ul
+                            class="space-y-3 text-sm text-surface-700 dark:text-surface-300 mt-auto"
+                        >
                             <li class="flex items-center gap-2">
                                 <i class="pi pi-check text-primary text-xs"></i>
                                 <span>Menor congestión en horas pico</span>
@@ -77,14 +81,18 @@ import { RouterModule } from '@angular/router';
                             >
                             <i class="pi pi-percentage text-xl text-primary"></i>
                         </div>
-                        <div class="text-3xl font-extrabold text-surface-900 dark:text-surface-0 mb-1">
+                        <div
+                            class="text-3xl font-extrabold text-surface-900 dark:text-surface-0 mb-1"
+                        >
                             Auditoría Total
                         </div>
                         <p class="text-muted-color text-sm mb-6">
-                            Control milimétrico del gasto de combustible y detección de discrepancias por
-                            odómetro y tanque.
+                            Control milimétrico del gasto de combustible y detección de
+                            discrepancias por odómetro y tanque.
                         </p>
-                        <ul class="space-y-3 text-sm text-surface-700 dark:text-surface-300 mt-auto">
+                        <ul
+                            class="space-y-3 text-sm text-surface-700 dark:text-surface-300 mt-auto"
+                        >
                             <li class="flex items-center gap-2">
                                 <i class="pi pi-check text-primary text-xs"></i>
                                 <span>Costos consolidados en USD y VES</span>
@@ -112,13 +120,18 @@ import { RouterModule } from '@angular/router';
                             >
                             <i class="pi pi-shield text-xl text-primary"></i>
                         </div>
-                        <div class="text-3xl font-extrabold text-surface-900 dark:text-surface-0 mb-1">
+                        <div
+                            class="text-3xl font-extrabold text-surface-900 dark:text-surface-0 mb-1"
+                        >
                             Offline-First
                         </div>
                         <p class="text-muted-color text-sm mb-6">
-                            Garantía operativa en zonas con baja señal o cortes temporales de conectividad.
+                            Garantía operativa en zonas con baja señal o cortes temporales de
+                            conectividad.
                         </p>
-                        <ul class="space-y-3 text-sm text-surface-700 dark:text-surface-300 mt-auto">
+                        <ul
+                            class="space-y-3 text-sm text-surface-700 dark:text-surface-300 mt-auto"
+                        >
                             <li class="flex items-center gap-2">
                                 <i class="pi pi-check text-primary text-xs"></i>
                                 <span>Almacenamiento local cifrado en el dispositivo</span>

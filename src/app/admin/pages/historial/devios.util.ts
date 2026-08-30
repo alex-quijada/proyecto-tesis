@@ -51,10 +51,7 @@ function distanciaAPuntoSegmento(
  * 3) Filtra micro-ruido de GPS estacionado (< 3 m).
  * 4) Descarta saltos irreales de teletransporte (ej. reseteos de posición / salto al almacén).
  */
-export function depurarTraza(
-    puntos: TrazaViajePunto[],
-    maxVelocidadKmh = 140,
-): TrazaViajePunto[] {
+export function depurarTraza(puntos: TrazaViajePunto[], maxVelocidadKmh = 140): TrazaViajePunto[] {
     const validos = (puntos || []).filter(
         (p) =>
             p.latitud != null &&
@@ -175,4 +172,3 @@ export function calcularMetricasDesvio(
         esSimulacion: puntosReal.some((t) => t.es_simulacion),
     };
 }
-

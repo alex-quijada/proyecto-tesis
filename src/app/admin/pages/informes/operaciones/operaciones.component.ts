@@ -119,8 +119,14 @@ export class OperacionesComponent {
                 (!f.idEmpresa || x.empresaId === f.idEmpresa) &&
                 (!f.estado ||
                     x.estado === f.estado ||
-                    (f.estado === 'cancelada' && (x.estado === 'cancelado' || x.estado === 'CANCELADO' || x.estado === 'CANCELADA')) ||
-                    (f.estado === 'cancelado' && (x.estado === 'cancelada' || x.estado === 'CANCELADO' || x.estado === 'CANCELADA'))),
+                    (f.estado === 'cancelada' &&
+                        (x.estado === 'cancelado' ||
+                            x.estado === 'CANCELADO' ||
+                            x.estado === 'CANCELADA')) ||
+                    (f.estado === 'cancelado' &&
+                        (x.estado === 'cancelada' ||
+                            x.estado === 'CANCELADO' ||
+                            x.estado === 'CANCELADA'))),
         );
     };
 

@@ -22,7 +22,9 @@
             >
                 Permisos Insuficientes
             </h1>
-            <p class="text-surface-600 dark:text-surface-400 text-sm sm:text-base leading-relaxed mb-6">
+            <p
+                class="text-surface-600 dark:text-surface-400 text-sm sm:text-base leading-relaxed mb-6"
+            >
                 Tu cuenta de usuario
                 <strong *ngIf="userRole()" class="text-surface-900 dark:text-surface-100">
                     ({{ userRole() }})
@@ -53,8 +55,11 @@
             </div>
 
             <!-- Ayuda / Pie -->
-            <div class="border-t border-surface-200 dark:border-surface-800 mt-8 pt-4 text-xs text-muted-color">
-                ¿Crees que se trata de un error? Contacta al Administrador de BrandIA para solicitar acceso.
+            <div
+                class="border-t border-surface-200 dark:border-surface-800 mt-8 pt-4 text-xs text-muted-color"
+            >
+                ¿Crees que se trata de un error? Contacta al Administrador de BrandIA para solicitar
+                acceso.
             </div>
         </div>
     </div>

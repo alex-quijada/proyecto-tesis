@@ -41,10 +41,12 @@ declare type SurfacesType = {
             <div>
                 <span class="text-sm text-muted-color font-semibold">Color Principal</span>
                 <div class="pt-2 flex gap-2 flex-wrap justify-start">
-                    @for (primaryColor of primaryColors(); track primaryColor.name) {
+                    @for (primaryColor of primaryColorOptions(); track primaryColor.name) {
                         <button
                             type="button"
-                            [title]="primaryColorLabels[primaryColor.name || ''] || primaryColor.name"
+                            [title]="
+                                primaryColorLabels[primaryColor.name || ''] || primaryColor.name
+                            "
                             (click)="updateColors($event, 'primary', primaryColor)"
                             [ngClass]="{
                                 'outline outline-primary':
@@ -54,8 +56,8 @@ declare type SurfacesType = {
                             [style]="{
                                 'background-color':
                                     primaryColor?.name === 'noir'
-                                         ? 'var(--text-color)'
-                                         : primaryColor?.palette?.['500'],
+                                        ? 'var(--text-color)'
+                                        : primaryColor?.palette?.['500'],
                             }"
                         ></button>
                     }
@@ -342,6 +344,8 @@ export class AppConfigurator {
 
         return palettes;
     });
+
+    primaryColorOptions = computed(() => this.primaryColors().filter((c) => c.name !== 'noir'));
 
     getPresetExt() {
         const color: SurfacesType =

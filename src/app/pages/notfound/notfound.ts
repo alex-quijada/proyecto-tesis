@@ -36,8 +36,8 @@ import { CommonModule } from '@angular/common';
                     <p
                         class="text-surface-600 dark:text-surface-400 text-sm sm:text-base leading-relaxed mb-8 max-w-md mx-auto"
                     >
-                        El enlace o recurso al que intentas acceder no existe, ha sido movido o no se
-                        encuentra disponible.
+                        El enlace o recurso al que intentas acceder no existe, ha sido movido o no
+                        se encuentra disponible.
                     </p>
 
                     <!-- Accesos Rápidos del Sistema -->

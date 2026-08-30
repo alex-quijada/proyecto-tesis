@@ -286,13 +286,14 @@
         <p-button
             label="Cancelar"
             icon="pi pi-times"
-            text
+            severity="danger"
             [disabled]="loading()"
             (onClick)="hideDialog()"
         />
         <p-button
             [label]="choferData().id ? 'Guardar Cambios' : 'Registrar'"
             icon="pi pi-check"
+            severity="success"
             [loading]="loading()"
             [disabled]="loading()"
             (onClick)="save()"

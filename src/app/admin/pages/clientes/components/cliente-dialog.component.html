@@ -175,7 +175,7 @@
                     <span>Sucursales</span>
                     <p-button
                         icon="pi pi-plus"
-                        severity="info"
+                        severity="success"
                         rounded
                         outlined
                         size="small"
@@ -429,10 +429,11 @@
     </ng-template>
 
     <ng-template #footer>
-        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="hideDialog()" />
+        <p-button label="Cancelar" icon="pi pi-times" severity="danger" (onClick)="hideDialog()" />
         <p-button
             [label]="clienteData().id ? 'Guardar Cambios' : 'Registrar Cliente'"
             icon="pi pi-check"
+            severity="success"
             [loading]="saving()"
             [disabled]="saving()"
             (onClick)="save()"

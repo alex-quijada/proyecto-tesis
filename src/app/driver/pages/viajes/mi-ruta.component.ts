@@ -351,7 +351,9 @@ export class MiRutaComponent implements OnInit {
     readonly paradasPendientes = computed(() => {
         const pts = this.puntos();
         return pts
-            .filter((p) => p.facturas.some((f) => f.estado !== 'finalizado' && f.estado !== 'incidencia'))
+            .filter((p) =>
+                p.facturas.some((f) => f.estado !== 'finalizado' && f.estado !== 'incidencia'),
+            )
             .sort((a, b) => a.ordenVisita - b.ordenVisita);
     });
 
@@ -1015,7 +1017,10 @@ export class MiRutaComponent implements OnInit {
                         );
                     }
                 } catch (optErr) {
-                    console.warn('Fallo optimización de Google Maps, usando heurística local', optErr);
+                    console.warn(
+                        'Fallo optimización de Google Maps, usando heurística local',
+                        optErr,
+                    );
                 }
             }
 

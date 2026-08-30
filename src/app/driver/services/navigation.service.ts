@@ -180,7 +180,9 @@ export class NavigationService {
         const posActual = this.posicionDriver();
         const inicio: Waypoint =
             origen ??
-            (posActual ? { lat: posActual.lat, lng: posActual.lng, name: 'Posición actual' } : warehouse);
+            (posActual
+                ? { lat: posActual.lat, lng: posActual.lng, name: 'Posición actual' }
+                : warehouse);
 
         this.detener();
         this.viajeIdGuardado = viajeId ?? null;

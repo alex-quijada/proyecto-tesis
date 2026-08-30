@@ -144,13 +144,14 @@
         <div class="flex gap-2 w-full">
             <p-button
                 label="Cancelar"
-                severity="secondary"
+                severity="danger"
                 (onClick)="hideDialog()"
                 styleClass="flex-1"
             />
             <p-button
                 label="Registrar"
                 icon="pi pi-check"
+                severity="success"
                 [loading]="guardando()"
                 [disabled]="vehiculos().length === 0"
                 (onClick)="save()"

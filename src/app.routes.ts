@@ -9,8 +9,7 @@ export const appRoutes: Routes = [
     },
     {
         path: 'app',
-        loadComponent: () =>
-            import('./app/layout/component/app.layout').then((m) => m.AppLayout),
+        loadComponent: () => import('./app/layout/component/app.layout').then((m) => m.AppLayout),
         canActivate: [roleGuard], // Protege todo el Layout administrativo
         data: { roles: ['Analista', 'Coordinador', 'Administrador'] }, // Solo personal interno
         children: [

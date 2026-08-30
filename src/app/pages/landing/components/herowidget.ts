@@ -31,8 +31,9 @@ import { RouterModule } from '@angular/router';
                 <p
                     class="font-normal text-lg sm:text-xl md:text-2xl leading-relaxed mt-6 text-surface-600 dark:text-surface-300 max-w-3xl mx-auto"
                 >
-                    Plataforma web y móvil para la planificación de carga, cálculo de rutas óptimas con
-                    Google Maps, seguimiento en tiempo real y gestión integral de flota vehicular.
+                    Plataforma web y móvil para la planificación de carga, cálculo de rutas óptimas
+                    con Google Maps, seguimiento en tiempo real y gestión integral de flota
+                    vehicular.
                 </p>
 
                 <!-- Botones CTA -->
