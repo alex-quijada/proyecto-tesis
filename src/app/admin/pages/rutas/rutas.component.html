@@ -185,7 +185,8 @@
                                 severity="success"
                                 text
                                 size="small"
-                                pTooltip="Editar"
+                                [disabled]="!puedeEditar(guia)"
+                                [pTooltip]="tooltipEditar(guia)"
                                 tooltipPosition="top"
                                 (onClick)="editGuia(guia)"
                             />

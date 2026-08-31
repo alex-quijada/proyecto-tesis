@@ -984,6 +984,26 @@ export class GuiaDialogComponent implements OnInit {
         this.submitted = true;
         this.errorMessage.set('');
 
+        if (this.guiaData()?.id) {
+            const facturasActuales = this.guiaData().facturas || [];
+            const estados = facturasActuales.map((f) => f.idEstado?.toLowerCase() || 'nuevo');
+            const enTransito = estados.some(
+                (e) => e === 'proceso' || e === 'espera' || e === 'entrega',
+            );
+            if (enTransito) {
+                this.errorMessage.set('No se puede modificar la guía mientras el viaje esté en curso.');
+                return;
+            }
+            const todasIniciales = estados.every((e) => e === 'nuevo' || e === 'embarque');
+            const tieneIncidencia = estados.some((e) => e === 'incidencia');
+            if (!todasIniciales && !tieneIncidencia) {
+                this.errorMessage.set(
+                    'No se puede modificar la guía porque ya ha sido finalizada o cancelada.',
+                );
+                return;
+            }
+        }
+
         this.actualizarEntidadesInactivas();
         if (this.entidadesInactivas().length) {
             this.errorMessage.set(

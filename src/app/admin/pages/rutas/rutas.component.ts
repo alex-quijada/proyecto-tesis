@@ -196,6 +196,57 @@ export class RutasComponent implements OnInit {
         return guia.facturas.every((f) => f.idEstado === 'nuevo' || f.idEstado === 'embarque');
     }
 
+    /**
+     * Una guía se puede editar si:
+     * 1) Todas sus facturas están en 'nuevo' o 'embarque' (el viaje aún no ha iniciado).
+     * 2) O si ninguna factura está en tránsito activo ('proceso', 'espera', 'entrega') y tiene al menos una factura con 'incidencia' (disponible para re-despacho).
+     *
+     * Se bloquea si:
+     * - Tiene facturas en tránsito activo ('proceso', 'espera', 'entrega').
+     * - O todas sus facturas ya están 'finalizado' o 'cancelada'.
+     */
+    puedeEditar(guia: GuiaDespacho): boolean {
+        if (!guia.facturas?.length) return true;
+        const estados = guia.facturas.map((f) => f.idEstado?.toLowerCase() || 'nuevo');
+
+        // Si tiene alguna factura en tránsito activo, no se puede editar
+        const enTransito = estados.some(
+            (e) => e === 'proceso' || e === 'espera' || e === 'entrega',
+        );
+        if (enTransito) return false;
+
+        // Si todas están en nuevo o embarque, sí se puede editar
+        const todasIniciales = estados.every((e) => e === 'nuevo' || e === 'embarque');
+        if (todasIniciales) return true;
+
+        // Si tiene alguna factura con incidencia y ninguna en tránsito activo, se permite editar para reasignar/re-despachar
+        const tieneIncidencia = estados.some((e) => e === 'incidencia');
+        if (tieneIncidencia) return true;
+
+        // Si todas están finalizadas o canceladas, no se puede editar
+        return false;
+    }
+
+    tooltipEditar(guia: GuiaDespacho): string {
+        if (this.puedeEditar(guia)) {
+            const tieneInc = guia.facturas?.some(
+                (f) => f.idEstado?.toLowerCase() === 'incidencia',
+            );
+            return tieneInc ? 'Editar guía (Re-despachar incidencias)' : 'Editar guía';
+        }
+        const estados = (guia.facturas || []).map((f) => f.idEstado?.toLowerCase() || '');
+        if (estados.some((e) => e === 'proceso' || e === 'espera' || e === 'entrega')) {
+            return 'No se puede editar: el viaje está en curso';
+        }
+        if (estados.length > 0 && estados.every((e) => e === 'finalizado')) {
+            return 'No se puede editar: todas las entregas fueron finalizadas';
+        }
+        if (estados.length > 0 && estados.every((e) => e === 'cancelada' || e === 'cancelado')) {
+            return 'No se puede editar: la guía está cancelada';
+        }
+        return 'No se puede editar en su estado actual';
+    }
+
     getEstadoGuiaSeverity(
         estado: string,
     ): 'info' | 'success' | 'warn' | 'danger' | 'secondary' | 'contrast' {
@@ -214,6 +265,14 @@ export class RutasComponent implements OnInit {
     }
 
     editGuia(guia: GuiaDespacho) {
+        if (!this.puedeEditar(guia)) {
+            this.notif.add({
+                severity: 'warn',
+                summary: 'Edición no permitida',
+                detail: this.tooltipEditar(guia),
+            });
+            return;
+        }
         const original = this.guias().find((g) => g.id === guia.id);
         this.editingGuia = original ? { ...original } : { ...guia };
         this.guiaDialogVisible = true;

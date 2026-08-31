@@ -31,9 +31,13 @@ export interface FacturaGuia {
     /** Flag de la última incidencia: decidido por el staff en la BD. */
     incidenciaRecuperable?: boolean;
     incidenciaId?: string;
+    incidenciaIdChofer?: string;
+    incidenciaChofer?: string;
     /** Todas las incidencias de la factura (multi). */
     incidencias?: {
         id_incidencia?: string;
+        id_chofer?: string;
+        nombre_chofer?: string;
         tipo?: string;
         descripcion?: string;
         foto?: string;

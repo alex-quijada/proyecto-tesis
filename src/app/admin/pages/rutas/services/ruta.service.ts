@@ -492,7 +492,7 @@ export class RutaService {
             const incRes = await this.supabase
                 .from('incidencias')
                 .select(
-                    'id_incidencia, id_detalle_fact, tipo_incidencia, descripcion, foto_evidencia_url, hora_reporte, recuperable, resuelta',
+                    'id_incidencia, id_detalle_fact, id_chofer, tipo_incidencia, descripcion, foto_evidencia_url, hora_reporte, recuperable, resuelta, chofer:id_chofer ( nombre_completo )',
                 )
                 .in(
                     'id_detalle_fact',
@@ -535,8 +535,12 @@ export class RutaService {
                 incidenciaRecuperable:
                     incidenciasPorFactura.get(f.id_factura)?.[0]?.recuperable ?? undefined,
                 incidenciaId: incidenciasPorFactura.get(f.id_factura)?.[0]?.id_incidencia,
+                incidenciaIdChofer: incidenciasPorFactura.get(f.id_factura)?.[0]?.id_chofer,
+                incidenciaChofer: incidenciasPorFactura.get(f.id_factura)?.[0]?.chofer?.nombre_completo,
                 incidencias: (incidenciasPorFactura.get(f.id_factura) || []).map((inc) => ({
                     id_incidencia: inc.id_incidencia,
+                    id_chofer: inc.id_chofer,
+                    nombre_chofer: inc.chofer?.nombre_completo,
                     tipo: inc.tipo_incidencia,
                     descripcion: inc.descripcion,
                     foto: inc.foto_evidencia_url,

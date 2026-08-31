@@ -36,9 +36,12 @@ interface FilaOperacion {
     incidenciaTipoPrincipal?: string;
     incidenciaDescripcionPrincipal?: string;
     incidenciaFotoPrincipal?: string;
+    incidenciaChoferPrincipal?: string;
     incidenciasTotal: number;
     incidencias: {
         id_incidencia?: string;
+        id_chofer?: string;
+        nombre_chofer?: string;
         tipo?: string;
         descripcion?: string;
         foto?: string;
@@ -135,7 +138,9 @@ export class OperacionesComponent {
         return this.mapearConIds().filter(
             (x) =>
                 this.enRango(x.fecha, f) &&
-                (!f.idChofer || x.choferId === f.idChofer) &&
+                (!f.idChofer ||
+                    x.choferId === f.idChofer ||
+                    x.incidencias?.some((inc) => inc.id_chofer === f.idChofer)) &&
                 (!f.idMunicipio || x.municipioId === f.idMunicipio) &&
                 (!f.idVehiculo || x.vehiculoId === f.idVehiculo) &&
                 (!f.idEmpresa || x.empresaId === f.idEmpresa) &&
@@ -189,6 +194,7 @@ export class OperacionesComponent {
                     (f.idEstado === 'incidencia' ? 'INCIDENCIA' : undefined);
                 const descPrincipal = incPrincipal?.descripcion || f.incidenciaDescripcion;
                 const fotoPrincipal = incPrincipal?.foto || f.incidenciaFoto;
+                const choferPrincipal = incPrincipal?.nombre_chofer || f.incidenciaChofer;
 
                 filas.push({
                     numeroFactura: f.numeroFactura,
@@ -211,6 +217,7 @@ export class OperacionesComponent {
                     incidenciaTipoPrincipal: tipoPrincipal,
                     incidenciaDescripcionPrincipal: descPrincipal,
                     incidenciaFotoPrincipal: fotoPrincipal,
+                    incidenciaChoferPrincipal: choferPrincipal,
                     incidenciasTotal: incs.length || (tieneInc ? 1 : 0),
                     incidencias: incs,
                 });
@@ -348,6 +355,9 @@ export class OperacionesComponent {
                 ? 'Estado: Resuelta y entregada con éxito'
                 : 'Estado: Incidencia pendiente / no completada',
         );
+        if (f.incidenciaChoferPrincipal) {
+            partes.push(`Reportada por: ${f.incidenciaChoferPrincipal}`);
+        }
         if (f.incidenciaDescripcionPrincipal) {
             partes.push(`Motivo: "${f.incidenciaDescripcionPrincipal}"`);
         }
@@ -398,7 +408,7 @@ export class OperacionesComponent {
                     montoVES: f.montoVES,
                     estado: this.estadoLabel(f.estado),
                     incidencia: f.tuvoIncidencia
-                        ? `${this.tipoIncidenciaPipe.transform(f.incidenciaTipoPrincipal) || 'Incidencia'} (${f.incidenciaResuelta ? 'Resuelta' : 'Pendiente'})${f.incidenciaDescripcionPrincipal ? ' - ' + f.incidenciaDescripcionPrincipal : ''}`
+                        ? `${this.tipoIncidenciaPipe.transform(f.incidenciaTipoPrincipal) || 'Incidencia'} (${f.incidenciaResuelta ? 'Resuelta' : 'Pendiente'})${f.incidenciaChoferPrincipal ? ' [Reportada por: ' + this.capitalizar(f.incidenciaChoferPrincipal) + ']' : ''}${f.incidenciaDescripcionPrincipal ? ' - ' + f.incidenciaDescripcionPrincipal : ''}`
                         : '—',
                     fecha: f.fecha,
                 })),
@@ -443,7 +453,7 @@ export class OperacionesComponent {
                     montoVES: `${f.montoVES.toFixed(2)} Bs`,
                     estado: this.estadoLabel(f.estado),
                     incidencia: f.tuvoIncidencia
-                        ? `${this.tipoIncidenciaPipe.transform(f.incidenciaTipoPrincipal) || 'Incidencia'} (${f.incidenciaResuelta ? 'Res.' : 'Pend.'})`
+                        ? `${this.tipoIncidenciaPipe.transform(f.incidenciaTipoPrincipal) || 'Incidencia'} (${f.incidenciaResuelta ? 'Res.' : 'Pend.'})${f.incidenciaChoferPrincipal ? ' [Por: ' + this.capitalizar(f.incidenciaChoferPrincipal) + ']' : ''}`
                         : '—',
                     fecha: f.fecha ? new Date(f.fecha).toLocaleDateString('es-VE') : '',
                 })),
