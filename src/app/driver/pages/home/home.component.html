@@ -298,14 +298,48 @@
                                     }}</span
                                 >
                             </div>
-                            <div class="text-base text-surface-400 mt-0.5">
-                                {{ guia.ruta }} ·
-                                {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}
+                            <div
+                                class="text-base text-surface-400 mt-0.5 flex items-center gap-1.5 flex-wrap"
+                            >
+                                <span>{{ guia.ruta }}</span>
+                                <span>·</span>
+                                <span class="font-medium text-surface-700 dark:text-surface-200">
+                                    {{ guia.precioCarga | currency: 'USD' : 'symbol' : '1.0-0' }}
+                                </span>
+                                @if (guia.montoVES) {
+                                    <span>·</span>
+                                    <span
+                                        class="font-medium text-surface-700 dark:text-surface-200"
+                                    >
+                                        Bs{{ guia.montoVES | number: '1.0-2' }}
+                                    </span>
+                                }
                             </div>
                             @if (selectedHistory()?.id === guia.id) {
                                 <div
                                     class="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 text-base text-surface-500 space-y-2.5"
                                 >
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-dollar text-surface-400"></i>
+                                        <span>
+                                            Monto:
+                                            <strong
+                                                class="text-surface-700 dark:text-surface-200"
+                                                >{{
+                                                    guia.precioCarga
+                                                        | currency: 'USD' : 'symbol' : '1.2-2'
+                                                }}</strong
+                                            >
+                                            @if (guia.montoVES) {
+                                                <span> ·</span>
+                                                <span
+                                                    class="text-surface-700 dark:text-surface-200"
+                                                >
+                                                    Bs{{ guia.montoVES | number: '1.2-2' }}
+                                                </span>
+                                            }
+                                        </span>
+                                    </div>
                                     <div class="flex items-start gap-2">
                                         <i class="pi pi-map-marker text-surface-400 mt-0.5"></i
                                         ><span>{{ guia.direccion }}</span>
