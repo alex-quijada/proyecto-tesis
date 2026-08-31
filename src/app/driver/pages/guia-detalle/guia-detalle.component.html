@@ -71,10 +71,20 @@
                 >
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
-                            <div class="font-mono text-sm font-semibold">
-                                {{ factura.numeroFactura }}
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-mono text-sm font-semibold">
+                                    {{ factura.numeroFactura }}
+                                </span>
+                                @if (getNumeroParada(factura.id); as num) {
+                                    <span
+                                        class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                        <i class="pi pi-map-marker text-[10px]"></i>
+                                        Parada #{{ num }}
+                                    </span>
+                                }
                             </div>
-                            <div class="text-base font-medium truncate">{{ factura.cliente }}</div>
+                            <div class="text-base font-medium truncate mt-0.5">{{ factura.cliente }}</div>
                         </div>
                     </div>
 

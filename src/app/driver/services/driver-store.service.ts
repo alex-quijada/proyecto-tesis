@@ -183,6 +183,26 @@ export class DriverStoreService implements OnDestroy {
     readonly pendingCount = computed(() => this.guiasPendientes().length);
     readonly completedCount = computed(() => this.guiasCompletadas().length);
 
+    readonly guiasAgrupadas = computed<GuiaPendiente[]>(() => {
+        const mapa = new Map<string, GuiaPendiente>();
+        for (const g of this.guiasAsignadas()) {
+            let grupo = mapa.get(g.idGuia);
+            if (!grupo) {
+                grupo = {
+                    id: g.idGuia,
+                    numeroGuia: g.numeroGuia,
+                    empresaSuministro: g.empresaSuministro,
+                    ruta: g.ruta,
+                    observaciones: g.observaciones,
+                    facturas: [],
+                };
+                mapa.set(g.idGuia, grupo);
+            }
+            grupo.facturas.push(g);
+        }
+        return Array.from(mapa.values());
+    });
+
     readonly guiasPendientesAgrupadas = computed<GuiaPendiente[]>(() => {
         const mapa = new Map<string, GuiaPendiente>();
         for (const g of this.guiasPendientes()) {
@@ -436,6 +456,7 @@ export class DriverStoreService implements OnDestroy {
         if (this.debounceRealtime) clearTimeout(this.debounceRealtime);
         this.debounceRealtime = setTimeout(() => {
             void this.cargarViajes(true);
+            void this.recargarGuias().catch(() => undefined);
         }, 500);
     }
 
@@ -565,6 +586,7 @@ export class DriverStoreService implements OnDestroy {
         try {
             await this.choferService.llegarAParada(idsFacturas);
             await this.recargarViajes();
+            await this.recargarGuias().catch(() => undefined);
         } catch (err) {
             console.warn('[Entrega] Error al marcar la llegada', err);
         }
@@ -576,6 +598,7 @@ export class DriverStoreService implements OnDestroy {
         try {
             await this.choferService.iniciarEntrega(idsFacturas);
             await this.recargarViajes();
+            await this.recargarGuias().catch(() => undefined);
         } catch (err) {
             console.warn('[Entrega] Error al iniciar la entrega', err);
             throw err;

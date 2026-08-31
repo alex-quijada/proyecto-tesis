@@ -100,12 +100,14 @@ export class TiemposService implements OnDestroy {
     /**
      * Tiempo en el estado actual de la factura: desde su última transición
      * (fechaUltimoCambio). El texto incluye el label del estado.
-     * Ej: "15 min · En proceso", "5 min · En espera", "10 min · En embarque".
+     * Ej: "15 min · En Proceso", "5 min · En Espera", "10 min · Embarque".
      */
     getTiempoEstado(entrega: Entrega): string {
         if (!entrega) return '';
         const fecha =
-            entrega.fechaUltimoCambio || entrega.fechaInicioCarga || entrega.fechaEntrega;
+            entrega.estado === 'embarque'
+                ? entrega.fechaInicioCarga || entrega.fechaUltimoCambio
+                : entrega.fechaUltimoCambio || entrega.fechaEntrega;
         const mins = this.minutosDesde(fecha);
         const label = this.getEstadoLabel(entrega.estado);
         if (mins === null) {
