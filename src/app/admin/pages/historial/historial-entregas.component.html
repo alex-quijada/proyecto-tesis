@@ -665,103 +665,116 @@
                                                                 inc of p.incidencias;
                                                                 track inc.id_incidencia
                                                             ) {
-                                                                <div>
-                                                                    <div
-                                                                        class="flex flex-wrap items-center gap-1.5"
-                                                                    >
-                                                                        <p-tag
-                                                                            [value]="
-                                                                                inc.tipo
-                                                                                    | tipoIncidencia
-                                                                            "
-                                                                            severity="danger"
-                                                                            styleClass="text-xs"
-                                                                        />
+                                                                <div
+                                                                    class="flex flex-col sm:flex-row items-center gap-3"
+                                                                >
+                                                                    <div class="flex-1 min-w-0">
+                                                                        <div
+                                                                            class="flex flex-wrap items-center gap-1.5"
+                                                                        >
+                                                                            <p-tag
+                                                                                [value]="
+                                                                                    inc.tipo
+                                                                                        | tipoIncidencia
+                                                                                "
+                                                                                severity="danger"
+                                                                                styleClass="text-xs"
+                                                                            />
 
-                                                                        <p-tag
-                                                                            [value]="
-                                                                                inc.recuperable
-                                                                                    ? 'Re-despachable'
-                                                                                    : 'Terminal'
-                                                                            "
-                                                                            [severity]="
-                                                                                inc.recuperable
-                                                                                    ? 'warn'
-                                                                                    : 'secondary'
-                                                                            "
-                                                                            styleClass="text-xs"
-                                                                        />
-                                                                        <p-tag
-                                                                            [value]="
-                                                                                inc.resuelta
-                                                                                    ? 'Resuelta'
-                                                                                    : 'Pendiente'
-                                                                            "
-                                                                            [severity]="
-                                                                                inc.resuelta
-                                                                                    ? 'success'
-                                                                                    : 'danger'
-                                                                            "
-                                                                            styleClass="text-xs"
-                                                                        />
+                                                                            <p-tag
+                                                                                [value]="
+                                                                                    inc.recuperable
+                                                                                        ? 'Re-despachable'
+                                                                                        : 'Terminal'
+                                                                                "
+                                                                                [severity]="
+                                                                                    inc.recuperable
+                                                                                        ? 'warn'
+                                                                                        : 'secondary'
+                                                                                "
+                                                                                styleClass="text-xs"
+                                                                            />
+                                                                            <p-tag
+                                                                                [value]="
+                                                                                    inc.resuelta
+                                                                                        ? 'Resuelta'
+                                                                                        : 'Pendiente'
+                                                                                "
+                                                                                [severity]="
+                                                                                    inc.resuelta
+                                                                                        ? 'success'
+                                                                                        : 'danger'
+                                                                                "
+                                                                                styleClass="text-xs"
+                                                                            />
+                                                                        </div>
+                                                                        @if (!inc.resuelta) {
+                                                                            <p-button
+                                                                                [label]="
+                                                                                    inc.recuperable
+                                                                                        ? 'Recuperable'
+                                                                                        : 'No recuperable'
+                                                                                "
+                                                                                [icon]="
+                                                                                    inc.recuperable
+                                                                                        ? 'pi pi-verified'
+                                                                                        : 'pi pi-ban'
+                                                                                "
+                                                                                [severity]="
+                                                                                    inc.recuperable
+                                                                                        ? 'warn'
+                                                                                        : 'secondary'
+                                                                                "
+                                                                                size="small"
+                                                                                outlined
+                                                                                [loading]="
+                                                                                    togglingRecuperableId() ===
+                                                                                    inc.id_incidencia
+                                                                                "
+                                                                                (onClick)="
+                                                                                    toggleRecuperable(
+                                                                                        inc
+                                                                                    )
+                                                                                "
+                                                                                pTooltip="¿Se puede volver a entregar? Decisión del analista/administrador"
+                                                                                tooltipPosition="top"
+                                                                                styleClass="mt-1"
+                                                                            />
+                                                                        }
+                                                                        @if (inc.descripcion) {
+                                                                            <div
+                                                                                class="text-sm text-surface-700 dark:text-surface-200 mt-1"
+                                                                            >
+                                                                                {{
+                                                                                    inc.descripcion
+                                                                                }}
+                                                                            </div>
+                                                                        }
+                                                                        @if (inc.hora_reporte) {
+                                                                            <div
+                                                                                class="text-xs text-surface-500 mt-0.5"
+                                                                            >
+                                                                                Reportada:
+                                                                                {{
+                                                                                    formatFecha(
+                                                                                        inc.hora_reporte
+                                                                                    )
+                                                                                }}
+                                                                            </div>
+                                                                        }
                                                                     </div>
-                                                                    @if (!inc.resuelta) {
-                                                                        <p-button
-                                                                            [label]="
-                                                                                inc.recuperable
-                                                                                    ? 'Recuperable'
-                                                                                    : 'No recuperable'
-                                                                            "
-                                                                            [icon]="
-                                                                                inc.recuperable
-                                                                                    ? 'pi pi-verified'
-                                                                                    : 'pi pi-ban'
-                                                                            "
-                                                                            [severity]="
-                                                                                inc.recuperable
-                                                                                    ? 'warn'
-                                                                                    : 'secondary'
-                                                                            "
-                                                                            size="small"
-                                                                            outlined
-                                                                            [loading]="
-                                                                                togglingRecuperableId() ===
-                                                                                inc.id_incidencia
-                                                                            "
-                                                                            (onClick)="
-                                                                                toggleRecuperable(
-                                                                                    inc
-                                                                                )
-                                                                            "
-                                                                            pTooltip="¿Se puede volver a entregar? Decisión del analista/administrador"
-                                                                            tooltipPosition="top"
-                                                                            styleClass="mt-1"
-                                                                        />
-                                                                    }
-                                                                    @if (inc.descripcion) {
-                                                                        <div
-                                                                            class="text-sm text-surface-700 dark:text-surface-200 mt-1"
-                                                                        >
-                                                                            {{ inc.descripcion }}
-                                                                        </div>
-                                                                    }
-                                                                    @if (inc.hora_reporte) {
-                                                                        <div
-                                                                            class="text-xs text-surface-500 mt-0.5"
-                                                                        >
-                                                                            Reportada:
-                                                                            {{
-                                                                                formatFecha(
-                                                                                    inc.hora_reporte
-                                                                                )
-                                                                            }}
-                                                                        </div>
-                                                                    }
                                                                     @if (inc.foto) {
                                                                         <img
                                                                             [src]="inc.foto"
-                                                                            class="mt-1.5 w-full max-w-[16rem] h-24 object-cover rounded-lg border border-surface-200 dark:border-surface-700"
+                                                                            class="w-full sm:w-40 sm:h-28 object-cover rounded-lg border border-surface-200 dark:border-surface-700 shrink-0 cursor-pointer"
                                                                             alt="Foto incidencia"
+                                                                            pTooltip="Ver imagen completa"
+                                                                            tooltipPosition="left"
+                                                                            (click)="
+                                                                                verImagenIncidencia(
+                                                                                    inc.foto
+                                                                                )
+                                                                            "
                                                                         />
                                                                     }
                                                                 </div>
@@ -769,52 +782,71 @@
                                                         </div>
                                                     } @else {
                                                         <div
-                                                            class="mt-2 flex flex-wrap items-center gap-1.5"
+                                                            class="mt-2 flex flex-col sm:flex-row items-center gap-3"
                                                         >
-                                                            <p-tag
-                                                                [value]="
-                                                                    p.incidenciaTipo
-                                                                        | tipoIncidencia
-                                                                "
-                                                                severity="danger"
-                                                                styleClass="text-xs"
-                                                            />
-                                                            <p-tag
-                                                                [value]="
-                                                                    esRecuperable(p)
-                                                                        ? 'Re-despachable'
-                                                                        : 'Terminal'
-                                                                "
-                                                                [severity]="
-                                                                    esRecuperable(p)
-                                                                        ? 'warn'
-                                                                        : 'secondary'
-                                                                "
-                                                                styleClass="text-xs"
-                                                            />
+                                                            <div class="flex-1 min-w-0">
+                                                                <div
+                                                                    class="flex flex-wrap items-center gap-1.5"
+                                                                >
+                                                                    <p-tag
+                                                                        [value]="
+                                                                            p.incidenciaTipo
+                                                                                | tipoIncidencia
+                                                                        "
+                                                                        severity="danger"
+                                                                        styleClass="text-xs"
+                                                                    />
+                                                                    <p-tag
+                                                                        [value]="
+                                                                            esRecuperable(p)
+                                                                                ? 'Re-despachable'
+                                                                                : 'Terminal'
+                                                                        "
+                                                                        [severity]="
+                                                                            esRecuperable(p)
+                                                                                ? 'warn'
+                                                                                : 'secondary'
+                                                                        "
+                                                                        styleClass="text-xs"
+                                                                    />
+                                                                </div>
+                                                                @if (p.incidenciaDescripcion) {
+                                                                    <div
+                                                                        class="text-sm text-surface-700 dark:text-surface-200 mt-2"
+                                                                    >
+                                                                        {{
+                                                                            p.incidenciaDescripcion
+                                                                        }}
+                                                                    </div>
+                                                                }
+                                                                @if (p.incidenciaFecha) {
+                                                                    <div
+                                                                        class="text-xs text-surface-500 mt-1"
+                                                                    >
+                                                                        Reportada:
+                                                                        {{
+                                                                            formatFecha(
+                                                                                p.incidenciaFecha
+                                                                            )
+                                                                        }}
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                            @if (p.incidenciaFoto) {
+                                                                <img
+                                                                    [src]="p.incidenciaFoto"
+                                                                    class="w-full sm:w-40 sm:h-28 object-cover rounded-lg border border-surface-200 dark:border-surface-700 shrink-0 cursor-pointer"
+                                                                    alt="Foto incidencia"
+                                                                    pTooltip="Ver imagen completa"
+                                                                    tooltipPosition="left"
+                                                                    (click)="
+                                                                        verImagenIncidencia(
+                                                                            p.incidenciaFoto
+                                                                        )
+                                                                    "
+                                                                />
+                                                            }
                                                         </div>
-                                                        @if (p.incidenciaDescripcion) {
-                                                            <div
-                                                                class="text-sm text-surface-700 dark:text-surface-200 mt-2"
-                                                            >
-                                                                {{ p.incidenciaDescripcion }}
-                                                            </div>
-                                                        }
-                                                        @if (p.incidenciaFecha) {
-                                                            <div
-                                                                class="text-xs text-surface-500 mt-1"
-                                                            >
-                                                                Reportada:
-                                                                {{ formatFecha(p.incidenciaFecha) }}
-                                                            </div>
-                                                        }
-                                                        @if (p.incidenciaFoto) {
-                                                            <img
-                                                                [src]="p.incidenciaFoto"
-                                                                class="mt-2 w-full max-w-[16rem] h-28 object-cover rounded-lg border border-surface-200 dark:border-surface-700"
-                                                                alt="Foto incidencia"
-                                                            />
-                                                        }
                                                     }
                                                 </div>
                                             }
@@ -831,3 +863,17 @@
 </div>
 
 <p-confirmdialog />
+
+<p-dialog
+    [visible]="imagenIncidencia() !== null"
+    [modal]="true"
+    [dismissableMask]="true"
+    [closable]="true"
+    header="Foto de incidencia"
+    [style]="{ width: 'min(90vw, 42rem)' }"
+    (onHide)="cerrarImagenIncidencia()"
+>
+    @if (imagenIncidencia(); as url) {
+        <img [src]="url" alt="Foto incidencia" class="w-full h-auto rounded-lg" />
+    }
+</p-dialog>
