@@ -6,6 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -79,6 +80,7 @@ interface LineaTiempoItem {
         SkeletonModule,
         TableModule,
         ConfirmDialogModule,
+        DialogModule,
         ToastModule,
         TooltipModule,
         DatePickerModule,
@@ -102,6 +104,17 @@ export class HistorialEntregasComponent implements OnInit {
     private incidenciasMap = new Map<string, any>();
     private tiemposMap = new Map<string, TiemposViaje>();
     eliminandoId = signal<string | null>(null);
+
+    /** URL de la foto de incidencia abierta en el diálogo emergente (null = cerrado). */
+    readonly imagenIncidencia = signal<string | null>(null);
+
+    verImagenIncidencia(url: string) {
+        this.imagenIncidencia.set(url);
+    }
+
+    cerrarImagenIncidencia() {
+        this.imagenIncidencia.set(null);
+    }
 
     // ---------------- Línea de tiempo del viaje ----------------
     readonly lineaTiempoAbierta = signal<Record<string, boolean>>({});
