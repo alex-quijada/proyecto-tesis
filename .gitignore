@@ -56,4 +56,6 @@ src/assets/database/supabase/.temp/
 # Local development overrides
 *.local.ts
 
-/supabase
+# Supabase
+.supabase/
+/supabase/
