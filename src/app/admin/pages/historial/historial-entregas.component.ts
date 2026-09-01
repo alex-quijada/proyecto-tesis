@@ -450,14 +450,32 @@ export class HistorialEntregasComponent implements OnInit {
      *  (viajes finalizados) todas las duraciones salen de timestamps reales. */
     private construirLineaTiempo(rows: HistorialViajeRow[], viaje?: ViajeAdmin): LineaTiempoItem[] {
         if (!rows.length) return [];
+
+        // Filtrar transiciones fuera de la ventana del viaje si hay fechas disponibles
+        let rowsFiltradas = rows;
+        if (viaje?.fecha_creacion) {
+            const inicioMin = new Date(viaje.fecha_creacion).getTime() - 30 * 60 * 1000;
+            const finMax = viaje.fecha_finalizacion
+                ? new Date(viaje.fecha_finalizacion).getTime() + 15 * 60 * 1000
+                : Number.MAX_SAFE_INTEGER;
+
+            rowsFiltradas = rows.filter((r) => {
+                const t = new Date(r.fecha_cambio).getTime();
+                return t >= inicioMin && t <= finMax;
+            });
+            if (!rowsFiltradas.length) {
+                rowsFiltradas = rows;
+            }
+        }
+
         const items: LineaTiempoItem[] = [];
 
-        // Transiciones por factura, en orden cronológico (incluye re-entregas).
+        // Transiciones por factura, en orden cronológico (incluye re-entregas dentro del viaje).
         const porFactura = new Map<
             string,
             { estado: string; fecha: Date; observacion?: string | null }[]
         >();
-        for (const r of rows) {
+        for (const r of rowsFiltradas) {
             let lista = porFactura.get(r.id_factura);
             if (!lista) {
                 lista = [];
@@ -482,7 +500,9 @@ export class HistorialEntregasComponent implements OnInit {
             return mejor;
         };
 
-        const embarque = primeraGlobal('embarque');
+        const embarque =
+            primeraGlobal('embarque') ??
+            (viaje?.fecha_creacion ? new Date(viaje.fecha_creacion) : null);
         const proceso = primeraGlobal('proceso');
 
         items.push({
