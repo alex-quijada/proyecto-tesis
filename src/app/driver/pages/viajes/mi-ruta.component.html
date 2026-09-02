@@ -94,6 +94,59 @@
         </div>
     }
 
+    <!-- Botones flotantes de control de navegación (lateral derecho sobre el mapa) -->
+    @if (navigation.navegando()) {
+        <div class="absolute right-3.5 top-36 z-20 flex flex-col gap-2.5">
+            @if (navigation.simulando()) {
+                <!-- Pausar / Reanudar -->
+                <button
+                    type="button"
+                    (click)="togglePausa()"
+                    [pTooltip]="navigation.pausado() ? 'Reanudar simulación' : 'Pausar simulación'"
+                    tooltipPosition="left"
+                    class="w-11 h-11 rounded-full bg-white/85 dark:bg-surface-800/85 backdrop-blur-md shadow-lg border border-surface-200/60 dark:border-surface-700/60 flex items-center justify-center text-surface-700 dark:text-surface-200 active:scale-95 transition-all cursor-pointer hover:bg-white dark:hover:bg-surface-800"
+                >
+                    <i
+                        [class]="
+                            navigation.pausado()
+                                ? 'pi pi-play text-emerald-500'
+                                : 'pi pi-pause text-amber-500'
+                        "
+                        class="text-base"
+                    ></i>
+                </button>
+
+                <!-- Reiniciar simulación -->
+                <button
+                    type="button"
+                    (click)="reiniciarSimulacion()"
+                    pTooltip="Reiniciar simulación"
+                    tooltipPosition="left"
+                    class="w-11 h-11 rounded-full bg-white/85 dark:bg-surface-800/85 backdrop-blur-md shadow-lg border border-surface-200/60 dark:border-surface-700/60 flex items-center justify-center text-red-500 active:scale-95 transition-all cursor-pointer hover:bg-white dark:hover:bg-surface-800"
+                >
+                    <i class="pi pi-refresh text-base"></i>
+                </button>
+            }
+
+            <!-- Seguir cámara / Re-centrar -->
+            <button
+                type="button"
+                (click)="toggleSeguimiento()"
+                [pTooltip]="siguiendo() ? 'Cámara fija (siguiendo)' : 'Centrar y seguir cámara'"
+                tooltipPosition="left"
+                class="w-11 h-11 rounded-full bg-white/85 dark:bg-surface-800/85 backdrop-blur-md shadow-lg border border-surface-200/60 dark:border-surface-700/60 flex items-center justify-center active:scale-95 transition-all cursor-pointer hover:bg-white dark:hover:bg-surface-800"
+                [class.text-primary]="siguiendo()"
+                [class.text-surface-600]="!siguiendo()"
+                [class.dark:text-surface-300]="!siguiendo()"
+            >
+                <i
+                    [class]="siguiendo() ? 'pi pi-map-marker' : 'pi pi-compass'"
+                    class="text-base"
+                ></i>
+            </button>
+        </div>
+    }
+
     <!-- Overlay: panel de navegación -->
     @if (navigation.navegando() && !puntoActual()) {
         <div class="absolute inset-x-0 bottom-0 z-10">
@@ -244,7 +297,7 @@
                                     [class.opacity-60]="!puntoTienePendientes(i)"
                                     [class.hover:bg-surface-100]="puntoTienePendientes(i)"
                                     [class.dark:hover:bg-surface-700]="puntoTienePendientes(i)"
-                                    (click)="abrirPunto(i)"
+                                    (click)="abrirInfoSucursal(p)"
                                 >
                                     @if (puntoTienePendientes(i)) {
                                         <div
@@ -262,7 +315,6 @@
                                     <span class="truncate">{{ p.nombreCliente }}</span>
                                     <i
                                         class="pi pi-info-circle text-primary text-sm flex-shrink-0 cursor-pointer hover:opacity-80"
-                                        (click)="$event.stopPropagation(); abrirInfoSucursal(p)"
                                         pTooltip="Información de la sucursal"
                                         tooltipPosition="left"
                                     ></i>
@@ -279,53 +331,6 @@
                                     }
                                 </div>
                             }
-                        </div>
-                    }
-                </div>
-
-                <!-- Controles: colapsables (sin selector modo al navegar) -->
-                <div class="border-t border-surface-100 dark:border-surface-700">
-                    <button
-                        type="button"
-                        class="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-surface-500 dark:text-surface-400 cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
-                        (click)="toggleControles()"
-                    >
-                        <i class="pi pi-sliders-h"></i>
-                        Controles
-                        <i
-                            class="pi pi-chevron-down text-[10px] transition-transform duration-200"
-                            [class.rotate-180]="controlesAbiertos()"
-                        ></i>
-                    </button>
-                    @if (controlesAbiertos()) {
-                        <div class="px-3 pb-3 flex gap-2">
-                            @if (navigation.simulando()) {
-                                <p-button
-                                    [label]="navigation.pausado() ? 'Reanudar' : 'Pausar'"
-                                    [icon]="navigation.pausado() ? 'pi pi-play' : 'pi pi-pause'"
-                                    severity="secondary"
-                                    [outlined]="true"
-                                    (onClick)="togglePausa()"
-                                    styleClass="flex-1 text-sm"
-                                />
-                                <p-button
-                                    icon="pi pi-refresh"
-                                    label="Reiniciar"
-                                    variant="outlined"
-                                    severity="danger"
-                                    [text]="true"
-                                    (onClick)="reiniciarSimulacion()"
-                                    styleClass="flex-1 text-sm"
-                                />
-                            }
-                            <p-button
-                                [icon]="siguiendo() ? 'pi pi-location' : 'pi pi-compass'"
-                                [label]="siguiendo() ? 'Seguir' : 'Seguir cámara'"
-                                [severity]="siguiendo() ? 'primary' : 'secondary'"
-                                [outlined]="!siguiendo()"
-                                (onClick)="toggleSeguimiento()"
-                                styleClass="flex-1 text-sm"
-                            />
                         </div>
                     }
                 </div>
@@ -509,9 +514,9 @@
                     <div class="p-3">
                         <div class="flex items-center gap-2 mb-3">
                             <div
-                                class="w-10 h-10 rounded-full bg-amber-500/15 text-amber-500 flex items-center justify-center flex-shrink-0"
+                                class="w-10 h-10 rounded-full bg-amber-500/15 text-amber-500 flex items-center justify-center flex-shrink-0 text-lg font-bold"
                             >
-                                {{ navigation.paradaActual() }}
+                                {{ (puntoEntrega() ?? navigation.paradaActual()) + 1 }}
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div
@@ -758,16 +763,18 @@
             [style]="{ width: '92%', maxWidth: '420px' }"
             [draggable]="false"
             [resizable]="false"
-            header="Sucursal"
+            header=" {{ sp.nombreCliente }}"
             (onHide)="cerrarInfoSucursal()"
         >
             <div class="space-y-3 text-sm">
                 <div>
-                    <div class="text-base font-bold text-surface-800 dark:text-surface-100">
-                        {{ sp.nombreCliente }}
-                    </div>
                     @if (sp.facturas[0]?.numeroGuia || sp.facturas[0]?.numeroFactura) {
                         <div class="text-xs text-surface-400 font-mono mt-0.5">
+                            <i class="pi pi-receipt text-primary"></i>
+                            {{ sp.facturas[0]?.numeroFactura }}
+                        </div>
+                        <div class="text-xs text-surface-400 font-mono mt-0.5">
+                            <i class="pi pi-file text-primary"></i>
                             {{ sp.facturas[0]?.numeroGuia || sp.facturas[0]?.numeroFactura }}
                         </div>
                     }
