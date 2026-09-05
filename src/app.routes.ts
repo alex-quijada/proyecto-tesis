@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from './app/auth/guards/role.guard';
+import { publicGuard } from './app/auth/guards/auth.guard';
 
 export const appRoutes: Routes = [
     {
         path: '',
+        canActivate: [publicGuard],
         loadComponent: () =>
             import('./app/auth/pages/login-page/login-page').then((m) => m.LoginPage),
     },

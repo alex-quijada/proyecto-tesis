@@ -10,6 +10,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../service/auth.service';
+import { ConnectivityService } from '@/app/services/connectivity.service';
 import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconfigurator';
 
 @Component({
@@ -41,12 +42,14 @@ import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconf
 export class LoginPage implements OnInit {
     private fb = inject(FormBuilder);
     private authService = inject(AuthService);
+    private connectivity = inject(ConnectivityService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
 
     private readonly KEY_EMAIL_RECORDADO = 'login_recordarme_email';
 
     hasError = signal(false);
+    mensajeError = signal('');
     sesionExpirada = signal(false);
     motivoCierre = signal('');
     isPosting = signal(false);
@@ -73,11 +76,13 @@ export class LoginPage implements OnInit {
     async onSubmit() {
         if (this.loginForm.invalid) {
             this.loginForm.markAllAsTouched();
+            this.mensajeError.set('Por favor completa todos los campos correctamente.');
             this.hasError.set(true);
             return;
         }
 
         this.hasError.set(false);
+        this.mensajeError.set('');
         this.isPosting.set(true);
 
         const { email, password, rememberMe } = this.loginForm.getRawValue();
@@ -106,12 +111,50 @@ export class LoginPage implements OnInit {
                 console.warn('Usuario sin rol logístico asignado válido.');
                 this.router.navigate(['/notfound']);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error en el inicio de sesión:', error);
+            const msg = this.traducirErrorLogin(error);
+            this.mensajeError.set(msg);
             this.hasError.set(true);
         } finally {
             this.isPosting.set(false);
         }
+    }
+
+    private traducirErrorLogin(error: any): string {
+        if (!navigator.onLine || !this.connectivity.isOnline()) {
+            return 'Sin conexión a internet. Verifica tu red e intenta nuevamente.';
+        }
+        const msg = (error?.message || error?.error_description || error?.name || '')
+            .toString()
+            .toLowerCase();
+
+        if (
+            msg.includes('failed to fetch') ||
+            msg.includes('networkerror') ||
+            msg.includes('fetch failed') ||
+            msg.includes('authretryablefetcherror') ||
+            msg.includes('network request failed')
+        ) {
+            return 'Sin conexión a internet. Verifica tu red e intenta nuevamente.';
+        }
+        if (msg.includes('desactivado')) {
+            return 'Tu usuario está desactivado. Contacta al administrador para activarlo.';
+        }
+        if (
+            msg.includes('invalid login credentials') ||
+            msg.includes('invalid credentials') ||
+            msg.includes('invalid_grant')
+        ) {
+            return 'Correo o contraseña incorrectos.';
+        }
+        if (msg.includes('email not confirmed')) {
+            return 'El correo electrónico no ha sido confirmado.';
+        }
+        if (msg.includes('rate limit') || msg.includes('too many requests')) {
+            return 'Demasiados intentos fallidos. Espera unos momentos antes de reintentar.';
+        }
+        return error?.message || 'Error al iniciar sesión. Intenta nuevamente.';
     }
 
     private recuperarEmailRecordado() {

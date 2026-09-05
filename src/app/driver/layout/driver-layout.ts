@@ -8,6 +8,7 @@ import { NavigationService } from '../services/navigation.service';
 import { PosicionService } from '../services/posicion.service';
 import { TiemposService } from '../services/tiempos.service';
 import { TrazaService } from '../services/traza.service';
+import { NotificationService } from '@/app/services/notification.service';
 import { DriverTopbar } from './driver-topbar';
 import { DriverBottomNav } from './driver-bottom-nav';
 
@@ -62,6 +63,7 @@ import { DriverBottomNav } from './driver-bottom-nav';
 export class DriverLayout implements OnInit {
     private router = inject(Router);
     private store = inject(DriverStoreService);
+    private notif = inject(NotificationService);
 
     private readonly posicionService = inject(PosicionService);
 
@@ -71,6 +73,7 @@ export class DriverLayout implements OnInit {
     animacionRuta = signal('pagina');
 
     ngOnInit() {
+        this.notif.setPosicion('top-center');
         this.store.cargarDatos();
 
         this.router.events.subscribe((event) => {

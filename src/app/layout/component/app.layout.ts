@@ -5,6 +5,7 @@ import { AppTopbar } from './app.topbar';
 import { AppSidebar } from './app.sidebar';
 import { AppFooter } from './app.footer';
 import { LayoutService } from '@/app/layout/service/layout.service';
+import { NotificationService } from '@/app/services/notification.service';
 
 @Component({
     selector: 'app-layout',
@@ -24,8 +25,10 @@ import { LayoutService } from '@/app/layout/service/layout.service';
 })
 export class AppLayout {
     layoutService = inject(LayoutService);
+    private notif = inject(NotificationService);
 
     constructor() {
+        this.notif.setPosicion('top-right');
         effect(() => {
             const state = this.layoutService.layoutState();
             if (state.mobileMenuActive) {
