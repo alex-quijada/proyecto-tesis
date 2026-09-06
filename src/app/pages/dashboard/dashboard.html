@@ -51,7 +51,7 @@
                 <div
                     class="group card mb-0 cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
                     (click)="irASeccion(kpi)"
-                    pTooltip="Ir a {{ kpi.subtitle }}"
+                    [pTooltip]="kpi.tooltip"
                     tooltipPosition="bottom"
                 >
                     <div class="flex justify-between mb-4">

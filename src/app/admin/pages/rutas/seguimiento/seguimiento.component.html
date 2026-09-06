@@ -1,19 +1,26 @@
 <div class="card h-[calc(100vh-8.4rem)] flex flex-col overflow-hidden">
-    <div class="flex items-center gap-3 mb-4 shrink-0 flex-wrap">
-        <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">
-            Monitoreo en Tiempo Real
-        </h1>
-
-        <div class="flex items-center gap-2">
-            @if (conectado()) {
-                <p-tag value="En vivo" severity="success" icon="pi pi-circle-fill" />
-            } @else {
-                <p-tag value="Reconectando" severity="warn" icon="pi pi-spin pi-spinner" />
-            }
-            <span class="text-xs text-surface-400"> Actualizado {{ formatoActualizacion() }} </span>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">
+                Monitoreo en Tiempo Real
+            </h1>
+            <p class="text-sm text-surface-500">
+                Supervise la ubicación en vivo de la flota y el avance de las entregas
+            </p>
         </div>
 
-        <div class="ml-auto flex items-center gap-2">
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                @if (conectado()) {
+                    <p-tag value="En vivo" severity="success" icon="pi pi-circle-fill" />
+                } @else {
+                    <p-tag value="Reconectando" severity="warn" icon="pi pi-spin pi-spinner" />
+                }
+                <span class="text-xs text-surface-400">
+                    Actualizado {{ formatoActualizacion() }}
+                </span>
+            </div>
+
             <p-button
                 label="Refrescar"
                 icon="pi pi-refresh"

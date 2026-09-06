@@ -34,6 +34,7 @@ interface KpiCard {
     valueVES?: number;
     icon: string;
     subtitle: string;
+    tooltip: string;
     ruta: string;
 }
 
@@ -149,6 +150,7 @@ export class Dashboard implements OnInit, OnDestroy {
                     value: kpis.guiasPendientes,
                     icon: 'pi pi-file',
                     subtitle: 'Por planificar viajes',
+                    tooltip: 'Ir a Optimización de Rutas',
                     ruta: '/app/rutas/optimizacion',
                 },
                 {
@@ -156,6 +158,7 @@ export class Dashboard implements OnInit, OnDestroy {
                     value: kpis.choferesActivos,
                     icon: 'pi pi-users',
                     subtitle: 'Disponibles en el sistema',
+                    tooltip: 'Ir a Choferes y Ayudantes',
                     ruta: '/app/choferes',
                 },
                 {
@@ -163,6 +166,7 @@ export class Dashboard implements OnInit, OnDestroy {
                     value: kpis.vehiculosOperativos,
                     icon: 'pi pi-truck',
                     subtitle: 'En condiciones de rodar',
+                    tooltip: 'Ir a Listado de la Flota',
                     ruta: '/app/vehiculos',
                 },
                 {
@@ -171,6 +175,7 @@ export class Dashboard implements OnInit, OnDestroy {
                     valueVES: kpis.montoPendienteVES,
                     icon: 'pi pi-dollar',
                     subtitle: 'Mercancía sin entregar',
+                    tooltip: 'Ver facturas pendientes en Optimización de Rutas',
                     ruta: '/app/rutas/optimizacion',
                 },
             ]);
