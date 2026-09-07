@@ -139,7 +139,7 @@
                     <td class="font-mono text-sm">
                         {{ m.costo | currency: 'USD' : 'symbol' : '1.2-2' }}
                     </td>
-                    <td class="font-mono text-sm">{{ m.costoBss | number: '1.2-2' }} Bs</td>
+                    <td class="font-mono text-sm">Bs{{ m.costoBss | number: '1.2-2' }}</td>
                     <td>
                         <p-tag
                             [value]="
