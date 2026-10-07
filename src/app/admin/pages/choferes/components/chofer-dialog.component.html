@@ -6,12 +6,11 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-            <p-message
-                *ngIf="errorMessage()"
-                severity="error"
-                [text]="errorMessage()"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage()) {
+                <p-message severity="error" class="mb-2 w-full">
+                    {{ errorMessage() }}
+                </p-message>
+            }
 
             <p-fluid>
                 <div
@@ -35,6 +34,9 @@
                             appendTo="body"
                         >
                         </p-select>
+                        @if (submitted && form.get('documentoIdentidad.prefijo')?.invalid) {
+                            <small class="text-red-500">Seleccione un tipo</small>
+                        }
                     </div>
                     <div class="col-span-9 flex flex-col gap-2">
                         <label for="numDoc" class="font-semibold"
@@ -46,38 +48,28 @@
                             formControlName="numero"
                             placeholder="12345678"
                         />
-                        <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['required']
-                            "
-                            class="text-red-500"
-                            >La cédula es obligatoria</small
-                        >
-                        <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['pattern']
-                            "
-                            class="text-red-500"
-                            >Solo dígitos numéricos</small
-                        >
-                        <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['minlength']
-                            "
-                            class="text-red-500"
-                            >Mínimo 5 dígitos</small
-                        >
-                        <small
-                            *ngIf="
-                                submitted &&
-                                form.get('documentoIdentidad.numero')?.errors?.['maxlength']
-                            "
-                            class="text-red-500"
-                            >Máximo 9 dígitos</small
-                        >
+                        @if (
+                            submitted && form.get('documentoIdentidad.numero')?.errors?.['required']
+                        ) {
+                            <small class="text-red-500">La cédula es obligatoria</small>
+                        }
+                        @if (
+                            submitted && form.get('documentoIdentidad.numero')?.errors?.['pattern']
+                        ) {
+                            <small class="text-red-500">Solo dígitos numéricos</small>
+                        }
+                        @if (
+                            submitted &&
+                            form.get('documentoIdentidad.numero')?.errors?.['minlength']
+                        ) {
+                            <small class="text-red-500">Mínimo 5 dígitos</small>
+                        }
+                        @if (
+                            submitted &&
+                            form.get('documentoIdentidad.numero')?.errors?.['maxlength']
+                        ) {
+                            <small class="text-red-500">Máximo 9 dígitos</small>
+                        }
                     </div>
                 </div>
 
@@ -92,11 +84,9 @@
                             formControlName="nombreCompleto"
                             placeholder="Ej: Carlos José Martínez"
                         />
-                        <small
-                            *ngIf="submitted && form.get('nombreCompleto')?.invalid"
-                            class="text-red-500"
-                            >El nombre es obligatorio</small
-                        >
+                        @if (submitted && form.get('nombreCompleto')?.invalid) {
+                            <small class="text-red-500">El nombre es obligatorio</small>
+                        }
                     </div>
                     <div class="col-span-5 flex flex-col gap-2">
                         <label for="telefono" class="font-semibold">Teléfono</label>
@@ -106,11 +96,9 @@
                             formControlName="telefono"
                             placeholder="0414-1234567"
                         />
-                        <small
-                            *ngIf="submitted && form.get('telefono')?.errors?.['pattern']"
-                            class="text-red-500"
-                            >Formato inválido (ej: 0414-1234567)</small
-                        >
+                        @if (submitted && form.get('telefono')?.errors?.['pattern']) {
+                            <small class="text-red-500">Formato inválido (ej: 0414-1234567)</small>
+                        }
                     </div>
                 </div>
 
@@ -129,6 +117,9 @@
                             appendTo="body"
                         >
                         </p-select>
+                        @if (submitted && form.get('rol')?.invalid) {
+                            <small class="text-red-500">Seleccione un rol</small>
+                        }
                     </div>
                 </div>
             </p-fluid>
@@ -155,11 +146,11 @@
                                 formControlName="numero"
                                 placeholder="Ej: L-12345678"
                             />
-                            <small
-                                *ngIf="submitted && form.get('licencia.numero')?.invalid"
-                                class="text-red-500"
-                                >El número de licencia es obligatorio</small
-                            >
+                            @if (submitted && form.get('licencia.numero')?.invalid) {
+                                <small class="text-red-500"
+                                    >El número de licencia es obligatorio</small
+                                >
+                            }
                         </div>
                         <div class="col-span-6 flex flex-col gap-2">
                             <label for="licenciaGrado" class="font-semibold"
@@ -175,11 +166,9 @@
                                 appendTo="body"
                             >
                             </p-select>
-                            <small
-                                *ngIf="submitted && form.get('licencia.grado')?.invalid"
-                                class="text-red-500"
-                                >El grado es obligatorio</small
-                            >
+                            @if (submitted && form.get('licencia.grado')?.invalid) {
+                                <small class="text-red-500">El grado es obligatorio</small>
+                            }
                         </div>
                     </div>
 
@@ -195,11 +184,11 @@
                                 placeholder="dd/mm/aaaa"
                                 appendTo="body"
                             />
-                            <small
-                                *ngIf="submitted && form.get('licencia.fechaExpedicion')?.invalid"
-                                class="text-red-500"
-                                >La fecha de expedición es obligatoria</small
-                            >
+                            @if (submitted && form.get('licencia.fechaExpedicion')?.invalid) {
+                                <small class="text-red-500"
+                                    >La fecha de expedición es obligatoria</small
+                                >
+                            }
                         </div>
                         <div class="col-span-6 flex flex-col gap-2">
                             <label class="font-semibold">Fecha de Vencimiento</label>
@@ -237,11 +226,11 @@
                             formControlName="numero"
                             placeholder="Ej: CMV-987654"
                         />
-                        <small
-                            *ngIf="submitted && form.get('certificadoMedico.numero')?.invalid"
-                            class="text-red-500"
-                            >El número de certificado es obligatorio</small
-                        >
+                        @if (submitted && form.get('certificadoMedico.numero')?.invalid) {
+                            <small class="text-red-500"
+                                >El número de certificado es obligatorio</small
+                            >
+                        }
                     </div>
 
                     <div class="grid grid-cols-12 gap-3">
@@ -256,14 +245,13 @@
                                 placeholder="dd/mm/aaaa"
                                 appendTo="body"
                             />
-                            <small
-                                *ngIf="
-                                    submitted &&
-                                    form.get('certificadoMedico.fechaExpedicion')?.invalid
-                                "
-                                class="text-red-500"
-                                >Obligatorio</small
-                            >
+                            @if (
+                                submitted && form.get('certificadoMedico.fechaExpedicion')?.invalid
+                            ) {
+                                <small class="text-red-500"
+                                    >La fecha de expedición es obligatoria</small
+                                >
+                            }
                         </div>
                         <div class="col-span-6 flex flex-col gap-2">
                             <label class="font-semibold">Fecha de Vencimiento</label>

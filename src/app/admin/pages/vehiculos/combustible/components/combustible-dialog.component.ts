@@ -1,4 +1,5 @@
 import { Component, input, output, model, effect, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
     ReactiveFormsModule,
@@ -173,13 +174,19 @@ export class CombustibleDialogComponent implements OnInit {
     constructor() {
         const litros = this.form.get('litrosCargados');
         if (litros) litros.setValidators([Validators.required, this.litrosValidator()]);
-        this.form.get('idVehiculo')?.valueChanges.subscribe(() => {
-            litros?.updateValueAndValidity();
-            this.recalcularDespues();
-        });
-        this.form.get('nivelTanqueAntes')?.valueChanges.subscribe(() => {
-            litros?.updateValueAndValidity();
-        });
+        this.form
+            .get('idVehiculo')
+            ?.valueChanges.pipe(takeUntilDestroyed())
+            .subscribe(() => {
+                litros?.updateValueAndValidity();
+                this.recalcularDespues();
+            });
+        this.form
+            .get('nivelTanqueAntes')
+            ?.valueChanges.pipe(takeUntilDestroyed())
+            .subscribe(() => {
+                litros?.updateValueAndValidity();
+            });
         effect(() => {
             const data = this.cargaData();
             this.submitted = false;
@@ -229,6 +236,7 @@ export class CombustibleDialogComponent implements OnInit {
     save() {
         this.submitted = true;
         this.errorMessage = '';
+        this.form.markAllAsTouched();
 
         if (this.form.invalid) {
             const litrosErr = this.form.get('litrosCargados')?.errors;

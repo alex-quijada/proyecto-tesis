@@ -105,8 +105,8 @@ export class ClientesComponent implements OnInit {
             const map: Record<string, string> = {};
             for (const m of items) map[m.id_municipio] = m.nombre;
             this.municipiosMap.set(map);
-        } catch {
-            /* ok */
+        } catch (err) {
+            console.warn('[ClientesComponent] Error al cargar municipios:', err);
         }
     }
 
@@ -153,8 +153,13 @@ export class ClientesComponent implements OnInit {
             this.clientes.update((list) =>
                 list.map((c) => (c.id === id ? { ...c, sucursales } : c)),
             );
-        } catch {
-            // silently fail
+        } catch (err: any) {
+            console.error('[ClientesComponent] Error al cargar sucursales de cliente ' + id, err);
+            this.notif.add({
+                severity: 'warn',
+                summary: 'Sucursales',
+                detail: `No se pudieron cargar las sucursales de ${cliente.nombreComercial || cliente.personaContacto || 'cliente'}.`,
+            });
         } finally {
             this.loadingSucursales.update((map) => ({ ...map, [id]: false }));
         }

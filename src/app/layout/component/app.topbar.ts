@@ -28,7 +28,7 @@ import { AuthService } from '../../auth/service/auth.service';
                         [class.invert]="layoutService.isDarkTheme()"
                     />
                 </div>
-                <span class="-ml-4">BrandIA ®</span>
+                <span class="-ml-4">BrandIA</span>
             </a>
         </div>
 

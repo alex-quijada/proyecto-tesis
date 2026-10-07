@@ -44,6 +44,7 @@ import { Vehiculo } from '../../vehiculos/data/vehiculos-mock';
 import { VehiculoDialogComponent } from '../../vehiculos/components/vehiculo-dialog/vehiculo-dialog.component';
 import Fuse from 'fuse.js';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PdfNormalizerService, similitudTexto } from '../services/pdf-parse.service';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { ClienteService } from '../../clientes/service/cliente.service';
@@ -183,11 +184,13 @@ export class GuiaDialogComponent implements OnInit {
             this.filteredClientesSig.set(this.clientesOptionsSig());
         });
 
-        this.form.valueChanges.subscribe(() => this.actualizarEntidadesInactivas());
+        this.form.valueChanges
+            .pipe(takeUntilDestroyed())
+            .subscribe(() => this.actualizarEntidadesInactivas());
 
         this.form
             .get('codigoGuia')!
-            .valueChanges.pipe(debounceTime(400), distinctUntilChanged())
+            .valueChanges.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed())
             .subscribe((codigo: string) => {
                 void this.verificarCodigoDuplicado(codigo);
             });
@@ -270,7 +273,6 @@ export class GuiaDialogComponent implements OnInit {
             if (idCliente) {
                 const cliente = this.clientesSig().find((c) => c.id === idCliente);
                 if (cliente) {
-                    console.log([cliente]);
                     group.patchValue({
                         nombreCliente: cliente.personaContacto || '',
                         rifCliente: cliente.documentoIdentidad
@@ -314,8 +316,8 @@ export class GuiaDialogComponent implements OnInit {
                     }));
                 this.todosLosAyudantesSig.set(ayudantes);
             }
-        } catch {
-            /* keep fallback */
+        } catch (err) {
+            console.warn('[GuiaDialog] Error al cargar ayudantes, manteniendo fallback:', err);
         }
     }
 
@@ -333,8 +335,8 @@ export class GuiaDialogComponent implements OnInit {
                     })),
                 );
             }
-        } catch {
-            /* keep fallback */
+        } catch (err) {
+            console.warn('[GuiaDialog] Error al cargar vehículos, manteniendo fallback:', err);
         }
     }
 
@@ -346,8 +348,8 @@ export class GuiaDialogComponent implements OnInit {
                 this.filteredClientesSig.set(this.clientesOptionsSig());
                 this.fuseClientes.setCollection(clientesData);
             }
-        } catch {
-            /* keep fallback */
+        } catch (err) {
+            console.warn('[GuiaDialog] Error al cargar clientes, manteniendo fallback:', err);
         }
     }
 
@@ -396,7 +398,8 @@ export class GuiaDialogComponent implements OnInit {
         try {
             const existe = await this.rutaService.existeCodigoGuia(norm, this.guiaData()?.id);
             if (token === this.codigoCheckCounter) this.codigoDuplicado.set(existe);
-        } catch {
+        } catch (err) {
+            console.warn('[GuiaDialog] Error al verificar código de guía duplicado:', err);
             if (token === this.codigoCheckCounter) this.codigoDuplicado.set(false);
         }
     }
@@ -412,7 +415,7 @@ export class GuiaDialogComponent implements OnInit {
         this.cargandoPDF.set(true);
         try {
             const datos = await this.pdfNormalizerService.procesarArchivoPdf(file);
-            console.log('Datos extraídos del PDF:', datos);
+            // console.log('Datos extraídos del PDF:', datos);
 
             this.currentRutaPdf.set(datos.ruta || '');
 
@@ -803,8 +806,11 @@ export class GuiaDialogComponent implements OnInit {
                 ...prev,
                 [clienteId]: sucursales,
             }));
-        } catch {
-            /* ignore */
+        } catch (err) {
+            console.warn(
+                `[GuiaDialog] Error al cargar sucursales para el cliente ${clienteId}:`,
+                err,
+            );
         }
     }
 
@@ -891,6 +897,21 @@ export class GuiaDialogComponent implements OnInit {
         if (p.includes('media')) return 'warn';
         if (p.includes('baja') || p.includes('normal')) return 'info';
         return 'secondary';
+    }
+
+    esFacturaDuplicada(index: number): boolean {
+        const num = (this.facturas.at(index)?.get('numeroFactura')?.value || '')
+            .trim()
+            .toUpperCase();
+        if (!num) return false;
+        let count = 0;
+        for (let i = 0; i < this.facturas.length; i++) {
+            const otroNum = (this.facturas.at(i)?.get('numeroFactura')?.value || '')
+                .trim()
+                .toUpperCase();
+            if (otroNum === num) count++;
+        }
+        return count > 1;
     }
 
     hideDialog() {
@@ -983,6 +1004,7 @@ export class GuiaDialogComponent implements OnInit {
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
+        this.form.markAllAsTouched();
 
         if (this.guiaData()?.id) {
             const facturasActuales = this.guiaData().facturas || [];
@@ -991,7 +1013,9 @@ export class GuiaDialogComponent implements OnInit {
                 (e) => e === 'proceso' || e === 'espera' || e === 'entrega',
             );
             if (enTransito) {
-                this.errorMessage.set('No se puede modificar la guía mientras el viaje esté en curso.');
+                this.errorMessage.set(
+                    'No se puede modificar la guía mientras el viaje esté en curso.',
+                );
                 return;
             }
             const todasIniciales = estados.every((e) => e === 'nuevo' || e === 'embarque');
@@ -1013,12 +1037,37 @@ export class GuiaDialogComponent implements OnInit {
             return;
         }
 
+        if (this.facturas.length === 0) {
+            this.errorMessage.set('Debe registrar al menos una factura en la guía de despacho.');
+            return;
+        }
+
         if (this.form.invalid) {
             this.errorMessage.set('Complete todos los campos obligatorios marcados con *.');
             return;
         }
 
         const raw = this.form.getRawValue();
+
+        // Validar que no existan números de factura repetidos dentro de la misma guía
+        const facturasNums = (raw.facturas || [])
+            .map((f: any) => (f.numeroFactura || '').trim().toUpperCase())
+            .filter((n: string) => !!n);
+        const setNums = new Set<string>();
+        const repetidos: string[] = [];
+        for (const num of facturasNums) {
+            if (setNums.has(num)) {
+                repetidos.push(num);
+            } else {
+                setNums.add(num);
+            }
+        }
+        if (repetidos.length > 0) {
+            this.errorMessage.set(
+                `El número de factura "${repetidos[0]}" está duplicado en esta guía. Cada factura debe tener un número único.`,
+            );
+            return;
+        }
 
         const codigoNorm = (raw.codigoGuia || '').trim().toLowerCase();
         if (codigoNorm) {

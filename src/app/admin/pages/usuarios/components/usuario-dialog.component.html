@@ -6,12 +6,11 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2" autocomplete="off">
-            <p-message
-                *ngIf="errorMessage()"
-                severity="error"
-                [text]="errorMessage()"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage()) {
+                <p-message severity="error" class="mb-2 w-full">
+                    {{ errorMessage() }}
+                </p-message>
+            }
 
             <p-fluid>
                 <div
@@ -32,14 +31,18 @@
                             autocomplete="off"
                             (blur)="onBlurDominio()"
                         />
-                        <small *ngIf="submitted && form.get('email')?.invalid" class="text-red-500"
-                            >Correo requerido y debe terminar en @brandia.com</small
-                        >
+                        @if (submitted && form.get('email')?.invalid) {
+                            <small class="text-red-500"
+                                >Correo requerido y debe terminar en @brandia.com</small
+                            >
+                        }
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label class="font-semibold">
                             {{ usuarioData().id ? 'Nueva Clave' : 'Contraseña' }}
-                            <span *ngIf="!usuarioData().id" class="text-red-500">*</span>
+                            @if (!usuarioData().id) {
+                                <span class="text-red-500">*</span>
+                            }
                         </label>
                         <p-password
                             formControlName="password"
@@ -49,16 +52,15 @@
                             [feedback]="false"
                             autocomplete="new-password"
                         ></p-password>
-                        <small
-                            *ngIf="submitted && form.get('password')?.invalid"
-                            class="text-red-500"
-                        >
-                            {{
-                                usuarioData().id
-                                    ? 'Debe tener 6+ caracteres si se especifica'
-                                    : 'Requerida (6+ caracteres)'
-                            }}
-                        </small>
+                        @if (submitted && form.get('password')?.invalid) {
+                            <small class="text-red-500">
+                                {{
+                                    usuarioData().id
+                                        ? 'Debe tener 6+ caracteres si se especifica'
+                                        : 'Requerida (6+ caracteres)'
+                                }}
+                            </small>
+                        }
                     </div>
                 </div>
             </p-fluid>
@@ -85,6 +87,9 @@
                             placeholder="Tipo"
                             appendTo="body"
                         />
+                        @if (submitted && form.get('prefijoDoc')?.invalid) {
+                            <small class="text-red-500">Requerido</small>
+                        }
                     </div>
                     <div class="col-span-3 flex flex-col gap-2">
                         <label class="font-semibold"
@@ -97,11 +102,9 @@
                             placeholder="12345678"
                         />
                         <input type="hidden" name="username" autocomplete="off" />
-                        <small
-                            *ngIf="submitted && form.get('numeroDoc')?.invalid"
-                            class="text-red-500"
-                            >Requerido (5-12 dígitos)</small
-                        >
+                        @if (submitted && form.get('numeroDoc')?.invalid) {
+                            <small class="text-red-500">Requerido (5-12 dígitos)</small>
+                        }
                     </div>
                     <div class="col-span-3 flex flex-col gap-2">
                         <label class="font-semibold">Rol <span class="text-red-500">*</span></label>
@@ -114,9 +117,9 @@
                             (onChange)="onRolChange()"
                             appendTo="body"
                         />
-                        <small *ngIf="submitted && form.get('rol')?.invalid" class="text-red-500"
-                            >Seleccione un rol</small
-                        >
+                        @if (submitted && form.get('rol')?.invalid) {
+                            <small class="text-red-500">Seleccione un rol</small>
+                        }
                     </div>
                 </div>
                 <div class="grid grid-cols-12 gap-3 mt-2">
@@ -130,17 +133,15 @@
                             placeholder="Nombre completo"
                             autocomplete="off"
                         />
-                        <small
-                            *ngIf="submitted && form.get('nombreCompleto')?.invalid"
-                            class="text-red-500"
-                            >Requerido</small
-                        >
+                        @if (submitted && form.get('nombreCompleto')?.invalid) {
+                            <small class="text-red-500">Requerido</small>
+                        }
                     </div>
                 </div>
             </p-fluid>
 
             <!-- Sección Chofer / Ayudante -->
-            <ng-container *ngIf="rolValue === 'CHOFER' || rolValue === 'AYUDANTE'">
+            @if (rolValue === 'CHOFER' || rolValue === 'AYUDANTE') {
                 <p-divider />
                 <p-fluid>
                     <div
@@ -149,7 +150,7 @@
                         <i class="pi pi-wrench mr-1"></i>
                         Datos del Conductor
                     </div>
-                    <ng-container *ngIf="rolValue === 'CHOFER'">
+                    @if (rolValue === 'CHOFER') {
                         <div class="font-semibold text-sm mt-3 flex items-center gap-2">
                             <i class="pi pi-id-card text-primary"></i>
                             Licencia de Conducir
@@ -165,11 +166,9 @@
                                     placeholder="L-12345678"
                                     autocomplete="off"
                                 />
-                                <small
-                                    *ngIf="submitted && form.get('licenciaNumero')?.invalid"
-                                    class="text-red-500"
-                                    >Requerido</small
-                                >
+                                @if (submitted && form.get('licenciaNumero')?.invalid) {
+                                    <small class="text-red-500">Requerido</small>
+                                }
                             </div>
                             <div class="col-span-3 flex flex-col gap-2">
                                 <label class="font-semibold"
@@ -183,11 +182,9 @@
                                     placeholder="Grado"
                                     appendTo="body"
                                 />
-                                <small
-                                    *ngIf="submitted && form.get('licenciaGrado')?.invalid"
-                                    class="text-red-500"
-                                    >Requerido</small
-                                >
+                                @if (submitted && form.get('licenciaGrado')?.invalid) {
+                                    <small class="text-red-500">Requerido</small>
+                                }
                             </div>
                             <div class="col-span-3 flex flex-col gap-2">
                                 <label class="font-semibold"
@@ -199,11 +196,9 @@
                                     placeholder="dd/mm/aaaa"
                                     appendTo="body"
                                 />
-                                <small
-                                    *ngIf="submitted && form.get('licenciaExpedicion')?.invalid"
-                                    class="text-red-500"
-                                    >Requerido</small
-                                >
+                                @if (submitted && form.get('licenciaExpedicion')?.invalid) {
+                                    <small class="text-red-500">Requerido</small>
+                                }
                             </div>
                             <div class="col-span-3 flex flex-col gap-2">
                                 <label class="font-semibold">Vencimiento</label>
@@ -217,7 +212,7 @@
                                 </div>
                             </div>
                         </div>
-                    </ng-container>
+                    }
 
                     <div class="font-semibold text-sm mt-3 flex items-center gap-2">
                         <i class="pi pi-heart text-primary"></i>
@@ -234,11 +229,9 @@
                                 placeholder="CMV-987654"
                                 autocomplete="off"
                             />
-                            <small
-                                *ngIf="submitted && form.get('certMedicoNumero')?.invalid"
-                                class="text-red-500"
-                                >Requerido</small
-                            >
+                            @if (submitted && form.get('certMedicoNumero')?.invalid) {
+                                <small class="text-red-500">Requerido</small>
+                            }
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
                             <label class="font-semibold"
@@ -250,11 +243,9 @@
                                 placeholder="dd/mm/aaaa"
                                 appendTo="body"
                             />
-                            <small
-                                *ngIf="submitted && form.get('certMedicoExpedicion')?.invalid"
-                                class="text-red-500"
-                                >Requerido</small
-                            >
+                            @if (submitted && form.get('certMedicoExpedicion')?.invalid) {
+                                <small class="text-red-500">Requerido</small>
+                            }
                         </div>
                         <div class="col-span-4 flex flex-col gap-2">
                             <label class="font-semibold">Vencimiento</label>
@@ -269,7 +260,7 @@
                         </div>
                     </div>
                 </p-fluid>
-            </ng-container>
+            }
         </form>
     </ng-template>
 

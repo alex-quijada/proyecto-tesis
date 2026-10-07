@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule, RouterOutlet } from '@angular/router';
 import { trigger, transition, style, animate, query } from '@angular/animations';
@@ -8,6 +9,7 @@ import { NavigationService } from '../services/navigation.service';
 import { PosicionService } from '../services/posicion.service';
 import { TiemposService } from '../services/tiempos.service';
 import { TrazaService } from '../services/traza.service';
+import { BackgroundTrackingService } from '../services/background-tracking.service';
 import { NotificationService } from '@/app/services/notification.service';
 import { DriverTopbar } from './driver-topbar';
 import { DriverBottomNav } from './driver-bottom-nav';
@@ -22,6 +24,7 @@ import { DriverBottomNav } from './driver-bottom-nav';
         PosicionService,
         TiemposService,
         TrazaService,
+        BackgroundTrackingService,
     ],
     animations: [
         trigger('routeAnimations', [
@@ -64,6 +67,7 @@ export class DriverLayout implements OnInit {
     private router = inject(Router);
     private store = inject(DriverStoreService);
     private notif = inject(NotificationService);
+    private destroyRef = inject(DestroyRef);
 
     private readonly posicionService = inject(PosicionService);
 
@@ -76,7 +80,7 @@ export class DriverLayout implements OnInit {
         this.notif.setPosicion('top-center');
         this.store.cargarDatos();
 
-        this.router.events.subscribe((event) => {
+        this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
             if (event instanceof NavigationEnd) {
                 const esPerfil = event.url.startsWith('/driver/perfil');
                 this.mostrarTopbar.set(!esPerfil);

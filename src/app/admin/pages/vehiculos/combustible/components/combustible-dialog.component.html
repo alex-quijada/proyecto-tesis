@@ -6,12 +6,9 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-            <p-message
-                *ngIf="errorMessage"
-                severity="error"
-                [text]="errorMessage"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage) {
+                <p-message severity="error" [text]="errorMessage" class="mb-2"></p-message>
+            }
 
             <p-fluid>
                 <div
@@ -34,9 +31,9 @@
                         appendTo="body"
                     >
                     </p-select>
-                    <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500"
-                        >Seleccione una unidad</small
-                    >
+                    @if (submitted && form.get('idVehiculo')?.invalid) {
+                        <small class="text-red-500">Seleccione una unidad</small>
+                    }
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
@@ -51,6 +48,9 @@
                             placeholder="dd/mm/aaaa"
                             appendTo="body"
                         />
+                        @if (submitted && form.get('fecha')?.invalid) {
+                            <small class="text-red-500">La fecha es obligatoria</small>
+                        }
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label for="tipoCombustible" class="font-semibold"
@@ -66,6 +66,9 @@
                             appendTo="body"
                         >
                         </p-select>
+                        @if (submitted && form.get('tipoCombustible')?.invalid) {
+                            <small class="text-red-500">Seleccione el tipo de combustible</small>
+                        }
                     </div>
                 </div>
             </p-fluid>
@@ -128,23 +131,22 @@
                             placeholder="0.0"
                             (onInput)="onLitrosChange()"
                         />
-                        <small
-                            *ngIf="
-                                submitted && form.get('litrosCargados')?.errors?.['excedeTanque']
-                            "
-                            class="text-red-500"
-                            >Excede el espacio restante del tanque.</small
-                        >
-                        <small
-                            *ngIf="submitted && form.get('litrosCargados')?.errors?.['maxLitros']"
-                            class="text-red-500"
-                            >Máximo {{ limitesLitros.max }} L para este vehículo.</small
-                        >
-                        <small
-                            *ngIf="submitted && form.get('litrosCargados')?.errors?.['minLitros']"
-                            class="text-red-500"
-                            >Mínimo {{ limitesLitros.min }} L.</small
-                        >
+                        @if (submitted && form.get('litrosCargados')?.errors?.['required']) {
+                            <small class="text-red-500">Los litros cargados son obligatorios</small>
+                        }
+                        @if (submitted && form.get('litrosCargados')?.errors?.['excedeTanque']) {
+                            <small class="text-red-500"
+                                >Excede el espacio restante del tanque.</small
+                            >
+                        }
+                        @if (submitted && form.get('litrosCargados')?.errors?.['maxLitros']) {
+                            <small class="text-red-500"
+                                >Máximo {{ limitesLitros.max }} L para este vehículo.</small
+                            >
+                        }
+                        @if (submitted && form.get('litrosCargados')?.errors?.['minLitros']) {
+                            <small class="text-red-500">Mínimo {{ limitesLitros.min }} L.</small>
+                        }
                         <small class="text-xs text-surface-400"
                             >Capacidad del tanque: {{ capacidadTanque }} L (según tipo de
                             vehículo).</small
@@ -163,6 +165,9 @@
                             placeholder="0.00"
                             (onInput)="onPrecioChange()"
                         />
+                        @if (submitted && form.get('costoPorLitro')?.invalid) {
+                            <small class="text-red-500">El precio por litro es obligatorio</small>
+                        }
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
                         <label class="font-semibold">Total</label>
@@ -186,6 +191,9 @@
                             [suffix]="' Bs'"
                             placeholder="Ej: 36.50"
                         />
+                        @if (submitted && form.get('tasaBs')?.invalid) {
+                            <small class="text-red-500">La tasa del día es obligatoria</small>
+                        }
                         <small class="text-xs text-surface-400"
                             >Se usa para calcular el costo en bolívares.</small
                         >

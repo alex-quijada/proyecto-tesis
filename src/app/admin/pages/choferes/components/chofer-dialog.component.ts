@@ -145,6 +145,7 @@ export class ChoferDialogComponent {
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
+        this.form.markAllAsTouched();
 
         if (this.form.invalid) {
             this.errorMessage.set('Complete todos los campos obligatorios marcados con *.');

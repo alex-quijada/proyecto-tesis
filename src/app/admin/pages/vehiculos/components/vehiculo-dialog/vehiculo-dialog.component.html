@@ -10,12 +10,9 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-            <p-message
-                *ngIf="errorMessage()"
-                severity="error"
-                [text]="errorMessage()"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage()) {
+                <p-message severity="error" [text]="errorMessage()" class="mb-2"></p-message>
+            }
 
             <p-fluid>
                 <div
@@ -38,6 +35,9 @@
                         appendTo="body"
                     >
                     </p-select>
+                    @if (submitted && form.get('tipo')?.invalid) {
+                        <small class="text-red-500">Seleccione un tipo de unidad</small>
+                    }
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
@@ -53,16 +53,12 @@
                             maxlength="9"
                             class="uppercase"
                         />
-                        <small
-                            *ngIf="submitted && form.get('placa')?.errors?.['required']"
-                            class="text-red-500"
-                            >La placa es obligatoria</small
-                        >
-                        <small
-                            *ngIf="submitted && form.get('placa')?.errors?.['pattern']"
-                            class="text-red-500"
-                            >Formato inválido</small
-                        >
+                        @if (submitted && form.get('placa')?.errors?.['required']) {
+                            <small class="text-red-500">La placa es obligatoria</small>
+                        }
+                        @if (submitted && form.get('placa')?.errors?.['pattern']) {
+                            <small class="text-red-500">Formato inválido</small>
+                        }
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label for="marca" class="font-semibold"
@@ -74,6 +70,9 @@
                             formControlName="marca"
                             placeholder="Ej: Chevrolet"
                         />
+                        @if (submitted && form.get('marca')?.invalid) {
+                            <small class="text-red-500">La marca es obligatoria</small>
+                        }
                     </div>
                 </div>
 
@@ -88,6 +87,9 @@
                             formControlName="modelo"
                             placeholder="Ej: NPR Cava"
                         />
+                        @if (submitted && form.get('modelo')?.invalid) {
+                            <small class="text-red-500">El modelo es obligatorio</small>
+                        }
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label for="anio" class="font-semibold"
@@ -100,21 +102,17 @@
                             [maxlength]="4"
                             placeholder="Ej: 2024"
                         />
-                        <small
-                            *ngIf="submitted && form.get('anio')?.errors?.['required']"
-                            class="text-red-500"
-                            >El año es obligatorio</small
-                        >
-                        <small
-                            *ngIf="submitted && form.get('anio')?.errors?.['min']"
-                            class="text-red-500"
-                            >El año no puede ser anterior a 1950</small
-                        >
-                        <small
-                            *ngIf="submitted && form.get('anio')?.errors?.['max']"
-                            class="text-red-500"
-                            >El año no puede exceder {{ anioMaximo }}</small
-                        >
+                        @if (submitted && form.get('anio')?.errors?.['required']) {
+                            <small class="text-red-500">El año es obligatorio</small>
+                        }
+                        @if (submitted && form.get('anio')?.errors?.['min']) {
+                            <small class="text-red-500">El año no puede ser anterior a 1950</small>
+                        }
+                        @if (submitted && form.get('anio')?.errors?.['max']) {
+                            <small class="text-red-500"
+                                >El año no puede exceder {{ anioMaximo }}</small
+                            >
+                        }
                     </div>
                 </div>
             </p-fluid>
@@ -142,67 +140,74 @@
                             [min]="0"
                             placeholder="Capacidad en Kg"
                         />
-                        <small
-                            *ngIf="submitted && form.get('pesoMaximo')?.errors?.['required']"
-                            class="text-red-500"
-                            >El peso máximo es obligatorio</small
-                        >
-                        <small
-                            *ngIf="submitted && form.get('pesoMaximo')?.errors?.['max']"
-                            class="text-red-500"
-                            >El peso máximo no puede exceder los 45,000 Kg</small
-                        >
+                        @if (submitted && form.get('pesoMaximo')?.errors?.['required']) {
+                            <small class="text-red-500">El peso máximo es obligatorio</small>
+                        }
+                        @if (submitted && form.get('pesoMaximo')?.errors?.['max']) {
+                            <small class="text-red-500"
+                                >El peso máximo no puede exceder los 45,000 Kg</small
+                            >
+                        }
                     </div>
-                    <div class="col-span-6 flex flex-col gap-2" *ngIf="esCamion()">
-                        <label for="pallets" class="font-semibold"
-                            >Capacidad de Pallets <span class="text-red-500">*</span></label
-                        >
-                        <p-inputnumber
-                            id="pallets"
-                            formControlName="capacidadPallets"
-                            [min]="0"
-                            placeholder="Cantidad"
-                        />
-                        <small *ngIf="tipoCajaEsArticulado()" class="text-surface-400 italic"
-                            >Los articulados enganchan góndolas y no cargan palets</small
-                        >
-                        <small
-                            *ngIf="
+                    @if (esCamion()) {
+                        <div class="col-span-6 flex flex-col gap-2">
+                            <label for="pallets" class="font-semibold"
+                                >Capacidad de Pallets <span class="text-red-500">*</span></label
+                            >
+                            <p-inputnumber
+                                id="pallets"
+                                formControlName="capacidadPallets"
+                                [min]="0"
+                                placeholder="Cantidad"
+                            />
+                            @if (tipoCajaEsArticulado()) {
+                                <small class="text-surface-400 italic"
+                                    >Los articulados enganchan góndolas y no cargan palets</small
+                                >
+                            }
+                            @if (
                                 !tipoCajaEsArticulado() &&
                                 submitted &&
                                 form.get('capacidadPallets')?.errors?.['required']
-                            "
-                            class="text-red-500"
-                            >La capacidad de palets es obligatoria</small
-                        >
-                        <small
-                            *ngIf="
+                            ) {
+                                <small class="text-red-500"
+                                    >La capacidad de palets es obligatoria</small
+                                >
+                            }
+                            @if (
                                 !tipoCajaEsArticulado() &&
                                 submitted &&
                                 form.get('capacidadPallets')?.errors?.['max']
-                            "
-                            class="text-red-500"
-                            >La capacidad máxima es de {{ paletsMaximo() }} palets para esta
-                            estructura</small
-                        >
-                    </div>
+                            ) {
+                                <small class="text-red-500"
+                                    >La capacidad máxima es de {{ paletsMaximo() }} palets para esta
+                                    estructura</small
+                                >
+                            }
+                        </div>
+                    }
                 </div>
 
-                <div class="flex flex-col gap-2 mt-2" *ngIf="esCamion()">
-                    <label for="tipoCaja" class="font-semibold"
-                        >Tipo de Estructura / Caja <span class="text-red-500">*</span></label
-                    >
-                    <p-select
-                        id="tipoCaja"
-                        formControlName="tipoCaja"
-                        [options]="tiposCaja"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Seleccionar Estructura"
-                        appendTo="body"
-                    >
-                    </p-select>
-                </div>
+                @if (esCamion()) {
+                    <div class="flex flex-col gap-2 mt-2">
+                        <label for="tipoCaja" class="font-semibold"
+                            >Tipo de Estructura / Caja <span class="text-red-500">*</span></label
+                        >
+                        <p-select
+                            id="tipoCaja"
+                            formControlName="tipoCaja"
+                            [options]="tiposCaja"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Seleccionar Estructura"
+                            appendTo="body"
+                        >
+                        </p-select>
+                        @if (submitted && form.get('tipoCaja')?.invalid) {
+                            <small class="text-red-500">Seleccione el tipo de estructura</small>
+                        }
+                    </div>
+                }
 
                 <div class="flex flex-col gap-2 mt-2">
                     <label for="estado" class="font-semibold"
@@ -218,6 +223,9 @@
                         appendTo="body"
                     >
                     </p-select>
+                    @if (submitted && form.get('estado')?.invalid) {
+                        <small class="text-red-500">Seleccione el estado operativo</small>
+                    }
                 </div>
             </p-fluid>
         </form>

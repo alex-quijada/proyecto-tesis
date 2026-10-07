@@ -266,6 +266,7 @@ export class VehiculoDialogComponent {
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
+        this.form.markAllAsTouched();
 
         if (this.form.invalid) {
             this.errorMessage.set('Corrija los campos señalados en rojo.');

@@ -76,7 +76,7 @@
                                             {{ etapaLabel(t.etapa) }}
                                         </span>
                                         <span class="font-semibold">
-                                            {{ t.minutos_promedio.toFixed(1) }} min
+                                            {{ formatearMinutos(t.minutos_promedio) }} min
                                         </span>
                                     </div>
                                     <div
@@ -150,8 +150,19 @@
                                 <div class="flex items-center gap-1.5">
                                     <p-tag
                                         value="{{ c.incidencias }}"
-                                        [severity]="c.incidencias > 0 ? (c.incidencias_pendientes ? 'danger' : 'warn') : 'secondary'"
-                                        [pTooltip]="(c.incidencias_resueltas ?? 0) + ' resueltas · ' + (c.incidencias_pendientes ?? 0) + ' pendientes'"
+                                        [severity]="
+                                            c.incidencias > 0
+                                                ? c.incidencias_pendientes
+                                                    ? 'danger'
+                                                    : 'warn'
+                                                : 'secondary'
+                                        "
+                                        [pTooltip]="
+                                            (c.incidencias_resueltas ?? 0) +
+                                            ' resueltas · ' +
+                                            (c.incidencias_pendientes ?? 0) +
+                                            ' pendientes'
+                                        "
                                         tooltipPosition="top"
                                     />
                                     @if ((c.incidencias_resueltas ?? 0) > 0) {
@@ -181,6 +192,17 @@
                     </ng-template>
                 </p-table>
             </div>
+        </div>
+    } @else if (error()) {
+        <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <i class="pi pi-exclamation-triangle text-4xl text-amber-500 mb-3"></i>
+            <p-message severity="error" [text]="error()!" class="mb-4 max-w-lg" />
+            <p-button
+                label="Reintentar"
+                icon="pi pi-refresh"
+                severity="primary"
+                (onClick)="cargarReporte()"
+            />
         </div>
     } @else {
         <div class="text-center py-16 text-muted-color">

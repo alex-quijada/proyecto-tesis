@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { ConnectivityService } from '@/app/services/connectivity.service';
 
+const DEBOUNCE_OFFLINE_MS = 1500;
 const RECONEXION_BANNER_MS = 4000;
 
 @Component({
@@ -11,7 +12,7 @@ const RECONEXION_BANNER_MS = 4000;
     imports: [CommonModule, ButtonModule],
     template: `
         <div
-            *ngIf="!connectivity.isOnline()"
+            *ngIf="mostrandoOffline()"
             class="fixed inset-x-0 top-0 z-[2000] flex justify-center px-4 pt-3 pointer-events-none"
         >
             <div
@@ -44,26 +45,50 @@ const RECONEXION_BANNER_MS = 4000;
 })
 export class AppConnectivityBanner {
     connectivity = inject(ConnectivityService);
+    mostrandoOffline = signal(false);
     mostrandoReconexion = signal(false);
     private destroyRef = inject(DestroyRef);
-    private timer: ReturnType<typeof setTimeout> | undefined;
+    private timerReconexion: ReturnType<typeof setTimeout> | undefined;
+    private timerOffline: ReturnType<typeof setTimeout> | undefined;
 
     constructor() {
         let prevOnline = this.connectivity.isOnline();
+
         effect(() => {
             const online = this.connectivity.isOnline();
-            if (online && !prevOnline) {
-                this.mostrandoReconexion.set(true);
-                clearTimeout(this.timer);
-                this.timer = setTimeout(
-                    () => this.mostrandoReconexion.set(false),
-                    RECONEXION_BANNER_MS,
-                );
+
+            if (!online) {
+                // Si pasa a offline, esperar DEBOUNCE_OFFLINE_MS antes de mostrar el banner
+                // para evitar falsas alarmas durante cambios rápidos de app o bloqueo de pantalla
+                clearTimeout(this.timerOffline);
+                this.timerOffline = setTimeout(() => {
+                    if (!this.connectivity.isOnline()) {
+                        this.mostrandoOffline.set(true);
+                    }
+                }, DEBOUNCE_OFFLINE_MS);
+            } else {
+                // Al volver online
+                clearTimeout(this.timerOffline);
+                const estabaMostrandoOffline = this.mostrandoOffline();
+                this.mostrandoOffline.set(false);
+
+                // Solo mostrar "Conexión restablecida" si realmente se le mostró el banner de desconexión
+                if (estabaMostrandoOffline && !prevOnline) {
+                    this.mostrandoReconexion.set(true);
+                    clearTimeout(this.timerReconexion);
+                    this.timerReconexion = setTimeout(
+                        () => this.mostrandoReconexion.set(false),
+                        RECONEXION_BANNER_MS,
+                    );
+                }
             }
             prevOnline = online;
         });
 
-        this.destroyRef.onDestroy(() => clearTimeout(this.timer));
+        this.destroyRef.onDestroy(() => {
+            clearTimeout(this.timerOffline);
+            clearTimeout(this.timerReconexion);
+        });
     }
 
     reintentar() {

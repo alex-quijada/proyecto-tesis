@@ -1274,9 +1274,8 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
 
     private dibujarRutas() {
         if (!this.mapa) return;
-        const activos = this.viajes().filter(
-            (v) => v.estado === 'proceso' || v.estado === 'programado',
-        );
+        // Solo trazamos líneas para viajes en proceso (en ruta activa)
+        const activos = this.viajes().filter((v) => v.estado === 'proceso');
         const seleccion = this.choferSeleccionado();
         const idsActivos = new Set(activos.map((v) => v.id_viaje));
 
@@ -1316,6 +1315,10 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
     }
 
     private obtenerPathViaje(v: ViajeAdmin): { lat: number; lng: number }[] | null {
+        // No generar trazo si el viaje aún no ha iniciado (sigue en acumulación/programado)
+        if (v.estado !== 'proceso') {
+            return null;
+        }
         if (v.ruta_detallada?.path && v.ruta_detallada.path.length > 1) {
             return v.ruta_detallada.path;
         }
@@ -1344,6 +1347,15 @@ export class SeguimientoComponent implements OnInit, OnDestroy {
         if (path && path.length > 1) {
             const bounds = new google.maps.LatLngBounds();
             for (const p of path) bounds.extend(p);
+            this.mapa.fitBounds(bounds, 60);
+        } else if (viaje && viaje.paradas.length > 0) {
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend({ lat: c.latitud, lng: c.longitud });
+            for (const p of viaje.paradas) {
+                if (p.latitud != null && p.longitud != null) {
+                    bounds.extend({ lat: p.latitud, lng: p.longitud });
+                }
+            }
             this.mapa.fitBounds(bounds, 60);
         } else {
             this.mapa.panTo({ lat: c.latitud, lng: c.longitud });

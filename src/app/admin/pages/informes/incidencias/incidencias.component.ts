@@ -4,6 +4,8 @@ import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
+import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 
 import { CabeceraReporteComponent } from '../componentes-compartidos/cabecera-reporte.component';
 import { FiltrosReporteComponent } from '../componentes-compartidos/filtros-reporte.component';
@@ -31,6 +33,8 @@ interface KpiCard {
         TableModule,
         TagModule,
         SkeletonModule,
+        ButtonModule,
+        MessageModule,
         CabeceraReporteComponent,
         FiltrosReporteComponent,
         TipoIncidenciaPipe,
@@ -43,6 +47,7 @@ export class IncidenciasComponent {
     private tipoPipe = new TipoIncidenciaPipe();
 
     cargando = signal(true);
+    error = signal<string | null>(null);
     datos = signal<ResumenIncidencias | null>(null);
     filtros = signal<FiltrosReporte>({});
     choferes = signal<OpcionFiltro[]>([]);
@@ -68,8 +73,8 @@ export class IncidenciasComponent {
     private async inicializar() {
         try {
             this.choferes.set(await this.reporteService.obtenerChoferes());
-        } catch {
-            /* filtros opcionales */
+        } catch (err) {
+            console.warn('[ReporteIncidencias] Error al cargar filtro de choferes:', err);
         }
         await this.cargarReporte();
     }
@@ -121,6 +126,7 @@ export class IncidenciasComponent {
 
     async cargarReporte() {
         this.cargando.set(true);
+        this.error.set(null);
         try {
             const f = this.filtros();
             const data = await this.reporteService.obtenerIncidencias(
@@ -132,6 +138,10 @@ export class IncidenciasComponent {
             this.construirGrafico(data.por_tipo);
         } catch (err: any) {
             console.error('Error cargando incidencias:', err);
+            this.error.set(
+                err.message ||
+                    'No se pudieron cargar los datos de incidencias. Verifica tu conexión.',
+            );
             this.datos.set(null);
         } finally {
             this.cargando.set(false);

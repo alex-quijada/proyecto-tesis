@@ -6,12 +6,9 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-            <p-message
-                *ngIf="errorMessage"
-                severity="error"
-                [text]="errorMessage"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage) {
+                <p-message severity="error" [text]="errorMessage" class="mb-2"></p-message>
+            }
 
             <p-fluid>
                 <div
@@ -34,9 +31,9 @@
                         appendTo="body"
                     >
                     </p-select>
-                    <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500"
-                        >Seleccione una unidad</small
-                    >
+                    @if (submitted && form.get('idVehiculo')?.invalid) {
+                        <small class="text-red-500">Seleccione una unidad</small>
+                    }
                 </div>
 
                 <div class="grid grid-cols-12 gap-3 mt-2">
@@ -54,6 +51,9 @@
                             appendTo="body"
                         >
                         </p-select>
+                        @if (submitted && form.get('tipo')?.invalid) {
+                            <small class="text-red-500">Seleccione el tipo de mantenimiento</small>
+                        }
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label for="estado" class="font-semibold"
@@ -69,6 +69,9 @@
                             appendTo="body"
                         >
                         </p-select>
+                        @if (submitted && form.get('estado')?.invalid) {
+                            <small class="text-red-500">Seleccione el estado</small>
+                        }
                     </div>
                 </div>
 
@@ -84,6 +87,9 @@
                             placeholder="dd/mm/aaaa"
                             appendTo="body"
                         />
+                        @if (submitted && form.get('fechaProgramada')?.invalid) {
+                            <small class="text-red-500">La fecha programada es obligatoria</small>
+                        }
                     </div>
                     <div class="col-span-4 flex flex-col gap-2">
                         <label for="fechaRealizado" class="font-semibold">Fecha Realizado</label>
@@ -106,6 +112,9 @@
                             [useGrouping]="false"
                             placeholder="Ej: 45000"
                         />
+                        @if (submitted && form.get('kilometraje')?.invalid) {
+                            <small class="text-red-500">El kilometraje es obligatorio</small>
+                        }
                     </div>
                 </div>
 
@@ -120,11 +129,9 @@
                         rows="3"
                         placeholder="Detalle del mantenimiento realizado o por realizar..."
                     ></textarea>
-                    <small
-                        *ngIf="submitted && form.get('descripcion')?.invalid"
-                        class="text-red-500"
-                        >La descripción es obligatoria</small
-                    >
+                    @if (submitted && form.get('descripcion')?.invalid) {
+                        <small class="text-red-500">La descripción es obligatoria</small>
+                    }
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
@@ -137,11 +144,9 @@
                         formControlName="responsable"
                         placeholder="Nombre del taller o mecánico encargado"
                     />
-                    <small
-                        *ngIf="submitted && form.get('responsable')?.invalid"
-                        class="text-red-500"
-                        >El responsable es obligatorio</small
-                    >
+                    @if (submitted && form.get('responsable')?.invalid) {
+                        <small class="text-red-500">El responsable es obligatorio</small>
+                    }
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
@@ -156,6 +161,9 @@
                         currency="USD"
                         placeholder="0.00"
                     />
+                    @if (submitted && form.get('costo')?.invalid) {
+                        <small class="text-red-500">El costo en USD es obligatorio</small>
+                    }
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
@@ -169,6 +177,9 @@
                         [prefix]="'Bs '"
                         placeholder="0.00"
                     />
+                    @if (submitted && form.get('costoBss')?.invalid) {
+                        <small class="text-red-500">El costo en Bs es obligatorio</small>
+                    }
                 </div>
             </p-fluid>
 
@@ -194,11 +205,11 @@
                             [useGrouping]="false"
                             placeholder="Ej: 50000"
                         />
-                        <small
-                            *ngIf="submitted && form.get('proximoKm')?.invalid"
-                            class="text-red-500"
-                            >Indique el kilometraje del próximo servicio</small
-                        >
+                        @if (submitted && form.get('proximoKm')?.invalid) {
+                            <small class="text-red-500"
+                                >Indique el kilometraje del próximo servicio</small
+                            >
+                        }
                     </div>
                     <div class="col-span-6 flex flex-col gap-2">
                         <label for="proximaFecha" class="font-semibold">Próxima Fecha</label>

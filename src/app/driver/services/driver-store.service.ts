@@ -1,5 +1,7 @@
 import { Injectable, OnDestroy, inject, signal, computed, Signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { App, AppState } from '@capacitor/app';
+import { PluginListenerHandle } from '@capacitor/core';
 
 import { AuthService } from '@/app/auth/service/auth.service';
 import { Chofer } from '@/app/admin/pages/choferes/data/choferes-mock';
@@ -84,6 +86,18 @@ export interface CargaCombustiblePendiente {
     litros: number;
     costoPorLitro: number;
     tasaBs: number;
+    ts: number;
+}
+
+export interface IncidenciaPendiente {
+    idFactura: string;
+    numeroFactura?: string;
+    cliente?: string;
+    incidencias: {
+        tipo?: string | null;
+        descripcion?: string | null;
+        foto?: string | null;
+    }[];
     ts: number;
 }
 
@@ -471,10 +485,26 @@ export class DriverStoreService implements OnDestroy {
         void this.recargarGuias().catch(() => undefined);
     };
 
+    private appStateListener: PluginListenerHandle | null = null;
+
     private escucharReconexion() {
         if (this.escuchandoReconexion) return;
         this.escuchandoReconexion = true;
         window.addEventListener('online', this.alReconectar);
+
+        // Al despertar de segundo plano (appStateChange isActive = true):
+        // resincronizar firmas/combustible/trazas y verificar viajes
+        App.addListener('appStateChange', (state: AppState) => {
+            if (state.isActive) {
+                console.info('[DriverStore] App reanudada en primer plano. Sincronizando...');
+                this.alReconectar();
+                if (!this.realtimeCanal) {
+                    this.initRealtime();
+                }
+            }
+        }).then((handle) => {
+            this.appStateListener = handle;
+        }).catch(() => undefined);
 
         this.connectivity.checkNow().then((online) => {
             if (online) void this.sincronizarPendientes();
@@ -490,7 +520,14 @@ export class DriverStoreService implements OnDestroy {
             this.uid,
             'pendientesCombustible',
         );
-        const total = (caché?.data.length ?? 0) + (cachéComb?.data.length ?? 0);
+        const cachéInc = await this.offlineStorage.leer<IncidenciaPendiente[]>(
+            this.uid,
+            'pendientesIncidencias',
+        );
+        const total =
+            (caché?.data.length ?? 0) +
+            (cachéComb?.data.length ?? 0) +
+            (cachéInc?.data.length ?? 0);
         this.pendientesSincronizar.set(total);
     }
 
@@ -517,7 +554,7 @@ export class DriverStoreService implements OnDestroy {
                     ts: Date.now(),
                 });
                 await this.offlineStorage.guardar(this.uid, 'pendientes', pendientes);
-                this.pendientesSincronizar.set(pendientes.length);
+                this.pendientesSincronizar.update((n) => n + 1);
                 this.notif.add({
                     severity: 'warn',
                     summary: 'Entrega guardada localmente',
@@ -605,7 +642,7 @@ export class DriverStoreService implements OnDestroy {
         }
     }
 
-    /** Reporta una o varias incidencias sobre una factura. */
+    /** Reporta una o varias incidencias sobre una factura. Si no hay red, la encola localmente. */
     async reportarIncidencia(
         idFactura: string,
         incidencias: {
@@ -614,17 +651,82 @@ export class DriverStoreService implements OnDestroy {
             foto?: string | null;
         }[],
     ) {
+        const entrega = this.guiasAsignadas().find((g) => g.id === idFactura);
+        const primeraInc = incidencias.find((i) => i.tipo) || incidencias[0];
+
         try {
             await this.choferService.reportarIncidencia(idFactura, incidencias);
-            await this.recargarViajes();
-            await this.recargarGuias().catch(() => undefined);
         } catch (err) {
-            console.warn('[Entrega] Error al reportar la incidencia', err);
-            throw err;
+            if (this.uid) {
+                const caché = await this.offlineStorage.leer<IncidenciaPendiente[]>(
+                    this.uid,
+                    'pendientesIncidencias',
+                );
+                const pendientes = caché?.data ?? [];
+                pendientes.push({
+                    idFactura,
+                    numeroFactura: entrega?.numeroFactura,
+                    cliente: entrega?.cliente,
+                    incidencias,
+                    ts: Date.now(),
+                });
+                await this.offlineStorage.guardar(this.uid, 'pendientesIncidencias', pendientes);
+                this.pendientesSincronizar.update((n) => n + 1);
+                this.notif.add({
+                    severity: 'warn',
+                    summary: 'Incidencia guardada localmente',
+                    detail: 'Se sincronizará cuando recuperes conexión.',
+                });
+            } else {
+                throw err;
+            }
         }
+
+        // Actualizar el estado local inmediatamente
+        if (primeraInc) {
+            this.guiasAsignadas.update((list) =>
+                list.map((g) =>
+                    g.id === idFactura
+                        ? {
+                              ...g,
+                              estado: 'incidencia',
+                              incidencia: {
+                                  tipo: primeraInc.tipo || 'Incidencia',
+                                  numeroGuia: g.numeroGuia,
+                                  descripcion: primeraInc.descripcion || '',
+                                  horaReporte: new Date().toLocaleTimeString('es-VE', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                  }),
+                                  foto: primeraInc.foto || undefined,
+                              },
+                          }
+                        : g,
+                ),
+            );
+
+            // Actualizar parada del viaje activo en memoria
+            this.viajesChofer.update((viajes) =>
+                viajes.map((v) => ({
+                    ...v,
+                    paradas: (v.paradas || []).map((p) =>
+                        p.id_factura === idFactura
+                            ? {
+                                  ...p,
+                                  estado_factura: 'incidencia',
+                                  incidencia_tipo: primeraInc.tipo || 'Incidencia',
+                              }
+                            : p,
+                    ),
+                })),
+            );
+        }
+
+        await this.recargarViajes().catch(() => undefined);
+        await this.recargarGuias().catch(() => undefined);
     }
 
-    /** Envía la cola de firmas pendientes a la BD y la limpia. */
+    /** Envía las colas de operaciones pendientes (firmas, combustible, incidencias) a la BD y las limpia. */
     async sincronizarPendientes() {
         if (!this.uid || this.sincronizando()) return;
         const caché = await this.offlineStorage.leer<EntregaPendiente[]>(this.uid, 'pendientes');
@@ -634,10 +736,24 @@ export class DriverStoreService implements OnDestroy {
             'pendientesCombustible',
         );
         const pendientesCombustible = cachéComb?.data ?? [];
-        if (pendientes.length < 1 && pendientesCombustible.length < 1) return;
+        const cachéInc = await this.offlineStorage.leer<IncidenciaPendiente[]>(
+            this.uid,
+            'pendientesIncidencias',
+        );
+        const pendientesInc = cachéInc?.data ?? [];
+
+        if (
+            pendientes.length < 1 &&
+            pendientesCombustible.length < 1 &&
+            pendientesInc.length < 1
+        )
+            return;
 
         this.sincronizando.set(true);
         const restantes: EntregaPendiente[] = [];
+        const restantesComb: CargaCombustiblePendiente[] = [];
+        const restantesInc: IncidenciaPendiente[] = [];
+
         try {
             for (const p of pendientes) {
                 try {
@@ -651,7 +767,7 @@ export class DriverStoreService implements OnDestroy {
                     restantes.push(p);
                 }
             }
-            const restantesComb: CargaCombustiblePendiente[] = [];
+
             for (const p of pendientesCombustible) {
                 try {
                     await this.choferService.registrarCargaCombustible(p);
@@ -660,15 +776,31 @@ export class DriverStoreService implements OnDestroy {
                     restantesComb.push(p);
                 }
             }
-            if (restantes.length === 0 && restantesComb.length === 0) {
+
+            for (const p of pendientesInc) {
+                try {
+                    await this.choferService.reportarIncidencia(p.idFactura, p.incidencias);
+                } catch (err) {
+                    console.warn('[Offline] Incidencia pendiente no sincronizada:', p.idFactura, err);
+                    restantesInc.push(p);
+                }
+            }
+
+            if (
+                restantes.length === 0 &&
+                restantesComb.length === 0 &&
+                restantesInc.length === 0
+            ) {
                 if (pendientes.length) await this.offlineStorage.eliminar(this.uid, 'pendientes');
                 if (pendientesCombustible.length)
                     await this.offlineStorage.eliminar(this.uid, 'pendientesCombustible');
+                if (pendientesInc.length)
+                    await this.offlineStorage.eliminar(this.uid, 'pendientesIncidencias');
                 this.pendientesSincronizar.set(0);
                 this.notif.add({
                     severity: 'success',
                     summary: 'Sincronizado',
-                    detail: 'Tus entregas guardadas se sincronizaron correctamente.',
+                    detail: 'Tus registros guardados se sincronizaron correctamente.',
                 });
             } else {
                 if (restantes.length)
@@ -679,9 +811,18 @@ export class DriverStoreService implements OnDestroy {
                         'pendientesCombustible',
                         restantesComb,
                     );
-                this.pendientesSincronizar.set(restantes.length + restantesComb.length);
+                if (restantesInc.length)
+                    await this.offlineStorage.guardar(
+                        this.uid,
+                        'pendientesIncidencias',
+                        restantesInc,
+                    );
+                this.pendientesSincronizar.set(
+                    restantes.length + restantesComb.length + restantesInc.length,
+                );
             }
             await this.recargarGuias().catch(() => undefined);
+            await this.recargarViajes().catch(() => undefined);
         } finally {
             this.sincronizando.set(false);
         }
@@ -709,6 +850,10 @@ export class DriverStoreService implements OnDestroy {
             this.pollInterval = null;
         }
         if (this.debounceRealtime) clearTimeout(this.debounceRealtime);
+        if (this.appStateListener) {
+            this.appStateListener.remove();
+            this.appStateListener = null;
+        }
         if (this.escuchandoReconexion) {
             window.removeEventListener('online', this.alReconectar);
             this.escuchandoReconexion = false;
@@ -926,10 +1071,7 @@ export class DriverStoreService implements OnDestroy {
         return entregas;
     }
 
-    private actualizarVehiculosDriverInfo(
-        guias?: ChoferGuia[],
-        vehiculos?: ChoferVehiculo[],
-    ) {
+    private actualizarVehiculosDriverInfo(guias?: ChoferGuia[], vehiculos?: ChoferVehiculo[]) {
         if (guias) this.guiasAsignadasRaw = guias;
         if (vehiculos) this.catalogoVehiculos = vehiculos;
 

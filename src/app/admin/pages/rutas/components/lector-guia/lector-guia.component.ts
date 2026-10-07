@@ -19,7 +19,7 @@ export class LectorGuiaComponent {
             this.guiaProcesada = await this.pdfNormalizerService.procesarArchivoPdf(file);
 
             // Ya tienes tus datos limpios aquí 🚀
-            console.log('Datos de la Guía listos y normalizados:', this.guiaProcesada);
+            // console.log('Datos de la Guía listos y normalizados:', this.guiaProcesada);
         } catch (error) {
             console.error('Ocurrió un error al procesar el documento PDF:', error);
         }

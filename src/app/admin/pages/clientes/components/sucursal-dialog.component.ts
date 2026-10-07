@@ -57,12 +57,9 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
         >
             <ng-template #content>
                 <form [formGroup]="form" class="flex flex-col gap-3 pt-2">
-                    <p-message
-                        *ngIf="errorMessage()"
-                        severity="error"
-                        [text]="errorMessage()"
-                        class="mb-1"
-                    />
+                    @if (errorMessage()) {
+                        <p-message severity="error" [text]="errorMessage()" class="mb-1" />
+                    }
 
                     <p-fluid>
                         <div class="flex flex-col gap-2">
@@ -78,12 +75,9 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                                 placeholder="Seleccionar municipio"
                                 appendTo="body"
                             />
-                            <small
-                                *ngIf="submitted && form.get('idMunicipio')?.invalid"
-                                class="text-red-500"
-                            >
-                                Seleccione un municipio
-                            </small>
+                            @if (submitted && form.get('idMunicipio')?.invalid) {
+                                <small class="text-red-500"> Seleccione un municipio </small>
+                            }
                         </div>
 
                         <div class="flex flex-col gap-2 mt-2">
@@ -97,12 +91,9 @@ import { MapaSucursalComponent } from './mapa-sucursal.component';
                                 rows="2"
                                 placeholder="Av. Principal, Edif. Centro, Piso 1, Local 2"
                             ></textarea>
-                            <small
-                                *ngIf="submitted && form.get('direccion')?.invalid"
-                                class="text-red-500"
-                            >
-                                La dirección es obligatoria
-                            </small>
+                            @if (submitted && form.get('direccion')?.invalid) {
+                                <small class="text-red-500"> La dirección es obligatoria </small>
+                            }
                         </div>
 
                         <div class="flex flex-col gap-2 mt-2">
@@ -320,8 +311,8 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
         try {
             const items = await this.clienteService.obtenerMunicipios();
             this.municipios.set(items);
-        } catch {
-            /* ok */
+        } catch (err) {
+            console.warn('[SucursalDialog] Error al cargar municipios:', err);
         }
     }
 
@@ -397,6 +388,7 @@ export class SucursalDialogComponent implements OnInit, OnDestroy {
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
+        this.form.markAllAsTouched();
 
         if (this.saving()) return;
         if (this.form.invalid) {

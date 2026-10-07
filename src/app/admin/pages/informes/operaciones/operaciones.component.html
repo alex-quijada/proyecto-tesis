@@ -44,6 +44,17 @@
                 </div>
             }
         </div>
+    } @else if (error()) {
+        <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <i class="pi pi-exclamation-triangle text-4xl text-amber-500 mb-3"></i>
+            <p-message severity="error" [text]="error()!" class="mb-4 max-w-lg" />
+            <p-button
+                label="Reintentar"
+                icon="pi pi-refresh"
+                severity="primary"
+                (onClick)="cargarDatos()"
+            />
+        </div>
     } @else if (filasFiltradas().length === 0) {
         <div class="text-center py-16 text-muted-color">
             <i class="pi pi-box text-4xl block mb-3"></i>
@@ -137,7 +148,9 @@
                         @if (f.tuvoIncidencia) {
                             <div class="flex items-center gap-1.5">
                                 <p-tag
-                                    [value]="(f.incidenciaTipoPrincipal | tipoIncidencia) || 'Incidencia'"
+                                    [value]="
+                                        (f.incidenciaTipoPrincipal | tipoIncidencia) || 'Incidencia'
+                                    "
                                     [severity]="f.incidenciaResuelta ? 'warn' : 'danger'"
                                     [pTooltip]="tooltipIncidencia(f)"
                                     tooltipPosition="top"

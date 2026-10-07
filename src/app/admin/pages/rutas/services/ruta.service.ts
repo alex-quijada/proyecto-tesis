@@ -284,8 +284,8 @@ export class RutaService {
                     value: e.id_empresa,
                 }));
             }
-        } catch {
-            /* fallback */
+        } catch (err) {
+            console.warn('[RutaService] Error al obtener empresas de BD, usando fallback:', err);
         }
         return EMPRESAS_FALLBACK.map((e) => ({ label: e.nombre_empresa, value: e.prefijo }));
     }
@@ -299,8 +299,8 @@ export class RutaService {
                     value: m.id_municipio,
                 }));
             }
-        } catch {
-            console.warn('obtenerMunicipios RPC falló, usando fallback');
+        } catch (err) {
+            console.warn('[RutaService] obtenerMunicipios RPC falló, usando fallback:', err);
         }
         return MUNICIPIOS_NUEVA_ESPARTA;
     }
@@ -357,7 +357,8 @@ export class RutaService {
                 label: this.DIA_LABELS[dia] || dia,
                 municipios: grupos.get(this.DIA_TO_INT[dia]) || [],
             }));
-        } catch {
+        } catch (err) {
+            console.warn('[RutaService] Error al obtener cronograma de BD:', err);
             return null;
         }
     }
@@ -427,26 +428,34 @@ export class RutaService {
             if (g.id_vehiculo) vehiculoIds.add(g.id_vehiculo);
         }
 
-        const [usuariosRes, facturasRes, estadosRes, clientesRes, prioridadesRes, vehiculosRes] =
-            await Promise.all([
-                userIds.size
-                    ? this.supabase
-                          .from('usuarios')
-                          .select('id_usuario, nombre_completo, cedula')
-                          .in('id_usuario', [...userIds])
-                    : ({ data: [] } as any),
-                this.supabase
-                    .from('facturas')
-                    .select('*')
-                    .in(
-                        'id_guia',
-                        (guiasDb as any[]).map((g) => g.id_guia),
-                    ),
-                this.supabase.from('estados').select('id_estado, nombre_estado'),
-                this.supabase.rpc('obtener_clientes'),
-                this.supabase.rpc('obtener_prioridades_clientes'),
-                vehiculoIds.size ? this.supabase.rpc('obtener_vehiculos') : ({ data: [] } as any),
-            ]);
+        const [
+            usuariosRes,
+            facturasRes,
+            estadosRes,
+            clientesRes,
+            prioridadesRes,
+            vehiculosRes,
+            sucursalesRes,
+        ] = await Promise.all([
+            userIds.size
+                ? this.supabase
+                      .from('usuarios')
+                      .select('id_usuario, nombre_completo, cedula')
+                      .in('id_usuario', [...userIds])
+                : ({ data: [] } as any),
+            this.supabase
+                .from('facturas')
+                .select('*')
+                .in(
+                    'id_guia',
+                    (guiasDb as any[]).map((g) => g.id_guia),
+                ),
+            this.supabase.from('estados').select('id_estado, nombre_estado'),
+            this.supabase.rpc('obtener_clientes'),
+            this.supabase.rpc('obtener_prioridades_clientes'),
+            vehiculoIds.size ? this.supabase.rpc('obtener_vehiculos') : ({ data: [] } as any),
+            this.supabase.from('sucursales_cliente').select('*'),
+        ]);
 
         const usuariosMap = new Map(
             ((usuariosRes as any).data || []).map((u: any) => [u.id_usuario, u]),
@@ -466,21 +475,9 @@ export class RutaService {
             prioridadesArr.map((p: any) => [p.id_prioridad, p.nombre_prioridad]),
         );
 
-        const clienteIds = [...new Set(clientesArr.map((c: any) => c.id_cliente).filter(Boolean))];
-
-        const sucursalesRes = await Promise.all(
-            clienteIds.map((id) =>
-                this.supabase
-                    .rpc('obtener_sucursales_cliente', { p_cliente_id: id })
-                    .then((res) => ({ clienteId: id, data: res.data || [] })),
-            ),
-        );
-
         const sucursalesMap = new Map<string, any>();
-        for (const { clienteId, data } of sucursalesRes) {
-            for (const s of data) {
-                sucursalesMap.set(s.id, { ...s, cliente_id: clienteId });
-            }
+        for (const s of (sucursalesRes.data || []) as any[]) {
+            sucursalesMap.set(s.id, s);
         }
 
         const facturasDb = facturasRes.data || [];
@@ -536,7 +533,8 @@ export class RutaService {
                     incidenciasPorFactura.get(f.id_factura)?.[0]?.recuperable ?? undefined,
                 incidenciaId: incidenciasPorFactura.get(f.id_factura)?.[0]?.id_incidencia,
                 incidenciaIdChofer: incidenciasPorFactura.get(f.id_factura)?.[0]?.id_chofer,
-                incidenciaChofer: incidenciasPorFactura.get(f.id_factura)?.[0]?.chofer?.nombre_completo,
+                incidenciaChofer: incidenciasPorFactura.get(f.id_factura)?.[0]?.chofer
+                    ?.nombre_completo,
                 incidencias: (incidenciasPorFactura.get(f.id_factura) || []).map((inc) => ({
                     id_incidencia: inc.id_incidencia,
                     id_chofer: inc.id_chofer,

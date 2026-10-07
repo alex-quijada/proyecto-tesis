@@ -84,7 +84,10 @@ export class UsuarioDialogComponent {
         ],
         password: ['', [Validators.minLength(6)]],
         prefijoDoc: ['V', Validators.required],
-        numeroDoc: [0, [Validators.required, Validators.min(10000), Validators.max(999999999999)]],
+        numeroDoc: [
+            null,
+            [Validators.required, Validators.min(10000), Validators.max(999999999999)],
+        ],
         nombreCompleto: ['', Validators.required],
         rol: ['ANALISTA', Validators.required],
         licenciaNumero: [''],
@@ -99,7 +102,7 @@ export class UsuarioDialogComponent {
             email: '',
             password: '',
             prefijoDoc: 'V',
-            numeroDoc: 0,
+            numeroDoc: null,
             nombreCompleto: '',
             rol: 'ANALISTA',
             licenciaNumero: '',
@@ -276,6 +279,7 @@ export class UsuarioDialogComponent {
         this.errorMessage.set('');
         this.loading.set(true);
         this.actualizarValidaciones();
+        this.form.markAllAsTouched();
         this.form.updateValueAndValidity();
 
         if (this.form.invalid) {
@@ -284,7 +288,6 @@ export class UsuarioDialogComponent {
                 const c = this.form.get(key);
                 if (c?.invalid) errores[key] = c.errors;
             });
-            console.log('Errores del formulario:', errores);
             this.errorMessage.set('Complete todos los campos obligatorios.');
             this.loading.set(false);
             return;

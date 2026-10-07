@@ -1,18 +1,19 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
+import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 
 import { CabeceraReporteComponent } from '../componentes-compartidos/cabecera-reporte.component';
 import { FiltrosReporteComponent } from '../componentes-compartidos/filtros-reporte.component';
 import { ReporteService, MetricasEficiencia } from '../services/reporte.service';
-import { FiltrosReporte } from '../utils/reporte.types';
+import { FiltrosReporte, OpcionFiltro } from '../utils/reporte.types';
 import { exportarExcel } from '../utils/exportar-excel.util';
 import { exportarPdf } from '../utils/exportar-pdf.util';
-import { OpcionFiltro } from '../utils/reporte.types';
 import { CapitalizePipe } from '../../clientes/pipes/capitalize.pipe';
 
 interface KpiCard {
@@ -34,6 +35,8 @@ interface KpiCard {
         TagModule,
         SkeletonModule,
         TooltipModule,
+        ButtonModule,
+        MessageModule,
         CabeceraReporteComponent,
         FiltrosReporteComponent,
         CapitalizePipe,
@@ -44,6 +47,7 @@ export class EficienciaComponent {
     private reporteService = inject(ReporteService);
 
     cargando = signal(true);
+    error = signal<string | null>(null);
     datos = signal<MetricasEficiencia | null>(null);
     filtros = signal<FiltrosReporte>({});
     choferes = signal<OpcionFiltro[]>([]);
@@ -75,125 +79,117 @@ export class EficienciaComponent {
             ]);
             this.choferes.set(choferes);
             this.municipios.set(municipios);
-        } catch {
-            /* filtros opcionales */
+        } catch (err) {
+            console.warn(
+                '[ReporteEficiencia] Error al cargar filtros de choferes/municipios:',
+                err,
+            );
         }
         await this.cargarReporte();
     }
 
-    get sinDatos() {
-        return () => !this.datos();
-    }
+    readonly sinDatos = computed(() => !this.datos());
 
-    get kpis() {
-        return () => {
-            const d = this.datos();
-            if (!d) return [];
-            const k = d.kpis;
-            const resueltas = k.incidencias_resueltas ?? 0;
-            const pendientes =
-                k.incidencias_pendientes ?? Math.max(0, k.incidencias - resueltas);
-            const totalIntentos = k.entregas + pendientes;
-            const tasa =
-                totalIntentos > 0
-                    ? ((k.entregas / totalIntentos) * 100).toFixed(1) + '%'
-                    : '—';
-            return [
-                {
-                    label: 'Entregas',
-                    value: String(k.entregas),
-                    icon: 'pi pi-check-circle',
-                    color: 'text-green-500',
-                    detalle: `${k.viajes_finalizados} viajes finalizados`,
-                    detalleExtra:
-                        resueltas > 0
-                            ? `(${resueltas} recuperadas tras incidencia)`
-                            : undefined,
-                },
-                {
-                    label: 'Incidencias',
-                    value: String(k.incidencias),
-                    icon: 'pi pi-exclamation-triangle',
-                    color: 'text-red-500',
-                    detalle: `${resueltas} resueltas · ${pendientes} pendientes`,
-                    detalleExtra: k.monto_recuperado_usd
-                        ? `$${k.monto_recuperado_usd.toLocaleString('es-VE', { maximumFractionDigits: 0 })} recuperados`
+    readonly kpis = computed<KpiCard[]>(() => {
+        const d = this.datos();
+        if (!d) return [];
+        const k = d.kpis;
+        const resueltas = k.incidencias_resueltas ?? 0;
+        const pendientes = k.incidencias_pendientes ?? Math.max(0, k.incidencias - resueltas);
+        const totalIntentos = k.entregas + pendientes;
+        const tasa =
+            totalIntentos > 0 ? ((k.entregas / totalIntentos) * 100).toFixed(1) + '%' : '—';
+        return [
+            {
+                label: 'Entregas',
+                value: String(k.entregas),
+                icon: 'pi pi-check-circle',
+                color: 'text-green-500',
+                detalle: `${k.viajes_finalizados} viajes finalizados`,
+                detalleExtra:
+                    resueltas > 0 ? `(${resueltas} recuperadas tras incidencia)` : undefined,
+            },
+            {
+                label: 'Incidencias',
+                value: String(k.incidencias),
+                icon: 'pi pi-exclamation-triangle',
+                color: 'text-red-500',
+                detalle: `${resueltas} resueltas · ${pendientes} pendientes`,
+                detalleExtra: k.monto_recuperado_usd
+                    ? `$${k.monto_recuperado_usd.toLocaleString('es-VE', { maximumFractionDigits: 0 })} recuperados`
+                    : undefined,
+            },
+            {
+                label: 'Cumplimiento',
+                value: tasa,
+                icon: 'pi pi-percentage',
+                color: 'text-blue-500',
+                detalle: 'entregas sobre total despachado',
+                detalleExtra:
+                    resueltas > 0 && k.incidencias > 0
+                        ? `${((resueltas / k.incidencias) * 100).toFixed(0)}% incidencias resueltas`
                         : undefined,
-                },
-                {
-                    label: 'Cumplimiento',
-                    value: tasa,
-                    icon: 'pi pi-percentage',
-                    color: 'text-blue-500',
-                    detalle: 'entregas sobre total despachado',
-                    detalleExtra:
-                        resueltas > 0 && k.incidencias > 0
-                            ? `${((resueltas / k.incidencias) * 100).toFixed(0)}% incidencias resueltas`
-                            : undefined,
-                },
-                {
-                    label: 'Monto entregado',
-                    value: k.monto_entregado_usd.toLocaleString('es-VE', {
-                        style: 'currency',
-                        currency: 'USD',
-                        maximumFractionDigits: 0,
-                    }),
-                    icon: 'pi pi-dollar',
-                    color: 'text-purple-500',
-                    detalle: `${k.monto_incidencia_usd.toLocaleString('es-VE', {
-                        style: 'currency',
-                        currency: 'USD',
-                        maximumFractionDigits: 0,
-                    })} en incidencia`,
-                    detalleExtra: `Bs ${k.monto_entregado_bss.toLocaleString('es-VE', {
-                        maximumFractionDigits: 0,
-                    })} entregado`,
-                },
-            ] as KpiCard[];
-        };
-    }
+            },
+            {
+                label: 'Monto entregado',
+                value: k.monto_entregado_usd.toLocaleString('es-VE', {
+                    style: 'currency',
+                    currency: 'USD',
+                    maximumFractionDigits: 0,
+                }),
+                icon: 'pi pi-dollar',
+                color: 'text-purple-500',
+                detalle: `${k.monto_incidencia_usd.toLocaleString('es-VE', {
+                    style: 'currency',
+                    currency: 'USD',
+                    maximumFractionDigits: 0,
+                })} en incidencia`,
+                detalleExtra: `Bs ${k.monto_entregado_bss.toLocaleString('es-VE', {
+                    maximumFractionDigits: 0,
+                })} entregado`,
+            },
+        ] as KpiCard[];
+    });
 
-    get tiempos() {
-        return () => this.datos()?.tiempos_por_etapa || [];
-    }
+    readonly tiempos = computed(() => this.datos()?.tiempos_por_etapa || []);
 
     etapaLabel(etapa: string): string {
-        switch (etapa) {
-            case 'embarque':
-                return 'Carga';
-            case 'proceso':
-                return 'Traslado';
-            case 'espera':
-                return 'Espera';
-            case 'entrega':
-                return 'Entrega';
-            default:
-                return etapa;
-        }
+        const norm = (etapa || '').toLowerCase().trim();
+        if (norm.includes('descarga') || norm.includes('entrega') || norm === 'finalizado')
+            return 'Entrega';
+        if (norm.includes('ruta') || norm.includes('traslado') || norm === 'proceso')
+            return 'Traslado';
+        if (norm.includes('espera')) return 'Espera';
+        if (norm.includes('carga') || norm === 'embarque') return 'Carga';
+        return etapa;
     }
 
     colorEtapa(etapa: string): string {
-        switch (etapa) {
-            case 'embarque':
-                return 'bg-blue-500';
-            case 'proceso':
-                return 'bg-cyan-500';
-            case 'espera':
-                return 'bg-amber-500';
-            case 'entrega':
-                return 'bg-green-500';
-            default:
-                return 'bg-surface-400';
-        }
+        const norm = (etapa || '').toLowerCase().trim();
+        if (norm.includes('descarga') || norm.includes('entrega') || norm === 'finalizado')
+            return 'bg-green-500';
+        if (norm.includes('ruta') || norm.includes('traslado') || norm === 'proceso')
+            return 'bg-cyan-500';
+        if (norm.includes('espera')) return 'bg-amber-500';
+        if (norm.includes('carga') || norm === 'embarque') return 'bg-blue-500';
+        return 'bg-surface-400';
     }
 
-    barraEtapa(min: number): number {
-        const max = Math.max(...this.tiempos().map((t) => t.minutos_promedio), 1);
-        return Math.min(100, Math.round((min / max) * 100));
+    barraEtapa(min: number | string): number {
+        const valores = this.tiempos().map((t) => Number(t.minutos_promedio) || 0);
+        const max = Math.max(...valores, 1);
+        const val = Number(min) || 0;
+        return Math.min(100, Math.round((val / max) * 100));
+    }
+
+    formatearMinutos(min: number | string | undefined): string {
+        const n = Number(min);
+        return isNaN(n) ? '0.0' : n.toFixed(1);
     }
 
     async cargarReporte() {
         this.cargando.set(true);
+        this.error.set(null);
         try {
             const f = this.filtros();
             const data = await this.reporteService.obtenerEficiencia(
@@ -207,6 +203,10 @@ export class EficienciaComponent {
             this.combinarFiltrosConDatos(data);
         } catch (err: any) {
             console.error('Error cargando eficiencia:', err);
+            this.error.set(
+                err.message ||
+                    'No se pudieron cargar los datos de eficiencia. Verifica tu conexión.',
+            );
             this.datos.set(null);
         } finally {
             this.cargando.set(false);

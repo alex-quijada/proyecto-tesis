@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { SkeletonModule } from 'primeng/skeleton';
+import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 
 import { CabeceraReporteComponent } from '../componentes-compartidos/cabecera-reporte.component';
 import { FiltrosReporteComponent } from '../componentes-compartidos/filtros-reporte.component';
@@ -28,6 +30,8 @@ interface KpiCard {
         ChartModule,
         TableModule,
         SkeletonModule,
+        ButtonModule,
+        MessageModule,
         CabeceraReporteComponent,
         FiltrosReporteComponent,
     ],
@@ -37,6 +41,7 @@ export class GastosComponent {
     private reporteService = inject(ReporteService);
 
     cargando = signal(true);
+    error = signal<string | null>(null);
     datos = signal<ResumenGastos | null>(null);
     filtros = signal<FiltrosReporte>({});
     vehiculos = signal<OpcionFiltro[]>([]);
@@ -75,8 +80,8 @@ export class GastosComponent {
     private async inicializar() {
         try {
             this.vehiculos.set(await this.reporteService.obtenerVehiculos());
-        } catch {
-            /* filtros opcionales */
+        } catch (err) {
+            console.warn('[ReporteGastos] Error al cargar filtro de vehículos:', err);
         }
         await this.cargarReporte();
     }
@@ -146,6 +151,7 @@ export class GastosComponent {
 
     async cargarReporte() {
         this.cargando.set(true);
+        this.error.set(null);
         try {
             const f = this.filtros();
             const data = await this.reporteService.obtenerGastos(
@@ -157,6 +163,9 @@ export class GastosComponent {
             this.construirGraficos(data);
         } catch (err: any) {
             console.error('Error cargando gastos:', err);
+            this.error.set(
+                err.message || 'No se pudieron cargar los datos de gastos. Verifica tu conexión.',
+            );
             this.datos.set(null);
         } finally {
             this.cargando.set(false);

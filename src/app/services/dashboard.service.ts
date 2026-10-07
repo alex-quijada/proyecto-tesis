@@ -2,7 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { AuthService } from '@/app/auth/service/auth.service';
 import { RutaService } from '@/app/admin/pages/rutas/services/ruta.service';
 import { VehiculoService } from '@/app/admin/pages/vehiculos/service/vehiculo.service';
-import { MunicipioService } from '@/app/admin/services/municipio.service';
+import { MunicipioService, MunicipioItem } from '@/app/admin/services/municipio.service';
+import { GuiaDespacho, FacturaGuia } from '@/app/admin/pages/rutas/data/rutas-mock';
+import { Chofer } from '@/app/admin/pages/choferes/data/choferes-mock';
+import { Vehiculo } from '@/app/admin/pages/vehiculos/data/vehiculos-mock';
 import { ViajeService } from './viaje.service';
 import { ViajeAdmin } from './viaje.types';
 
@@ -61,6 +64,15 @@ export interface ActividadReciente {
     incidencias: ActividadItem[];
 }
 
+export interface DashboardData {
+    kpis: DashboardKpi;
+    viajesActivos: ViajeActivo[];
+    facturasPendientes: FacturaPendiente[];
+    facturasPorMunicipio: { label: string; value: string; cantidad: number }[];
+    posicionesChoferes: PosicionChoferLite[];
+    actividadReciente: ActividadReciente;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
     private authService = inject(AuthService);
@@ -69,16 +81,80 @@ export class DashboardService {
     private municipioService = inject(MunicipioService);
     private viajeService = inject(ViajeService);
 
+    /**
+     * Carga todos los datos necesarios para el dashboard en un único lote paralelo
+     * evitando llamadas repetidas a obtenerGuias y saturación del pool de conexiones.
+     */
+    async cargarDashboardCompleto(): Promise<DashboardData> {
+        const [guias, choferes, vehiculos, municipios, viajes, posiciones] = await Promise.all([
+            this.rutaService.obtenerGuias(),
+            this.authService.obtenerChoferes(true),
+            this.vehiculoService.obtenerVehiculos(),
+            this.municipioService.obtenerTodos(),
+            this.viajeService.obtenerViajes(),
+            this.obtenerPosicionesChoferes(),
+        ]);
+
+        return {
+            kpis: this.calcularKpis(guias, choferes, vehiculos),
+            viajesActivos: this.mapearViajesActivos(viajes),
+            facturasPendientes: this.calcularFacturasPendientes(guias),
+            facturasPorMunicipio: this.calcularFacturasPorMunicipio(guias, municipios),
+            posicionesChoferes: posiciones,
+            actividadReciente: this.calcularActividadReciente(guias),
+        };
+    }
+
     async obtenerKpis(): Promise<DashboardKpi> {
         const [guias, choferes, vehiculos] = await Promise.all([
             this.rutaService.obtenerGuias(),
             this.authService.obtenerChoferes(true),
             this.vehiculoService.obtenerVehiculos(),
         ]);
+        return this.calcularKpis(guias, choferes, vehiculos);
+    }
 
+    async obtenerFacturasPendientes(): Promise<FacturaPendiente[]> {
+        const guias = await this.rutaService.obtenerGuias();
+        return this.calcularFacturasPendientes(guias);
+    }
+
+    async obtenerFacturasPorMunicipio(): Promise<
+        { label: string; value: string; cantidad: number }[]
+    > {
+        const [guias, municipios] = await Promise.all([
+            this.rutaService.obtenerGuias(),
+            this.municipioService.obtenerTodos(),
+        ]);
+        return this.calcularFacturasPorMunicipio(guias, municipios);
+    }
+
+    async obtenerViajesActivos(): Promise<ViajeActivo[]> {
+        const viajes = await this.viajeService.obtenerViajes();
+        return this.mapearViajesActivos(viajes);
+    }
+
+    async obtenerPosicionesChoferes(): Promise<PosicionChoferLite[]> {
+        const { data, error } = await this.authService.client.rpc('obtener_posiciones_choferes');
+        if (error) throw error;
+        return (data as PosicionChoferLite[]) || [];
+    }
+
+    async obtenerActividadReciente(): Promise<ActividadReciente> {
+        const guias = await this.rutaService.obtenerGuias();
+        return this.calcularActividadReciente(guias);
+    }
+
+    // --- Métodos de cálculo puro en memoria ---
+
+    private calcularKpis(
+        guias: GuiaDespacho[],
+        choferes: Chofer[],
+        vehiculos: Vehiculo[],
+    ): DashboardKpi {
         const facturasPendientes = guias.flatMap((g) =>
             g.facturas.filter(
-                (f) =>
+                (f: FacturaGuia) =>
                     f.idEstado === 'nuevo' ||
                     f.idEstado === 'embarque' ||
                     f.idEstado === 'espera' ||
@@ -91,7 +167,7 @@ export class DashboardService {
                 guias
                     .filter((g) =>
                         g.facturas.some(
-                            (f) =>
+                            (f: FacturaGuia) =>
                                 f.idEstado === 'nuevo' ||
                                 f.idEstado === 'embarque' ||
                                 f.idEstado === 'espera' ||
@@ -109,20 +185,19 @@ export class DashboardService {
         };
     }
 
-    async obtenerFacturasPendientes(): Promise<FacturaPendiente[]> {
-        const guias = await this.rutaService.obtenerGuias();
+    private calcularFacturasPendientes(guias: GuiaDespacho[]): FacturaPendiente[] {
         return guias
             .flatMap((g) =>
                 g.facturas
                     .filter(
-                        (f) =>
+                        (f: FacturaGuia) =>
                             f.idEstado === 'nuevo' ||
                             f.idEstado === 'embarque' ||
                             f.idEstado === 'espera' ||
                             f.idEstado === 'entrega',
                     )
                     .map(
-                        (f): FacturaPendiente => ({
+                        (f: FacturaGuia): FacturaPendiente => ({
                             id: f.id,
                             numeroFactura: f.numeroFactura,
                             nombreCliente: f.nombreCliente,
@@ -138,18 +213,14 @@ export class DashboardService {
             .filter((f) => f.lat != null && f.lng != null);
     }
 
-    async obtenerFacturasPorMunicipio(): Promise<
-        { label: string; value: string; cantidad: number }[]
-    > {
-        const [guias, municipios] = await Promise.all([
-            this.rutaService.obtenerGuias(),
-            this.municipioService.obtenerTodos(),
-        ]);
-
+    private calcularFacturasPorMunicipio(
+        guias: GuiaDespacho[],
+        municipios: MunicipioItem[],
+    ): { label: string; value: string; cantidad: number }[] {
         const conteo = new Map<string, number>();
         for (const g of guias) {
             const pendiente = g.facturas.some(
-                (f) =>
+                (f: FacturaGuia) =>
                     f.idEstado === 'nuevo' ||
                     f.idEstado === 'embarque' ||
                     f.idEstado === 'espera' ||
@@ -170,21 +241,13 @@ export class DashboardService {
             .sort((a, b) => b.cantidad - a.cantidad);
     }
 
-    async obtenerViajesActivos(): Promise<ViajeActivo[]> {
-        const viajes = await this.viajeService.obtenerViajes();
+    private mapearViajesActivos(viajes: ViajeAdmin[]): ViajeActivo[] {
         return viajes
             .filter((v) => v.estado === 'proceso' || v.estado === 'programado')
             .map((v) => this.mapearViaje(v));
     }
 
-    async obtenerPosicionesChoferes(): Promise<PosicionChoferLite[]> {
-        const { data, error } = await this.authService.client.rpc('obtener_posiciones_choferes');
-        if (error) throw error;
-        return (data as PosicionChoferLite[]) || [];
-    }
-
-    async obtenerActividadReciente(): Promise<ActividadReciente> {
-        const guias = await this.rutaService.obtenerGuias();
+    private calcularActividadReciente(guias: GuiaDespacho[]): ActividadReciente {
         const entregas: ActividadItem[] = [];
         const incidencias: ActividadItem[] = [];
 

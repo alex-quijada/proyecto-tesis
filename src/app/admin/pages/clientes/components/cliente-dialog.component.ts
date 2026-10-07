@@ -233,6 +233,7 @@ export class ClienteDialogComponent implements OnInit {
     async save() {
         this.submitted = true;
         this.errorMessage.set('');
+        this.form.markAllAsTouched();
 
         if (this.saving()) return;
         if (this.form.invalid) {

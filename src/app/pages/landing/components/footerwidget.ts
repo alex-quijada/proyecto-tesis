@@ -14,13 +14,17 @@ import { CommonModule } from '@angular/common';
                 <div class="col-span-12 md:col-span-4">
                     <a class="flex items-center gap-3 mb-4 cursor-pointer" routerLink="/">
                         <div
-                            class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-surface-0 shadow-md"
+                            class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-surface-0 shadow-md p-1.5"
                         >
-                            <i class="pi pi-truck text-xl"></i>
+                            <img
+                                src="/pictures/Brandia-icon.svg"
+                                alt="BrandIA"
+                                class="w-full h-full object-contain brightness-0 invert"
+                            />
                         </div>
                         <span
                             class="text-surface-900 dark:text-surface-0 font-bold text-2xl tracking-tight"
-                            >BrandIA®</span
+                            >BrandIA</span
                         >
                     </a>
                     <p

@@ -1,4 +1,7 @@
 import { Injectable, signal, DestroyRef, inject } from '@angular/core';
+import { Network, ConnectionStatus } from '@capacitor/network';
+import { App, AppState } from '@capacitor/app';
+import { PluginListenerHandle } from '@capacitor/core';
 import { environment } from '@/environments/environment';
 
 const HEALTH_CHECK_INTERVAL_MS = 10_000;
@@ -13,24 +16,63 @@ export class ConnectivityService {
     isOnline = signal<boolean>(navigator.onLine);
 
     private healthTimer: ReturnType<typeof setInterval> | undefined;
+    private networkListener: PluginListenerHandle | null = null;
+    private appListener: PluginListenerHandle | null = null;
+    private appEnPrimerPlano = true;
 
     constructor() {
         this.wrapGlobalFetch();
-
-        const goOnline = () => this.setOnline(true);
-        const goOffline = () => this.setOnline(false);
-
-        window.addEventListener('online', goOnline);
-        window.addEventListener('offline', goOffline);
+        this.initListeners();
 
         this.destroyRef.onDestroy(() => {
-            window.removeEventListener('online', goOnline);
-            window.removeEventListener('offline', goOffline);
+            this.networkListener?.remove();
+            this.appListener?.remove();
             this.stopHealthCheck();
         });
     }
 
+    private async initListeners() {
+        // 1. Estado inicial nativo
+        try {
+            const status = await Network.getStatus();
+            this.setOnline(status.connected);
+        } catch {
+            this.setOnline(navigator.onLine);
+        }
+
+        // 2. Escuchar cambios de red con el plugin nativo
+        try {
+            this.networkListener = await Network.addListener(
+                'networkStatusChange',
+                (status: ConnectionStatus) => {
+                    this.setOnline(status.connected);
+                },
+            );
+        } catch {
+            // Fallback a eventos web estándar
+            window.addEventListener('online', () => this.setOnline(true));
+            window.addEventListener('offline', () => this.setOnline(false));
+        }
+
+        // 3. Escuchar ciclo de vida de la aplicación
+        try {
+            this.appListener = await App.addListener('appStateChange', (state: AppState) => {
+                this.appEnPrimerPlano = state.isActive;
+                if (state.isActive) {
+                    // Al despertar la app: verificar red inmediatamente de forma no intrusiva
+                    void this.checkNow();
+                }
+            });
+        } catch {
+            document.addEventListener('visibilitychange', () => {
+                this.appEnPrimerPlano = document.visibilityState === 'visible';
+                if (this.appEnPrimerPlano) void this.checkNow();
+            });
+        }
+    }
+
     private setOnline(online: boolean) {
+        if (this.isOnline() === online) return;
         this.isOnline.set(online);
         if (online) {
             this.stopHealthCheck();
@@ -47,7 +89,13 @@ export class ConnectivityService {
                 if (err instanceof DOMException && err.name === 'AbortError') {
                     throw err;
                 }
-                this.setOnline(false);
+                // Si la app está en segundo plano o el navegador ya marca offline, actualizar estado
+                if (!this.appEnPrimerPlano || !navigator.onLine) {
+                    this.setOnline(false);
+                } else {
+                    // Si falló pero estamos en primer plano, verificar de forma asíncrona antes de marcar offline
+                    void this.checkNow();
+                }
                 throw err;
             })) as typeof window.fetch;
     }
@@ -68,7 +116,7 @@ export class ConnectivityService {
 
     async checkNow(): Promise<boolean> {
         if (!navigator.onLine) {
-            this.isOnline.set(false);
+            this.setOnline(false);
             return false;
         }
 
@@ -83,10 +131,13 @@ export class ConnectivityService {
                 signal: controller.signal,
             });
             const online = res.status < 500;
-            this.isOnline.set(online);
+            this.setOnline(online);
             return online;
         } catch {
-            this.isOnline.set(false);
+            // Solo marcar offline si la app está en primer plano (evita falsos al suspender)
+            if (this.appEnPrimerPlano && !navigator.onLine) {
+                this.setOnline(false);
+            }
             return false;
         } finally {
             clearTimeout(timeoutId);

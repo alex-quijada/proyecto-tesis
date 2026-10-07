@@ -118,7 +118,11 @@ export class VehiculoDetalleDialogComponent {
                             ? 'En Proceso'
                             : m.estado.charAt(0) + m.estado.slice(1).toLowerCase(),
                 }));
-            } catch {
+            } catch (err) {
+                console.error(
+                    '[VehiculoDetalle] Error al cargar mantenimientos del vehículo:',
+                    err,
+                );
                 this.mantenimientos = [];
             }
         });

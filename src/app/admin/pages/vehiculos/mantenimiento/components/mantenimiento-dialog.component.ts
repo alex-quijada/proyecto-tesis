@@ -126,7 +126,9 @@ export class MantenimientoDialogComponent implements OnInit {
     async ngOnInit() {
         try {
             this.vehiculos = await this.vehiculoService.obtenerVehiculos();
-        } catch {
+        } catch (err: any) {
+            console.error('[MantenimientoDialog] Error al cargar vehículos:', err);
+            this.errorMessage = 'No se pudieron cargar los vehículos disponibles.';
             this.vehiculos = [];
         } finally {
             this.cargandoVehiculos = false;
@@ -149,6 +151,7 @@ export class MantenimientoDialogComponent implements OnInit {
     save() {
         this.submitted = true;
         this.errorMessage = '';
+        this.form.markAllAsTouched();
 
         if (this.form.invalid) {
             this.errorMessage = 'Complete todos los campos obligatorios marcados con *.';

@@ -6,12 +6,9 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-5 pt-2">
-            <p-message
-                *ngIf="errorMessage()"
-                severity="error"
-                [text]="errorMessage()"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage()) {
+                <p-message severity="error" [text]="errorMessage()" class="mb-2"></p-message>
+            }
 
             <p-fluid>
                 <div
@@ -35,36 +32,29 @@
                             appendTo="body"
                         >
                         </p-select>
+                        @if (submitted && form.get('idPrefijo')?.invalid) {
+                            <small class="text-red-500">Requerido</small>
+                        }
                     </div>
                     <div class="col-span-8 flex flex-col gap-2">
                         <label for="rif" class="font-semibold"
                             >RIF / Cédula <span class="text-red-500">*</span></label
                         >
                         <input pInputText id="rif" formControlName="rif" placeholder="123456789" />
-                        <small
-                            *ngIf="submitted && form.get('rif')?.errors?.['required']"
-                            class="text-red-500"
-                        >
-                            El RIF / Cédula es obligatorio
-                        </small>
-                        <small
-                            *ngIf="submitted && form.get('rif')?.errors?.['pattern']"
-                            class="text-red-500"
-                        >
-                            Solo números (5-9 dígitos)
-                        </small>
-                        <small
-                            *ngIf="submitted && form.get('rif')?.errors?.['minlength']"
-                            class="text-red-500"
-                        >
-                            Mínimo 5 dígitos
-                        </small>
-                        <small
-                            *ngIf="submitted && form.get('rif')?.errors?.['maxlength']"
-                            class="text-red-500"
-                        >
-                            Máximo 9 dígitos (cédula venezolana)
-                        </small>
+                        @if (submitted && form.get('rif')?.errors?.['required']) {
+                            <small class="text-red-500"> El RIF / Cédula es obligatorio </small>
+                        }
+                        @if (submitted && form.get('rif')?.errors?.['pattern']) {
+                            <small class="text-red-500"> Solo números (5-9 dígitos) </small>
+                        }
+                        @if (submitted && form.get('rif')?.errors?.['minlength']) {
+                            <small class="text-red-500"> Mínimo 5 dígitos </small>
+                        }
+                        @if (submitted && form.get('rif')?.errors?.['maxlength']) {
+                            <small class="text-red-500">
+                                Máximo 9 dígitos (cédula venezolana)
+                            </small>
+                        }
                     </div>
                 </div>
             </p-fluid>
@@ -88,12 +78,9 @@
                             formControlName="nombreComercial"
                             placeholder="Ej: Comercializadora XYZ, C.A."
                         />
-                        <small
-                            *ngIf="submitted && form.get('nombreComercial')?.errors?.['required']"
-                            class="text-red-500"
-                        >
-                            El nombre comercial es obligatorio
-                        </small>
+                        @if (submitted && form.get('nombreComercial')?.errors?.['required']) {
+                            <small class="text-red-500"> El nombre comercial es obligatorio </small>
+                        }
                     </div>
                 </div>
 
@@ -106,12 +93,11 @@
                             formControlName="correo"
                             placeholder="correo@ejemplo.com"
                         />
-                        <small
-                            *ngIf="submitted && form.get('correo')?.errors?.['email']"
-                            class="text-red-500"
-                        >
-                            Ingrese un correo válido (ej: usuario@dominio.com)
-                        </small>
+                        @if (submitted && form.get('correo')?.errors?.['email']) {
+                            <small class="text-red-500">
+                                Ingrese un correo válido (ej: usuario@dominio.com)
+                            </small>
+                        }
                     </div>
 
                     <div class="col-span-4 flex flex-col gap-2">
@@ -122,12 +108,11 @@
                             formControlName="telefono"
                             placeholder="04141234567"
                         />
-                        <small
-                            *ngIf="submitted && form.get('telefono')?.errors?.['pattern']"
-                            class="text-red-500"
-                        >
-                            Solo números (7-15 dígitos, incluye código de área)
-                        </small>
+                        @if (submitted && form.get('telefono')?.errors?.['pattern']) {
+                            <small class="text-red-500">
+                                Solo números (7-15 dígitos, incluye código de área)
+                            </small>
+                        }
                     </div>
 
                     <div class="col-span-4 flex flex-col gap-2">
@@ -162,6 +147,9 @@
                                 <div>{{ item.nombre_prioridad | capitalize }}</div>
                             </ng-template>
                         </p-select>
+                        @if (submitted && form.get('idPrioridad')?.invalid) {
+                            <small class="text-red-500">Seleccione una prioridad</small>
+                        }
                     </div>
                 </div>
             </p-fluid>
@@ -185,245 +173,256 @@
                 </div>
 
                 <div formArrayName="sucursales">
-                    <div
-                        *ngFor="let sGroup of sucursalesForm.controls; let i = index"
-                        [formGroupName]="i"
-                        class="border border-surface-200 dark:border-surface-700 rounded p-3 mt-3"
-                    >
-                        <div class="flex items-center justify-between mb-2">
-                            <span
-                                class="font-semibold text-sm text-surface-700 dark:text-surface-200"
-                            >
-                                <i class="pi pi-building text-primary mr-1"></i>
-                                Sucursal {{ i + 1 }}
-                            </span>
-                            <button
-                                *ngIf="sucursalesForm.controls.length > 1"
-                                class="text-red-500 hover:text-red-700 bg-transparent border-none cursor-pointer text-lg leading-none"
-                                (click)="eliminarSucursal(i)"
-                                type="button"
-                                pTooltip="Eliminar sucursal"
-                            >
-                                &times;
-                            </button>
-                        </div>
-
-                        <div class="flex flex-col gap-3">
-                            <div class="flex flex-col gap-2">
-                                <label [for]="'municipio-' + i" class="font-semibold text-sm"
-                                    >Municipio <span class="text-red-500">*</span></label
+                    @for (sGroup of sucursalesForm.controls; track $index; let i = $index) {
+                        <div
+                            [formGroupName]="i"
+                            class="border border-surface-200 dark:border-surface-700 rounded p-3 mt-3"
+                        >
+                            <div class="flex items-center justify-between mb-2">
+                                <span
+                                    class="font-semibold text-sm text-surface-700 dark:text-surface-200"
                                 >
-                                <p-select
-                                    [id]="'municipio-' + i"
-                                    formControlName="idMunicipio"
-                                    [options]="municipios()"
-                                    optionLabel="nombre"
-                                    optionValue="id_municipio"
-                                    placeholder="Seleccionar municipio"
-                                    appendTo="body"
-                                >
-                                </p-select>
-                                <small
-                                    *ngIf="submitted && sGroup.get('idMunicipio')?.invalid"
-                                    class="text-red-500"
-                                >
-                                    Seleccione un municipio
-                                </small>
-                            </div>
-
-                            <input type="hidden" formControlName="latitud" />
-                            <input type="hidden" formControlName="longitud" />
-
-                            @let municipioId = sGroup.get('idMunicipio')?.value;
-                            <app-mapa-sucursal
-                                [sucursalGroup]="sGroup"
-                                [municipioNombre]="obtenerNombreMunicipio(municipioId)"
-                                [direccionInicial]="!clienteData().id ? (sGroup.get('direccion')?.value || '') : ''"
-                                (marcadorMovido)="onMarcadorMovido(i)"
-                            />
-
-                            @if (marcadorMovidoPorSucursal()[i]) {
-                                <p-message severity="warn" variant="outlined" styleClass="text-sm">
-                                    <span class="text-sm">
-                                        <i class="pi pi-exclamation-triangle mr-1"></i>
-                                        Moviste el marcador del mapa. Verifica que la dirección
-                                        escrita abajo sea la correcta.
-                                    </span>
-                                </p-message>
-                            }
-
-                            <div
-                                class="flex flex-col gap-2"
-                                [ngClass]="{
-                                    'p-invalid': submitted && sGroup.get('direccion')?.invalid,
-                                }"
-                            >
-                                <label [for]="'direccion-' + i" class="font-semibold text-sm"
-                                    >Dirección Completa <span class="text-red-500">*</span></label
-                                >
-                                <textarea
-                                    pTextarea
-                                    [id]="'direccion-' + i"
-                                    formControlName="direccion"
-                                    rows="2"
-                                    [ngClass]="{
-                                        'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600':
-                                            marcadorMovidoPorSucursal()[i],
-                                    }"
-                                    placeholder="Av. Principal, Edif. Centro, Piso 1, Local 2"
-                                ></textarea>
-                                <small
-                                    *ngIf="submitted && sGroup.get('direccion')?.invalid"
-                                    class="text-red-500"
-                                >
-                                    La dirección es obligatoria
-                                </small>
-                            </div>
-
-                            <div class="flex flex-col gap-2">
-                                <label
-                                    [for]="'puntoDeReferencia-' + i"
-                                    class="font-semibold text-sm"
-                                    >Punto de Referencia</label
-                                >
-                                <input
-                                    pInputText
-                                    [id]="'puntoDeReferencia-' + i"
-                                    formControlName="puntoDeReferencia"
-                                    placeholder="Ej: Frente a la plaza, al lado del banco"
-                                />
-                            </div>
-
-                            <p-divider class="my-2" />
-
-                            <div
-                                class="text-sm font-semibold text-surface-600 dark:text-surface-300 mb-2"
-                            >
-                                <i class="pi pi-clock mr-1"></i> Reglas de Recepción
-                            </div>
-
-                            <div formGroupName="reglas">
-                                <div class="grid grid-cols-12 gap-3 mt-2">
-                                    <div class="col-span-4 flex flex-col gap-2">
-                                        <label
-                                            [for]="'horaDesde-' + i"
-                                            class="font-semibold text-sm"
-                                            >Desde</label
-                                        >
-                                        <p-datepicker
-                                            [id]="'horaDesde-' + i"
-                                            formControlName="horaDesde"
-                                            timeOnly
-                                            hourFormat="12"
-                                            [showIcon]="true"
-                                            iconDisplay="input"
-                                            [icon]="'pi pi-clock'"
-                                            appendTo="body"
-                                        />
-                                    </div>
-                                    <div class="col-span-4 flex flex-col gap-2">
-                                        <label
-                                            [for]="'horaHasta-' + i"
-                                            class="font-semibold text-sm"
-                                            >Hasta</label
-                                        >
-                                        <p-datepicker
-                                            [id]="'horaHasta-' + i"
-                                            formControlName="horaHasta"
-                                            timeOnly
-                                            hourFormat="12"
-                                            [showIcon]="true"
-                                            iconDisplay="input"
-                                            [icon]="'pi pi-clock'"
-                                            appendTo="body"
-                                        />
-                                    </div>
-                                    <div class="col-span-4 flex flex-col gap-2">
-                                        <label
-                                            [for]="'diasRecepcion-' + i"
-                                            class="font-semibold text-sm"
-                                            >Días de Recepción</label
-                                        >
-                                        <p-multiselect
-                                            [id]="'diasRecepcion-' + i"
-                                            formControlName="diasRecepcion"
-                                            [options]="diasSemana"
-                                            optionLabel="label"
-                                            optionValue="value"
-                                            placeholder="Seleccionar días"
-                                            [maxSelectedLabels]="3"
-                                            selectedItemsLabel="{0} seleccionados"
-                                            appendTo="body"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-col gap-2 mt-2">
-                                    <label class="font-semibold text-sm"
-                                        >Requiere Cita Previa</label
+                                    <i class="pi pi-building text-primary mr-1"></i>
+                                    Sucursal {{ i + 1 }}
+                                </span>
+                                @if (sucursalesForm.controls.length > 1) {
+                                    <button
+                                        class="text-red-500 hover:text-red-700 bg-transparent border-none cursor-pointer text-lg leading-none"
+                                        (click)="eliminarSucursal(i)"
+                                        type="button"
+                                        pTooltip="Eliminar sucursal"
                                     >
-                                    <p-selectbutton
-                                        formControlName="requiereCita"
-                                        [options]="opcionesCita"
-                                        optionLabel="label"
-                                        optionValue="value"
-                                        [allowEmpty]="false"
-                                    />
+                                        &times;
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="flex flex-col gap-3">
+                                <div class="flex flex-col gap-2">
+                                    <label [for]="'municipio-' + i" class="font-semibold text-sm"
+                                        >Municipio <span class="text-red-500">*</span></label
+                                    >
+                                    <p-select
+                                        [id]="'municipio-' + i"
+                                        formControlName="idMunicipio"
+                                        [options]="municipios()"
+                                        optionLabel="nombre"
+                                        optionValue="id_municipio"
+                                        placeholder="Seleccionar municipio"
+                                        appendTo="body"
+                                    >
+                                    </p-select>
+                                    @if (submitted && sGroup.get('idMunicipio')?.invalid) {
+                                        <small class="text-red-500">
+                                            Seleccione un municipio
+                                        </small>
+                                    }
                                 </div>
 
-                                <div class="flex flex-col gap-2 mt-2">
-                                    <label
-                                        [for]="'instrucciones-' + i"
-                                        class="font-semibold text-sm"
-                                        >Instrucciones / Reglas Adicionales</label
+                                <input type="hidden" formControlName="latitud" />
+                                <input type="hidden" formControlName="longitud" />
+
+                                @let municipioId = sGroup.get('idMunicipio')?.value;
+                                <app-mapa-sucursal
+                                    [sucursalGroup]="sGroup"
+                                    [municipioNombre]="obtenerNombreMunicipio(municipioId)"
+                                    [direccionInicial]="
+                                        !clienteData().id
+                                            ? sGroup.get('direccion')?.value || ''
+                                            : ''
+                                    "
+                                    (marcadorMovido)="onMarcadorMovido(i)"
+                                />
+
+                                @if (marcadorMovidoPorSucursal()[i]) {
+                                    <p-message
+                                        severity="warn"
+                                        variant="outlined"
+                                        styleClass="text-sm"
+                                    >
+                                        <span class="text-sm">
+                                            <i class="pi pi-exclamation-triangle mr-1"></i>
+                                            Moviste el marcador del mapa. Verifica que la dirección
+                                            escrita abajo sea la correcta.
+                                        </span>
+                                    </p-message>
+                                }
+
+                                <div
+                                    class="flex flex-col gap-2"
+                                    [ngClass]="{
+                                        'p-invalid': submitted && sGroup.get('direccion')?.invalid,
+                                    }"
+                                >
+                                    <label [for]="'direccion-' + i" class="font-semibold text-sm"
+                                        >Dirección Completa
+                                        <span class="text-red-500">*</span></label
                                     >
                                     <textarea
                                         pTextarea
-                                        [id]="'instrucciones-' + i"
-                                        formControlName="instrucciones"
+                                        [id]="'direccion-' + i"
+                                        formControlName="direccion"
                                         rows="2"
-                                        placeholder="Ej: Recepción por el muelle trasero. Peso máximo 5 ton."
+                                        [ngClass]="{
+                                            'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600':
+                                                marcadorMovidoPorSucursal()[i],
+                                        }"
+                                        placeholder="Av. Principal, Edif. Centro, Piso 1, Local 2"
                                     ></textarea>
+                                    @if (submitted && sGroup.get('direccion')?.invalid) {
+                                        <small class="text-red-500">
+                                            La dirección es obligatoria
+                                        </small>
+                                    }
                                 </div>
-                            </div>
 
-                            <p-divider class="my-2" />
-
-                            <div
-                                class="text-sm font-semibold text-surface-600 dark:text-surface-300 mb-2"
-                            >
-                                <i class="pi pi-user mr-1"></i> Datos de Contacto
-                            </div>
-
-                            <div class="grid grid-cols-12 gap-3">
-                                <div class="col-span-6 flex flex-col gap-2">
+                                <div class="flex flex-col gap-2">
                                     <label
-                                        [for]="'nombreContacto-' + i"
+                                        [for]="'puntoDeReferencia-' + i"
                                         class="font-semibold text-sm"
-                                        >Nombre de Contacto</label
+                                        >Punto de Referencia</label
                                     >
                                     <input
                                         pInputText
-                                        [id]="'nombreContacto-' + i"
-                                        formControlName="nombreContacto"
-                                        placeholder="Ej: Juan Pérez"
+                                        [id]="'puntoDeReferencia-' + i"
+                                        formControlName="puntoDeReferencia"
+                                        placeholder="Ej: Frente a la plaza, al lado del banco"
                                     />
                                 </div>
 
-                                <div class="col-span-6 flex flex-col gap-2">
-                                    <label [for]="'telContacto-' + i" class="font-semibold text-sm"
-                                        >Teléfono de Contacto</label
-                                    >
-                                    <input
-                                        pInputText
-                                        [id]="'telContacto-' + i"
-                                        formControlName="telefonoContacto"
-                                        placeholder="Ej: 02951234567"
-                                    />
+                                <p-divider class="my-2" />
+
+                                <div
+                                    class="text-sm font-semibold text-surface-600 dark:text-surface-300 mb-2"
+                                >
+                                    <i class="pi pi-clock mr-1"></i> Reglas de Recepción
+                                </div>
+
+                                <div formGroupName="reglas">
+                                    <div class="grid grid-cols-12 gap-3 mt-2">
+                                        <div class="col-span-4 flex flex-col gap-2">
+                                            <label
+                                                [for]="'horaDesde-' + i"
+                                                class="font-semibold text-sm"
+                                                >Desde</label
+                                            >
+                                            <p-datepicker
+                                                [id]="'horaDesde-' + i"
+                                                formControlName="horaDesde"
+                                                timeOnly
+                                                hourFormat="12"
+                                                [showIcon]="true"
+                                                iconDisplay="input"
+                                                [icon]="'pi pi-clock'"
+                                                appendTo="body"
+                                            />
+                                        </div>
+                                        <div class="col-span-4 flex flex-col gap-2">
+                                            <label
+                                                [for]="'horaHasta-' + i"
+                                                class="font-semibold text-sm"
+                                                >Hasta</label
+                                            >
+                                            <p-datepicker
+                                                [id]="'horaHasta-' + i"
+                                                formControlName="horaHasta"
+                                                timeOnly
+                                                hourFormat="12"
+                                                [showIcon]="true"
+                                                iconDisplay="input"
+                                                [icon]="'pi pi-clock'"
+                                                appendTo="body"
+                                            />
+                                        </div>
+                                        <div class="col-span-4 flex flex-col gap-2">
+                                            <label
+                                                [for]="'diasRecepcion-' + i"
+                                                class="font-semibold text-sm"
+                                                >Días de Recepción</label
+                                            >
+                                            <p-multiselect
+                                                [id]="'diasRecepcion-' + i"
+                                                formControlName="diasRecepcion"
+                                                [options]="diasSemana"
+                                                optionLabel="label"
+                                                optionValue="value"
+                                                placeholder="Seleccionar días"
+                                                [maxSelectedLabels]="3"
+                                                selectedItemsLabel="{0} seleccionados"
+                                                appendTo="body"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col gap-2 mt-2">
+                                        <label class="font-semibold text-sm"
+                                            >Requiere Cita Previa</label
+                                        >
+                                        <p-selectbutton
+                                            formControlName="requiereCita"
+                                            [options]="opcionesCita"
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            [allowEmpty]="false"
+                                        />
+                                    </div>
+
+                                    <div class="flex flex-col gap-2 mt-2">
+                                        <label
+                                            [for]="'instrucciones-' + i"
+                                            class="font-semibold text-sm"
+                                            >Instrucciones / Reglas Adicionales</label
+                                        >
+                                        <textarea
+                                            pTextarea
+                                            [id]="'instrucciones-' + i"
+                                            formControlName="instrucciones"
+                                            rows="2"
+                                            placeholder="Ej: Recepción por el muelle trasero. Peso máximo 5 ton."
+                                        ></textarea>
+                                    </div>
+                                </div>
+
+                                <p-divider class="my-2" />
+
+                                <div
+                                    class="text-sm font-semibold text-surface-600 dark:text-surface-300 mb-2"
+                                >
+                                    <i class="pi pi-user mr-1"></i> Datos de Contacto
+                                </div>
+
+                                <div class="grid grid-cols-12 gap-3">
+                                    <div class="col-span-6 flex flex-col gap-2">
+                                        <label
+                                            [for]="'nombreContacto-' + i"
+                                            class="font-semibold text-sm"
+                                            >Nombre de Contacto</label
+                                        >
+                                        <input
+                                            pInputText
+                                            [id]="'nombreContacto-' + i"
+                                            formControlName="nombreContacto"
+                                            placeholder="Ej: Juan Pérez"
+                                        />
+                                    </div>
+
+                                    <div class="col-span-6 flex flex-col gap-2">
+                                        <label
+                                            [for]="'telContacto-' + i"
+                                            class="font-semibold text-sm"
+                                            >Teléfono de Contacto</label
+                                        >
+                                        <input
+                                            pInputText
+                                            [id]="'telContacto-' + i"
+                                            formControlName="telefonoContacto"
+                                            placeholder="Ej: 02951234567"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 </div>
             </p-fluid>
         </form>

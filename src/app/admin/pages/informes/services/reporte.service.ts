@@ -130,7 +130,20 @@ export class ReporteService {
             p_id_municipio: pIdMunicipio || null,
         });
         if (error) throw new Error(`Error al cargar el reporte de eficiencia: ${error.message}`);
-        return data as MetricasEficiencia;
+        const raw = (data || {}) as any;
+        const listaRaw = raw.tiempos_por_etapa || raw.tiempos || [];
+        const tiempos_por_etapa = Array.isArray(listaRaw)
+            ? listaRaw.map((t: any) => ({
+                  orden: Number(t.orden) || 0,
+                  etapa: String(t.etapa || ''),
+                  minutos_promedio: Number(t.minutos_promedio ?? t.minutos ?? 0),
+              }))
+            : [];
+
+        return {
+            ...raw,
+            tiempos_por_etapa,
+        } as MetricasEficiencia;
     }
 
     async obtenerGastos(

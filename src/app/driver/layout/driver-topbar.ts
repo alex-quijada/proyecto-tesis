@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { TagModule } from 'primeng/tag';
@@ -81,18 +82,16 @@ import { CapitalizePipe } from '../pipes/capitalize.pipe';
 export class DriverTopbar {
     store = inject(DriverStoreService);
     private router = inject(Router);
-    private destroyRef = inject(DestroyRef);
 
     readonly esMapa = signal(this.router.url.startsWith('/driver/mapa'));
     readonly viajeEnProceso = computed(() => this.store.viajesChofer()[0]?.estado === 'proceso');
 
     constructor() {
-        const sub = this.router.events.subscribe((event) => {
+        this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
             if (event instanceof NavigationEnd) {
                 this.esMapa.set(event.url.startsWith('/driver/mapa'));
             }
         });
-        this.destroyRef.onDestroy(() => sub.unsubscribe());
     }
 
     irAPerfil() {

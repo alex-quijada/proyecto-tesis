@@ -323,7 +323,7 @@ export class AuthService {
         const expira = session?.expires_at
             ? new Date(session.expires_at * 1000).toLocaleString()
             : 'n/a';
-        console.log(`[Auth] ${new Date().toLocaleString()} | ${event} | expira: ${expira}`);
+        // console.log(`[Auth] ${new Date().toLocaleString()} | ${event} | expira: ${expira}`);
     }
 
     private logSessionTtl(session: Session | null) {
@@ -331,11 +331,11 @@ export class AuthService {
         try {
             const payload = JSON.parse(atob(session.access_token.split('.')[1]));
             const ttlMin = Math.round((payload.exp - payload.iat) / 60);
-            console.log(
-                `[Auth] Access token: TTL=${ttlMin} min | emitido: ${new Date(
-                    payload.iat * 1000,
-                ).toLocaleString()} | expira: ${new Date(payload.exp * 1000).toLocaleString()}`,
-            );
+            // console.log(
+            //     `[Auth] Access token: TTL=${ttlMin} min | emitido: ${new Date(
+            //         payload.iat * 1000,
+            //     ).toLocaleString()} | expira: ${new Date(payload.exp * 1000).toLocaleString()}`,
+            // );
         } catch {
             /* token no decodificable */
         }
@@ -417,7 +417,12 @@ export class AuthService {
         ) {
             return 'El número de licencia ya está registrado.';
         }
-        if (/(already been registered|email_exists|already registered)/i.test(msg)) {
+        if (
+            /(already been registered|email_exists|already registered|checking email|usuarios_email_key)/i.test(
+                msg,
+            ) ||
+            (/(duplicate|already exists)/i.test(msg) && /email/i.test(msg))
+        ) {
             return 'El email ya está registrado.';
         }
         return funcMsg;

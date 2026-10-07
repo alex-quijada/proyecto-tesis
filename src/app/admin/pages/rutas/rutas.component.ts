@@ -229,9 +229,7 @@ export class RutasComponent implements OnInit {
 
     tooltipEditar(guia: GuiaDespacho): string {
         if (this.puedeEditar(guia)) {
-            const tieneInc = guia.facturas?.some(
-                (f) => f.idEstado?.toLowerCase() === 'incidencia',
-            );
+            const tieneInc = guia.facturas?.some((f) => f.idEstado?.toLowerCase() === 'incidencia');
             return tieneInc ? 'Editar guía (Re-despachar incidencias)' : 'Editar guía';
         }
         const estados = (guia.facturas || []).map((f) => f.idEstado?.toLowerCase() || '');

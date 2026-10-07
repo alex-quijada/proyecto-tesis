@@ -7,10 +7,12 @@ import { DatosGuia, Empresa, FacturaAsociada } from '../models/pdf-data.model';
 export class PdfNormalizerService {
     async procesarArchivoPdf(file: File): Promise<DatosGuia> {
         const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-            'pdfjs-dist/build/pdf.worker.min.mjs',
-            import.meta.url,
-        ).toString();
+        const version = pdfjsLib.version || '6.0.227';
+        // En producción (Netlify / Vercel / PWA) se carga desde los assets estáticos o CDN
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            typeof window !== 'undefined' && window.location?.origin
+                ? `${window.location.origin}/assets/pdfjs/pdf.worker.min.mjs`
+                : `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
 
         const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
         const paginas: string[] = [];

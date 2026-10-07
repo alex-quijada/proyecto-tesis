@@ -7,6 +7,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { TooltipModule } from 'primeng/tooltip';
+import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 
 import { CabeceraReporteComponent } from '../componentes-compartidos/cabecera-reporte.component';
 import { FiltrosReporteComponent } from '../componentes-compartidos/filtros-reporte.component';
@@ -63,6 +65,8 @@ interface FilaOperacion {
         IconFieldModule,
         InputIconModule,
         TooltipModule,
+        ButtonModule,
+        MessageModule,
         CabeceraReporteComponent,
         FiltrosReporteComponent,
         CapitalizePipe,
@@ -76,6 +80,7 @@ export class OperacionesComponent {
     private readonly tipoIncidenciaPipe = new TipoIncidenciaPipe();
 
     cargando = signal(true);
+    error = signal<string | null>(null);
     guias = signal<GuiaDespacho[]>([]);
     filtros = signal<FiltrosReporte>({});
     filtrosAplicados = signal<FiltrosReporte>({});
@@ -114,19 +119,24 @@ export class OperacionesComponent {
             this.municipios.set(municipios);
             this.vehiculos.set(vehiculos);
             this.empresas.set(empresas);
-        } catch {
-            /* filtros opcionales */
+        } catch (err) {
+            console.warn('[ReporteOperaciones] Error al cargar filtros:', err);
         }
         await this.cargarDatos();
     }
 
     async cargarDatos() {
         this.cargando.set(true);
+        this.error.set(null);
         try {
             const guias = await this.rutaService.obtenerGuias();
             this.guias.set(guias);
         } catch (err: any) {
             console.error('Error cargando operaciones:', err);
+            this.error.set(
+                err.message ||
+                    'No se pudieron cargar los datos de operaciones. Verifica tu conexión.',
+            );
             this.guias.set([]);
         } finally {
             this.cargando.set(false);

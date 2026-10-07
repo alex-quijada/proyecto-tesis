@@ -15,12 +15,9 @@
     </ng-template>
 
     <form [formGroup]="form" class="space-y-4">
-        <p-message
-            *ngIf="errorMessage"
-            severity="error"
-            [text]="errorMessage"
-            styleClass="w-full"
-        ></p-message>
+        @if (errorMessage) {
+            <p-message severity="error" [text]="errorMessage" styleClass="w-full"></p-message>
+        }
 
         <p-fluid>
             <div class="flex flex-col gap-2">
@@ -36,9 +33,9 @@
                     placeholder="Seleccionar vehículo"
                     appendTo="body"
                 />
-                <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500"
-                    >Seleccione un vehículo</small
-                >
+                @if (submitted && form.get('idVehiculo')?.invalid) {
+                    <small class="text-red-500">Seleccione un vehículo</small>
+                }
                 @if (vehiculos().length === 0) {
                     <small class="text-amber-500"
                         >No tienes vehículos asignados. No puedes registrar combustible.</small
@@ -78,16 +75,17 @@
                         [suffix]="' L'"
                         placeholder="0.0"
                     />
-                    <small
-                        *ngIf="submitted && form.get('litrosCargados')?.errors?.['maxLitros']"
-                        class="text-red-500"
-                        >Máximo {{ limitesLitros.max }} L para este vehículo.</small
-                    >
-                    <small
-                        *ngIf="submitted && form.get('litrosCargados')?.errors?.['minLitros']"
-                        class="text-red-500"
-                        >Mínimo {{ limitesLitros.min }} L.</small
-                    >
+                    @if (submitted && form.get('litrosCargados')?.errors?.['required']) {
+                        <small class="text-red-500">Los litros cargados son obligatorios</small>
+                    }
+                    @if (submitted && form.get('litrosCargados')?.errors?.['maxLitros']) {
+                        <small class="text-red-500"
+                            >Máximo {{ limitesLitros.max }} L para este vehículo.</small
+                        >
+                    }
+                    @if (submitted && form.get('litrosCargados')?.errors?.['minLitros']) {
+                        <small class="text-red-500">Mínimo {{ limitesLitros.min }} L.</small>
+                    }
                     <small class="text-xs text-surface-400"
                         >Según el tipo de vehículo, máximo {{ limitesLitros.max }} L.</small
                     >
@@ -104,6 +102,9 @@
                         currency="USD"
                         placeholder="0.00"
                     />
+                    @if (submitted && form.get('costoPorLitro')?.invalid) {
+                        <small class="text-red-500">El precio es obligatorio</small>
+                    }
                 </div>
             </div>
 
@@ -118,6 +119,9 @@
                     [suffix]="' Bs'"
                     placeholder="Ej: 36.50"
                 />
+                @if (submitted && form.get('tasaBs')?.invalid) {
+                    <small class="text-red-500">La tasa del día es obligatoria</small>
+                }
                 <small class="text-xs text-surface-400"
                     >Se usa para calcular el costo en bolívares de esta carga.</small
                 >

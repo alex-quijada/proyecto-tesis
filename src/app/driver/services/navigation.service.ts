@@ -53,6 +53,8 @@ const SIM_INTERVALO_MS = 200;
 /** Velocidad de la simulación en m/s (configurable desde la UI). */
 const VELOCIDAD_SIMULACION_DEFAULT = 90;
 
+import { BackgroundTrackingService } from './background-tracking.service';
+
 @Injectable()
 export class NavigationService {
     private notif = inject(NotificationService);
@@ -60,6 +62,7 @@ export class NavigationService {
     private connectivity = inject(ConnectivityService);
     private authService = inject(AuthService);
     private offlineStorage = inject(OfflineStorageService);
+    private backgroundTracking = inject(BackgroundTrackingService);
 
     readonly navegando = signal(false);
     readonly pasos = signal<PasoRuta[]>([]);
@@ -454,9 +457,7 @@ export class NavigationService {
         this.watchId = navigator.geolocation.watchPosition(
             (pos) => {
                 const vel =
-                    pos.coords.speed != null && pos.coords.speed >= 0
-                        ? pos.coords.speed * 3.6
-                        : 0;
+                    pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed * 3.6 : 0;
                 this.manejarPosicion(pos.coords.latitude, pos.coords.longitude, vel);
             },
             (err) => {
@@ -470,6 +471,8 @@ export class NavigationService {
             { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
         );
     }
+
+    private cleanupBgTracking: (() => void) | null = null;
 
     private async iniciarGpsNativo() {
         try {
@@ -486,14 +489,21 @@ export class NavigationService {
             console.error('Error solicitando permisos GPS', err);
         }
 
+        // Iniciar Foreground Service nativo para mantener GPS activo con pantalla apagada
+        void this.backgroundTracking.start({
+            title: 'BrandIA Driver • Navegación activa',
+            text: 'Transmitiendo ubicación GPS en segundo plano...',
+        });
+
+        if (this.cleanupBgTracking) this.cleanupBgTracking();
+        this.cleanupBgTracking = this.backgroundTracking.onLocationUpdate((bgLoc) => {
+            const vel = bgLoc.speed != null && bgLoc.speed >= 0 ? bgLoc.speed * 3.6 : 0;
+            this.manejarPosicion(bgLoc.latitude, bgLoc.longitude, vel);
+        });
+
         const callback = (position: Position | null, err?: unknown) => {
             if (err || !position) {
                 console.error('Error de geolocalización', err);
-                this.notif.add({
-                    severity: 'warn',
-                    summary: 'Error de GPS',
-                    detail: 'No se pudo obtener tu ubicación. Usa el modo Simular.',
-                });
                 return;
             }
             const vel =
@@ -526,6 +536,12 @@ export class NavigationService {
     }
 
     private detenerGps() {
+        if (this.cleanupBgTracking) {
+            this.cleanupBgTracking();
+            this.cleanupBgTracking = null;
+        }
+        void this.backgroundTracking.stop();
+
         if (this.watchId === null) return;
         if (this.esNativo) {
             const id = this.watchId as string;

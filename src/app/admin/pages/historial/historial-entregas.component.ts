@@ -69,6 +69,14 @@ interface LineaTiempoItem {
     observacion?: string | null;
 }
 
+import { PaginatorModule } from 'primeng/paginator';
+
+function formatToIso(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+    ).padStart(2, '0')}`;
+}
+
 @Component({
     selector: 'app-historial-entregas',
     standalone: true,
@@ -88,6 +96,7 @@ interface LineaTiempoItem {
         InputTextModule,
         IconFieldModule,
         InputIconModule,
+        PaginatorModule,
         TipoIncidenciaPipe,
     ],
     providers: [ConfirmationService],
@@ -123,18 +132,39 @@ export class HistorialEntregasComponent implements OnInit {
     private historialViajeError = signal<Record<string, string>>({});
 
     // ---------------- Filtros ----------------
+    private readonly fechaFinDefault = new Date();
+    private readonly fechaInicioDefault = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
     textoBusqueda = signal('');
     filtroChofer = signal<string | null>(null);
     filtroMunicipio = signal<string | null>(null);
     filtroEstado = signal<string | null>(null);
-    filtroFechaDesde = signal<string | null>(null);
-    filtroFechaHasta = signal<string | null>(null);
+    rangoFechas = signal<(Date | null)[]>([this.fechaInicioDefault, this.fechaFinDefault]);
+    filtroFechaDesde = signal<string | null>(formatToIso(this.fechaInicioDefault));
+    filtroFechaHasta = signal<string | null>(formatToIso(this.fechaFinDefault));
+
+    // ---------------- Paginación ----------------
+    first = signal(0);
+    rows = signal(10);
+    readonly rowsPerPageOptions = [5, 10, 20, 50];
 
     historial = computed<HistorialViaje[]>(() =>
         this.viajesFinalizados()
             .map((v) => ({ viaje: v, paradas: this.mapearParadas(v) }))
             .filter((h) => h.paradas.length > 0),
     );
+
+    /** Historial paginado para la vista actual. */
+    readonly historialPaginado = computed<HistorialViaje[]>(() => {
+        const filtrados = this.historialFiltrado();
+        const start = this.first();
+        return filtrados.slice(start, start + this.rows());
+    });
+
+    onPageChange(event: any) {
+        this.first.set(event.first ?? 0);
+        this.rows.set(event.rows ?? 10);
+    }
 
     /** Opciones únicas para los selectores, derivadas de los viajes cargados. */
     readonly opcionesChoferes = computed(() => {
@@ -269,10 +299,12 @@ export class HistorialEntregasComponent implements OnInit {
     onRangoFechas(rango: (Date | null)[] | null) {
         this.filtroFechaDesde.set(rango?.[0] ? this.toISO(rango[0]) : null);
         this.filtroFechaHasta.set(rango?.[1] ? this.toISO(rango[1]) : null);
+        this.first.set(0);
     }
 
     onRangoFechasEvento(evento: unknown) {
         const rango = Array.isArray(evento) ? (evento as (Date | null)[]) : null;
+        this.rangoFechas.set(rango || []);
         this.onRangoFechas(rango);
     }
 
@@ -287,8 +319,10 @@ export class HistorialEntregasComponent implements OnInit {
         this.filtroChofer.set(null);
         this.filtroMunicipio.set(null);
         this.filtroEstado.set(null);
+        this.rangoFechas.set([]);
         this.filtroFechaDesde.set(null);
         this.filtroFechaHasta.set(null);
+        this.first.set(0);
     }
 
     esRecuperable(p: HistorialParada): boolean {

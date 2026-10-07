@@ -6,12 +6,9 @@
 >
     <ng-template #content>
         <form [formGroup]="form" class="flex flex-col gap-4 pt-2">
-            <p-message
-                *ngIf="errorMessage"
-                severity="error"
-                [text]="errorMessage"
-                class="mb-2"
-            ></p-message>
+            @if (errorMessage) {
+                <p-message severity="error" [text]="errorMessage" class="mb-2"></p-message>
+            }
 
             <p-fluid>
                 <div
@@ -26,9 +23,9 @@
                         >Código de Ruta <span class="text-red-500">*</span></label
                     >
                     <input pInputText formControlName="codigo" placeholder="R-2026-XXX" />
-                    <small *ngIf="submitted && form.get('codigo')?.invalid" class="text-red-500"
-                        >Requerido</small
-                    >
+                    @if (submitted && form.get('codigo')?.invalid) {
+                        <small class="text-red-500">El código de ruta es obligatorio</small>
+                    }
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
@@ -41,9 +38,9 @@
                         placeholder="Seleccionar chofer"
                         appendTo="body"
                     />
-                    <small *ngIf="submitted && form.get('idChofer')?.invalid" class="text-red-500"
-                        >Requerido</small
-                    >
+                    @if (submitted && form.get('idChofer')?.invalid) {
+                        <small class="text-red-500">Seleccione un chofer</small>
+                    }
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">
@@ -58,9 +55,9 @@
                         placeholder="Seleccionar vehículo"
                         appendTo="body"
                     />
-                    <small *ngIf="submitted && form.get('idVehiculo')?.invalid" class="text-red-500"
-                        >Requerido</small
-                    >
+                    @if (submitted && form.get('idVehiculo')?.invalid) {
+                        <small class="text-red-500">Seleccione un vehículo</small>
+                    }
                 </div>
 
                 <div class="flex flex-col gap-2 mt-2">

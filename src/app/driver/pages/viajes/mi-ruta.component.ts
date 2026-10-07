@@ -898,11 +898,7 @@ export class MiRutaComponent implements OnInit {
             ];
             const matriz = await this.osrmMatrix.obtenerMatriz(todosPuntos);
             if (matriz) {
-                tiempoEntre = this.osrmMatrix.crearCalculadorTiempo(
-                    ruteables,
-                    origen,
-                    matriz,
-                );
+                tiempoEntre = this.osrmMatrix.crearCalculadorTiempo(ruteables, origen, matriz);
             }
         }
 
@@ -1030,11 +1026,13 @@ export class MiRutaComponent implements OnInit {
                     }
 
                     if (!detallada) {
-                        const { paradas: fallbackParadas } =
-                            await this.construirParadasOrdenadas(otrosPuntos, {
+                        const { paradas: fallbackParadas } = await this.construirParadasOrdenadas(
+                            otrosPuntos,
+                            {
                                 lat: puntoEnCurso.latitud,
                                 lng: puntoEnCurso.longitud,
-                            });
+                            },
+                        );
                         if (fallbackParadas.length > 0) {
                             otrosOrdenados = fallbackParadas
                                 .map((fp) => otrosPuntos.find((op) => op.key === fp.id))

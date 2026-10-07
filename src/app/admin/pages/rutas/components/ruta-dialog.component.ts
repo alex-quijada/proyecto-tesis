@@ -82,6 +82,7 @@ export class RutaDialogComponent {
     save() {
         this.submitted = true;
         this.errorMessage = '';
+        this.form.markAllAsTouched();
 
         if (this.form.invalid) {
             this.errorMessage = 'Complete todos los campos obligatorios.';

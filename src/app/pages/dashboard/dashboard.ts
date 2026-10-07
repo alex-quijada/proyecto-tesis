@@ -15,6 +15,7 @@ import { ChartModule } from 'primeng/chart';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 import { TooltipModule } from 'primeng/tooltip';
 import { TabsModule } from 'primeng/tabs';
 import { BadgeModule } from 'primeng/badge';
@@ -54,6 +55,7 @@ interface PayloadPosicion {
         TagModule,
         SkeletonModule,
         ButtonModule,
+        MessageModule,
         TooltipModule,
         TabsModule,
         BadgeModule,
@@ -67,6 +69,7 @@ export class Dashboard implements OnInit, OnDestroy {
     private mapaEl = viewChild.required<ElementRef<HTMLDivElement>>('mapaElement');
 
     loading = signal(true);
+    error = signal<string | null>(null);
     kpis = signal<KpiCard[]>([]);
     viajesActivos = signal<ViajeActivo[]>([]);
     facturasPendientes = signal<
@@ -118,20 +121,18 @@ export class Dashboard implements OnInit, OnDestroy {
     }
 
     async ngOnInit() {
+        await this.cargarTodo();
+        this.initRealtime();
+    }
+
+    async cargarTodo() {
+        this.loading.set(true);
+        this.error.set(null);
         try {
-            const [kpis, viajes, facturas, porMunicipio, posiciones, actividad] = await Promise.all(
-                [
-                    this.dashboardService.obtenerKpis(),
-                    this.dashboardService.obtenerViajesActivos(),
-                    this.dashboardService.obtenerFacturasPendientes(),
-                    this.dashboardService.obtenerFacturasPorMunicipio(),
-                    this.dashboardService.obtenerPosicionesChoferes(),
-                    this.dashboardService.obtenerActividadReciente(),
-                ],
-            );
+            const data = await this.dashboardService.cargarDashboardCompleto();
 
             this.facturasPendientes.set(
-                facturas.map((f) => ({
+                data.facturasPendientes.map((f) => ({
                     lat: f.lat!,
                     lng: f.lng!,
                     titulo: f.nombreCliente,
@@ -147,7 +148,7 @@ export class Dashboard implements OnInit, OnDestroy {
             this.kpis.set([
                 {
                     label: 'Guías Pendientes',
-                    value: kpis.guiasPendientes,
+                    value: data.kpis.guiasPendientes,
                     icon: 'pi pi-file',
                     subtitle: 'Por planificar viajes',
                     tooltip: 'Ir a Optimización de Rutas',
@@ -155,7 +156,7 @@ export class Dashboard implements OnInit, OnDestroy {
                 },
                 {
                     label: 'Choferes Activos',
-                    value: kpis.choferesActivos,
+                    value: data.kpis.choferesActivos,
                     icon: 'pi pi-users',
                     subtitle: 'Disponibles en el sistema',
                     tooltip: 'Ir a Choferes y Ayudantes',
@@ -163,7 +164,7 @@ export class Dashboard implements OnInit, OnDestroy {
                 },
                 {
                     label: 'Vehículos Operativos',
-                    value: kpis.vehiculosOperativos,
+                    value: data.kpis.vehiculosOperativos,
                     icon: 'pi pi-truck',
                     subtitle: 'En condiciones de rodar',
                     tooltip: 'Ir a Listado de la Flota',
@@ -171,8 +172,8 @@ export class Dashboard implements OnInit, OnDestroy {
                 },
                 {
                     label: 'Monto Pendiente',
-                    value: kpis.montoPendienteUSD,
-                    valueVES: kpis.montoPendienteVES,
+                    value: data.kpis.montoPendienteUSD,
+                    valueVES: data.kpis.montoPendienteVES,
                     icon: 'pi pi-dollar',
                     subtitle: 'Mercancía sin entregar',
                     tooltip: 'Ver facturas pendientes en Optimización de Rutas',
@@ -180,20 +181,22 @@ export class Dashboard implements OnInit, OnDestroy {
                 },
             ]);
 
-            this.viajesActivos.set(viajes);
-            this.aplicarPosiciones(posiciones);
-            this.entregasRecientes.set(actividad.entregas);
-            this.incidencias.set(actividad.incidencias);
+            this.viajesActivos.set(data.viajesActivos);
+            this.aplicarPosiciones(data.posicionesChoferes);
+            this.entregasRecientes.set(data.actividadReciente.entregas);
+            this.incidencias.set(data.actividadReciente.incidencias);
             this.ultimaActualizacion.set(new Date());
 
-            this.initChart(porMunicipio);
-        } catch (err) {
+            this.initChart(data.facturasPorMunicipio);
+        } catch (err: any) {
             console.error('Error al cargar dashboard', err);
+            this.error.set(
+                err?.message ||
+                    'No se pudieron cargar los datos del panel de control. Verifica tu conexión.',
+            );
         } finally {
             this.loading.set(false);
         }
-
-        this.initRealtime();
     }
 
     ngOnDestroy() {

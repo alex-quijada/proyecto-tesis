@@ -1,4 +1,5 @@
 import { Component, model, signal, inject, computed, effect } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
     ReactiveFormsModule,
@@ -88,9 +89,12 @@ export class CombustibleChoferDialogComponent {
     constructor() {
         const litros = this.form.get('litrosCargados');
         if (litros) litros.setValidators([Validators.required, this.litrosValidator()]);
-        this.form.get('idVehiculo')?.valueChanges.subscribe(() => {
-            litros?.updateValueAndValidity();
-        });
+        this.form
+            .get('idVehiculo')
+            ?.valueChanges.pipe(takeUntilDestroyed())
+            .subscribe(() => {
+                litros?.updateValueAndValidity();
+            });
         effect(() => {
             if (this.visible()) this.resetForm();
         });
@@ -137,6 +141,7 @@ export class CombustibleChoferDialogComponent {
     async save() {
         this.submitted = true;
         this.errorMessage = '';
+        this.form.markAllAsTouched();
         this.guardando.set(true);
         try {
             if (this.form.invalid) {

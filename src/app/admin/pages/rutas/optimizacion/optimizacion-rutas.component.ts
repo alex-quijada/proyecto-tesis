@@ -771,7 +771,11 @@ export class OptimizacionRutasComponent implements OnInit, OnDestroy {
             } else {
                 this.mostrarRutaEstimada(waypoints);
             }
-        } catch {
+        } catch (err) {
+            console.warn(
+                '[OptimizacionRutas] Error al calcular ruta con Google Maps API, usando estimada:',
+                err,
+            );
             this.mostrarRutaEstimada(waypoints);
         } finally {
             this.optimizando.set(false);
