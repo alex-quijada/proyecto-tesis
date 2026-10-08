@@ -1,6 +1,6 @@
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { ApplicationConfig, provideZonelessChangeDetection } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, provideZonelessChangeDetection } from '@angular/core';
 import {
     provideRouter,
     withEnabledBlockingInitialNavigation,
@@ -10,6 +10,7 @@ import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
 import { MessageService } from 'primeng/api';
 import { appRoutes } from './app.routes';
+import { GlobalErrorHandler } from './app/services/global-error-handler.service';
 
 export const appConfig: ApplicationConfig = {
     providers: [
@@ -26,5 +27,6 @@ export const appConfig: ApplicationConfig = {
         provideAnimationsAsync(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
         MessageService,
+        { provide: ErrorHandler, useClass: GlobalErrorHandler },
     ],
 };

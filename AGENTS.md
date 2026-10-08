@@ -107,6 +107,10 @@ Most admin CRUD pages currently use mock data arrays. To move to real data, repl
 ### Layout
 - **Optimización de Rutas** page: two-column layout with Cronograma Semanal (left, w-80) and Guías + Mapa (right, flex-1). Cronograma days arranged in a 2-column grid using `grid grid-cols-2`.
 
+### Error Boundaries / Excepciones
+- **`GlobalErrorHandler`** (`src/app/services/global-error-handler.service.ts`): capturador central de excepciones registrado en `src/app.config.ts` (`{ provide: ErrorHandler, useClass: GlobalErrorHandler }`). Auto-recupera errores de carga de chunks lazy (`ChunkLoadError`, `Failed to fetch dynamically imported module`) recargando limpiamente la sesión, despacha notificaciones Toast con `MessageService` (throttled) para excepciones no capturadas y previene bloqueos silenciosos en modo Zoneless.
+- **`ErrorStateWidgetComponent`** (`src/app/shared/components/error-state-widget/error-state-widget.component.ts`): componente visual standalone reutilizable con botón "Reintentar" para estados de fallo local en mapas, gráficos y paneles de datos.
+
 ### Database / Supabase
 - Migration `00026`: `cronograma_semanal` table with RLS.
 - Migration `00027`: `obtener_cronograma_semanal` RPC.
